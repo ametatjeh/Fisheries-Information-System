@@ -1,0 +1,130 @@
+<?php
+
+namespace App\Imports;
+
+use App\Models\Species;
+use Illuminate\Support\Facades\DB;
+
+class AsfisSpeciesImporter
+{
+    protected $output;
+
+    public function setOutput($output)
+    {
+        $this->output = $output;
+    }
+
+    public function import($csvPath)
+    {
+        $result = [
+            'total' => 0,
+            'inserted' => 0,
+            'updated' => 0,
+            'skipped' => 0,
+            'failed' => 0,
+        ];
+
+        if (($handle = fopen($csvPath, "r")) !== FALSE) {
+            
+            // Read header
+            $header = fgetcsv($handle, 4096, ",");
+            if (!$header) {
+                return $result;
+            }
+
+            // Clean header (remove BOM if any, convert to lowercase)
+            $header = array_map(function($col) {
+                // Remove BOM
+                $col = preg_replace('/\x{FEFF}/u', '', $col);
+                return trim(strtolower($col));
+            }, $header);
+
+            $batchSize = 500;
+            $batchData = [];
+            
+            while (($row = fgetcsv($handle, 4096, ",")) !== FALSE) {
+                $result['total']++;
+                
+                // Map row to header
+                $data = [];
+                foreach ($header as $index => $colName) {
+                    $data[$colName] = $row[$index] ?? null;
+                }
+
+                // Identify ASFIS columns
+                // Expected ASFIS columns might be: '3a_code', 'taxocode', 'isscaap', 'scientific_name', 'english_name', 'author', 'family', 'order'
+                $faoCode = $data['3a_code'] ?? $data['alpha3_code'] ?? null;
+                
+                if (empty($faoCode)) {
+                    $result['skipped']++;
+                    continue;
+                }
+
+                $mappedData = [
+                    'fao_code' => $faoCode,
+                    'taxonomic_code' => $data['taxocode'] ?? null,
+                    'isscaap_code' => $data['isscaap'] ?? null,
+                    'scientific_name' => $data['scientific_name'] ?? null,
+                    'english_name' => $data['english_name'] ?? null,
+                    'french_name' => $data['french_name'] ?? null,
+                    'spanish_name' => $data['spanish_name'] ?? null,
+                    'author' => $data['author'] ?? null,
+                    'family' => $data['family'] ?? null,
+                    'higher_taxa' => $data['order'] ?? $data['higher_taxa'] ?? null,
+                    'fao_version' => '2026.1',
+                    'fao_source' => 'FAO ASFIS 2026.1',
+                ];
+
+                $batchData[] = $mappedData;
+
+                if (count($batchData) >= $batchSize) {
+                    $this->processBatch($batchData, $result);
+                    if ($this->output) {
+                        $this->output->writeln("Processed: " . $result['total']);
+                    }
+                    $batchData = []; // reset
+                }
+            }
+            
+            // Process remaining
+            if (count($batchData) > 0) {
+                $this->processBatch($batchData, $result);
+                if ($this->output) {
+                    $this->output->writeln("Processed: " . $result['total']);
+                }
+            }
+
+            fclose($handle);
+        }
+
+        return $result;
+    }
+
+    protected function processBatch($batchData, &$result)
+    {
+        DB::beginTransaction();
+        try {
+            foreach ($batchData as $data) {
+                $existing = Species::where('fao_code', $data['fao_code'])->first();
+                if ($existing) {
+                    // Update only FAO fields
+                    $existing->update($data);
+                    $result['updated']++;
+                } else {
+                    // Create new
+                    Species::create(array_merge($data, [
+                        'is_active' => true,
+                    ]));
+                    $result['inserted']++;
+                }
+            }
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $result['failed'] += count($batchData);
+            if ($this->output) {
+                $this->output->writeln("<error>Batch failed: " . $e->getMessage() . "</error>");
+            }
+        }
+    }
+}

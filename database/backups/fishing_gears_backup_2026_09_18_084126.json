@@ -1,0 +1,122 @@
+[
+    {
+        "id": 1,
+        "code": "PS-01",
+        "name": "Pukat Cincin Satu Kapal (Purse Seine)",
+        "category": "jaring_lingkar",
+        "description": "Alat tangkap utama kapal motor di Aceh (Pukat Langgar) untuk menangkap pelagis besar dan kecil (cakalang, tongkol, layang).",
+        "is_active": true,
+        "created_at": "2026-09-08T05:19:49.000000Z",
+        "updated_at": "2026-09-08T05:19:49.000000Z"
+    },
+    {
+        "id": 2,
+        "code": "PS-02",
+        "name": "Pukat Cincin Mini (Mini Purse Seine)",
+        "category": "jaring_lingkar",
+        "description": "Pukat cincin ukuran sedang untuk kapal 5-15 GT menyasar kembung, selar, dan tongkol di perairan pesisir.",
+        "is_active": true,
+        "created_at": "2026-09-08T05:19:49.000000Z",
+        "updated_at": "2026-09-08T05:19:49.000000Z"
+    },
+    {
+        "id": 3,
+        "code": "LL-01",
+        "name": "Rawai Tuna (Tuna Longline)",
+        "category": "pancing",
+        "description": "Pancing rawai hanyut samudera dengan ratusan mata pancing untuk target madidihang dan tuna mata besar di WPPNRI 572.",
+        "is_active": true,
+        "created_at": "2026-09-08T05:19:49.000000Z",
+        "updated_at": "2026-09-08T05:19:49.000000Z"
+    },
+    {
+        "id": 4,
+        "code": "LL-02",
+        "name": "Rawai Dasar (Bottom Longline)",
+        "category": "pancing",
+        "description": "Rawai yang dipasang di dasar perairan karang\/demersal untuk menangkap kerapu, kakap merah, dan pari.",
+        "is_active": true,
+        "created_at": "2026-09-08T05:19:49.000000Z",
+        "updated_at": "2026-09-08T05:19:49.000000Z"
+    },
+    {
+        "id": 5,
+        "code": "HL-01",
+        "name": "Pancing Ulur (Handline)",
+        "category": "pancing",
+        "description": "Alat pancing sederhana tradisonal nelayan kecil (motor tempel\/tanpa motor) untuk target tuna, cakalang, dan kuwe.",
+        "is_active": true,
+        "created_at": "2026-09-08T05:19:49.000000Z",
+        "updated_at": "2026-09-08T05:19:49.000000Z"
+    },
+    {
+        "id": 6,
+        "code": "TL-01",
+        "name": "Pancing Tonda (Troll Line)",
+        "category": "pancing",
+        "description": "Pancing yang ditarik perahu bergerak menggunakan umpan tiruan untuk menyasar tenggiri, lemadang, dan cakalang.",
+        "is_active": true,
+        "created_at": "2026-09-08T05:19:49.000000Z",
+        "updated_at": "2026-09-08T05:19:49.000000Z"
+    },
+    {
+        "id": 7,
+        "code": "GN-01",
+        "name": "Jaring Insang Hanyut (Drift Gillnet)",
+        "category": "jaring_insang",
+        "description": "Jaring insang permukaan yang hanyut terbawa arus untuk menangkap kembung, tongkol, dan tenggiri.",
+        "is_active": false,
+        "created_at": "2026-09-08T05:19:49.000000Z",
+        "updated_at": "2026-09-08T09:24:21.000000Z"
+    },
+    {
+        "id": 8,
+        "code": "GN-02",
+        "name": "Jaring Insang Dasar (Bottom Set Gillnet)",
+        "category": "jaring_insang",
+        "description": "Jaring insang yang menetap di dasar perairan untuk menangkap ikan demersal, bawal, dan rajungan.",
+        "is_active": true,
+        "created_at": "2026-09-08T05:19:49.000000Z",
+        "updated_at": "2026-09-08T05:19:49.000000Z"
+    },
+    {
+        "id": 9,
+        "code": "TN-01",
+        "name": "Jaring Tiga Lapis (Trammel Net)",
+        "category": "jaring_insang",
+        "description": "Jaring klitik berlapis tiga yang sangat selektif dan efektif untuk menangkap udang windu dan lobster di perairan pantai.",
+        "is_active": true,
+        "created_at": "2026-09-08T05:19:49.000000Z",
+        "updated_at": "2026-09-08T05:19:49.000000Z"
+    },
+    {
+        "id": 10,
+        "code": "BS-01",
+        "name": "Pukat Pantai (Beach Seine \/ Pukat Darat)",
+        "category": "jaring_tarik",
+        "description": "Pukat tradisional (Pukat Darat Aceh) yang ditarik beramai-ramai oleh nelayan dari bibir pantai.",
+        "is_active": false,
+        "created_at": "2026-09-08T05:19:49.000000Z",
+        "updated_at": "2026-09-17T15:34:51.000000Z"
+    },
+    {
+        "id": 11,
+        "code": "TR-01",
+        "name": "Bubu Dasar (Fish Trap)",
+        "category": "perangkap",
+        "description": "Perangkap kawat \/ bambu yang diletakkan di dasar terumbu karang untuk menangkap kerapu, kakap, dan lobster.",
+        "is_active": true,
+        "created_at": "2026-09-08T05:19:49.000000Z",
+        "updated_at": "2026-09-08T05:19:49.000000Z"
+    },
+    {
+        "id": 12,
+        "code": "LN-01",
+        "name": "Bagan Perahu (Boat Lift Net)",
+        "category": "jaring_angkat",
+        "description": "Jaring angkat yang dipasang pada perahu berlampu untuk menangkap teri nasi dan cumi-cumi pada malam hari.",
+        "is_active": true,
+        "created_at": "2026-09-08T05:19:49.000000Z",
+        "updated_at": "2026-09-08T05:19:49.000000Z"
+    }
+]

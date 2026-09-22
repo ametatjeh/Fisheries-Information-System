@@ -1,0 +1,33 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('regencies', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('province_id')->constrained('provinces')->cascadeOnDelete();
+            $table->string('code', 10)->unique()->comment('Kode resmi kabupaten/kota Kemendagri / BPS');
+            $table->string('name', 100)->comment('Nama kabupaten/kota');
+            $table->enum('type', ['kabupaten', 'kota'])->default('kabupaten');
+            $table->timestamps();
+
+            $table->index(['province_id', 'name']);
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('regencies');
+    }
+};
