@@ -308,6 +308,7 @@ Route::middleware('auth')->group(function () {
         // GFW Satellite Vessel Monitoring GIS
         Route::get('/gfw/monitoring', [GfwMonitoringController::class, 'index'])->name('gfw.monitoring');
         Route::get('/gfw/vessels', [GfwVesselMonitoringController::class, 'index'])->name('gfw.vessels');
+        Route::get('/gfw/dashboard', [GfwVesselMonitoringController::class, 'dashboard'])->name('gfw.dashboard');
         Route::get('/gfw/observatory', [GfwObservatoryController::class, 'index'])->name('gfw.observatory');
     });
 
@@ -334,6 +335,9 @@ Route::prefix('api/gfw')->name('api.gfw.')->middleware(['throttle:gfw-api'])->gr
     Route::get('/aoi/zee-aceh', [GFWController::class, 'zeeAcehAoi'])->name('aoi.zee-aceh');
     Route::get('/aoi/zee-indonesia-aceh', [GFWController::class, 'zeeIndonesiaAcehAoi'])->name('aoi.zee-indonesia-aceh');
     Route::get('/events/zee-indonesia-aceh', [GFWController::class, 'eventsZeeIndonesiaAceh'])->name('events.zee-indonesia-aceh');
+    Route::get('/vessels/zee-indonesia-aceh', [GFWController::class, 'vesselsZeeIndonesiaAceh'])->name('vessels.zee-indonesia-aceh');
+    Route::get('/vessels/{vessel}/track', [GFWController::class, 'vesselTrack'])->name('vessels.track');
+    Route::get('/dashboard', [GFWController::class, 'dashboardSummary'])->name('dashboard.summary');
     Route::get('/spatial/fishing-grounds', [GFWController::class, 'spatialFishingGrounds'])->name('spatial.fishing-grounds');
 
     // Vessel Identity & Search

@@ -25,7 +25,7 @@ class GfwVesselMonitoringController extends Controller
     {
         $timezone = (string) config('app.timezone', 'Asia/Jakarta');
         $defaultEnd = Carbon::now($timezone)->subDays(3)->toDateString();
-        $defaultStart = Carbon::now($timezone)->subDays(10)->toDateString();
+        $defaultStart = Carbon::now($timezone)->subDays(9)->toDateString();
 
         $startDate = (string) $request->query('start_date', $defaultStart);
         $endDate = (string) $request->query('end_date', $defaultEnd);
@@ -57,6 +57,41 @@ class GfwVesselMonitoringController extends Controller
             'endDate',
             'aoiSummary',
             'bufferSummary',
+            'latencyNotice'
+        ));
+    }
+
+    /**
+     * Display the GFW Operational Dashboard view.
+     */
+    public function dashboard(Request $request): View
+    {
+        $timezone = (string) config('app.timezone', 'Asia/Jakarta');
+        $defaultEnd = Carbon::now($timezone)->subDays(3)->toDateString();
+        $defaultStart = Carbon::now($timezone)->subDays(9)->toDateString();
+
+        $startDate = (string) $request->query('start_date', $defaultStart);
+        $endDate = (string) $request->query('end_date', $defaultEnd);
+
+        $aoiSummary = [
+            'name' => 'ZEE Indonesia - Kawasan Aceh',
+            'geometry_type' => 'Polygon',
+            'crs' => 'EPSG:4326',
+            'feature_count' => 1,
+        ];
+
+        try {
+            $aoiSummary = $this->aoiService->getZeeIndonesiaAcehSummary();
+        } catch (Throwable) {
+            // Fallback gracefully
+        }
+
+        $latencyNotice = GfwActivityService::LATENCY_NOTICE;
+
+        return view('gfw.dashboard', compact(
+            'startDate',
+            'endDate',
+            'aoiSummary',
             'latencyNotice'
         ));
     }

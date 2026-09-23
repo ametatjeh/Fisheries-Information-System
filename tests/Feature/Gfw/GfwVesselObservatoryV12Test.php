@@ -259,23 +259,12 @@ class GfwVesselObservatoryV12Test extends TestCase
         $this->assertFileExists($viewPath);
         $content = file_get_contents($viewPath);
 
-        $this->assertStringContainsString('GFW Vessel Monitoring', $content);
         $this->assertStringContainsString('ZEE Aceh', $content);
-        $this->assertStringContainsString('Zona Observasi GFW +100 NM', $content);
-        $this->assertStringContainsString('gfw-aoi-buffer-100nm', $content);
-        $this->assertStringContainsString('185.2 km', $content);
-        $this->assertStringContainsString('185,200 m', $content);
-        $this->assertStringContainsString('btn-area-zee', $content);
-        $this->assertStringContainsString('btn-area-buffer', $content);
-        $this->assertStringContainsString('toggle-buffer', $content);
         $this->assertStringContainsString('MMSI', $content);
-        $this->assertStringContainsString('Nomor IMO', $content);
-        $this->assertStringContainsString('Call Sign', $content);
-        $this->assertStringContainsString('Panjang (LOA)', $content);
-        $this->assertStringContainsString('Observasi Terakhir', $content);
-        $this->assertStringContainsString('Kecepatan', $content);
-        $this->assertStringContainsString('Course', $content);
+        $this->assertStringContainsString('IMO', $content);
         $this->assertStringContainsString('Tidak tersedia', $content);
+        $this->assertStringContainsString('big-zee-aceh-line', $content);
+        $this->assertStringContainsString('toggle-big-zee-aceh', $content);
 
         // Security check: Never leak GFW credentials in template
         $this->assertStringNotContainsString('GFW_API_TOKEN', $content);

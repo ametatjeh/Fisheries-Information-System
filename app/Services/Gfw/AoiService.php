@@ -209,6 +209,8 @@ class AoiService
         $geometryType = 'Polygon';
         $name = $defaultName;
         $crs = 'EPSG:4326';
+        $id = 'zee-indonesia-aceh';
+        $source = 'BIG';
         $coordinates = [];
 
         if ($type === 'FeatureCollection' && ! empty($geoJson['features'])) {
@@ -217,11 +219,15 @@ class AoiService
             $geometryType = $firstFeature['geometry']['type'] ?? 'Polygon';
             $name = $firstFeature['properties']['name'] ?? $defaultName;
             $crs = $firstFeature['properties']['crs'] ?? 'EPSG:4326';
+            $id = $firstFeature['properties']['id'] ?? $id;
+            $source = $firstFeature['properties']['source'] ?? $source;
             $coordinates = $firstFeature['geometry']['coordinates'] ?? [];
         } elseif ($type === 'Feature') {
             $geometryType = $geoJson['geometry']['type'] ?? 'Polygon';
             $name = $geoJson['properties']['name'] ?? $defaultName;
             $crs = $geoJson['properties']['crs'] ?? 'EPSG:4326';
+            $id = $geoJson['properties']['id'] ?? $id;
+            $source = $geoJson['properties']['source'] ?? $source;
             $coordinates = $geoJson['geometry']['coordinates'] ?? [];
         } elseif (in_array($type, ['Polygon', 'MultiPolygon'])) {
             $geometryType = $type;
@@ -232,6 +238,8 @@ class AoiService
 
         return [
             'success' => true,
+            'id' => $id,
+            'source' => $source,
             'name' => $name,
             'geometry_type' => $geometryType,
             'crs' => $crs,
