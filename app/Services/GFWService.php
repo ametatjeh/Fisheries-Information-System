@@ -479,6 +479,8 @@ class GFWService
             // Group entries into distinct vessels
             /** @var array<string, array<string, mixed>> $vesselsById */
             $vesselsById = [];
+            $vesselKeyByMmsi = [];
+            $vesselKeyByImo = [];
 
             foreach ($rawEntries as $entry) {
                 if (! is_array($entry)) {
@@ -486,12 +488,34 @@ class GFWService
                 }
 
                 $vesselRaw = $entry['vessel'] ?? [];
-                $vId = $vesselRaw['id'] ?? $vesselRaw['ssvid'] ?? $vesselRaw['mmsi'] ?? ($entry['id'] ?? null);
-                if (empty($vId)) {
+                $vId = ! empty($vesselRaw['id']) ? trim((string) $vesselRaw['id']) : null;
+                $mmsi = ! empty($vesselRaw['ssvid']) ? trim((string) $vesselRaw['ssvid']) : (! empty($vesselRaw['mmsi']) ? trim((string) $vesselRaw['mmsi']) : null);
+                $imo = ! empty($vesselRaw['imo']) ? trim((string) $vesselRaw['imo']) : null;
+
+                // Resolve canonical vessel key: prioritize GFW vessel id, then seen MMSI, then seen IMO
+                $vKey = null;
+                if ($vId !== null && isset($vesselsById[$vId])) {
+                    $vKey = $vId;
+                } elseif ($mmsi !== null && isset($vesselKeyByMmsi[$mmsi])) {
+                    $vKey = $vesselKeyByMmsi[$mmsi];
+                } elseif ($imo !== null && isset($vesselKeyByImo[$imo])) {
+                    $vKey = $vesselKeyByImo[$imo];
+                } else {
+                    $vKey = $vId ?? ($mmsi ?? ($imo ?? ($entry['id'] ?? null)));
+                }
+
+                if (empty($vKey)) {
                     continue;
                 }
 
-                $vKey = (string) $vId;
+                $vKey = (string) $vKey;
+                if ($mmsi !== null) {
+                    $vesselKeyByMmsi[$mmsi] = $vKey;
+                }
+                if ($imo !== null) {
+                    $vesselKeyByImo[$imo] = $vKey;
+                }
+
                 $lat = isset($entry['position']['lat']) && is_numeric($entry['position']['lat']) ? (float) $entry['position']['lat'] : null;
                 $lon = isset($entry['position']['lon']) && is_numeric($entry['position']['lon']) ? (float) $entry['position']['lon'] : null;
 
@@ -613,13 +637,7 @@ class GFWService
                 }
 
                 $vItem['data_age_seconds'] = $ageSeconds;
-                if ($ageSeconds !== null && $ageSeconds <= 86400) {
-                    $vItem['status'] = 'LIVE';
-                } elseif ($ageSeconds !== null && $ageSeconds <= 259200) {
-                    $vItem['status'] = 'RECENT';
-                } else {
-                    $vItem['status'] = 'STALE';
-                }
+                $vItem['status'] = self::classifyStatus($ageSeconds);
             }
             unset($vItem);
 
@@ -689,6 +707,8 @@ class GFWService
                     'start' => $startDate,
                     'end' => $endDate,
                 ],
+                'timezone' => 'UTC',
+                'timezone_display' => 'WIB (UTC+7)',
                 'summary' => [
                     'total_vessels' => $totalVessels,
                     'fishing_vessels' => $fishingVessels,
@@ -778,6 +798,30 @@ class GFWService
         }
 
         return ucfirst($lower);
+    }
+
+    /**
+     * Classify vessel observation recency status based on elapsed seconds.
+     * Boundary rules:
+     * - LIVE: <= 24 hours (86,400s)
+     * - RECENT: <= 72 hours (259,200s)
+     * - STALE: > 72 hours (> 259,200s) or missing
+     */
+    public static function classifyStatus(?int $ageSeconds): string
+    {
+        if ($ageSeconds === null || $ageSeconds < 0) {
+            return 'STALE';
+        }
+
+        if ($ageSeconds <= 86400) {
+            return 'LIVE';
+        }
+
+        if ($ageSeconds <= 259200) {
+            return 'RECENT';
+        }
+
+        return 'STALE';
     }
 
     /**
@@ -1097,6 +1141,8 @@ class GFWService
             'data_age_seconds' => $vesselsResult['data_age_seconds'] ?? 0,
             'aoi' => $vesselsResult['aoi'],
             'period' => $vesselsResult['period'],
+            'timezone' => 'UTC',
+            'timezone_display' => 'WIB (UTC+7)',
             'kpi' => [
                 'detected_vessels' => $detectedVessels,
                 'live_recent' => $liveRecentCount,

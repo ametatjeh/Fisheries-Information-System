@@ -1125,6 +1125,10 @@
                     liveStatusText.className = 'text-emerald-300 font-mono';
 
                     // Start 60-second timer
+                    if (liveTimer) {
+                        clearInterval(liveTimer);
+                        liveTimer = null;
+                    }
                     liveTimer = setInterval(fetchDashboardData, 60000);
                 } else {
                     btnToggleLive.textContent = 'OFF';
@@ -1133,7 +1137,10 @@
                     liveStatusText.textContent = 'Manual (Siap)';
                     liveStatusText.className = 'text-slate-200 font-mono';
 
-                    if (liveTimer) clearInterval(liveTimer);
+                    if (liveTimer) {
+                        clearInterval(liveTimer);
+                        liveTimer = null;
+                    }
                 }
             });
 
@@ -1154,8 +1161,9 @@
                     const d = new Date(str);
                     return d.toLocaleString('id-ID', {
                         year: 'numeric', month: 'short', day: 'numeric',
-                        hour: '2-digit', minute: '2-digit'
-                    });
+                        hour: '2-digit', minute: '2-digit',
+                        timeZone: 'Asia/Jakarta'
+                    }) + ' WIB';
                 } catch { return str; }
             }
 

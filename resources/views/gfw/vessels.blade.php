@@ -1544,12 +1544,19 @@
                     btnToggleLive.textContent = 'ON (60s)';
                     btnToggleLive.className = 'px-2.5 py-0.5 rounded text-[11px] font-bold bg-emerald-600 text-white transition';
                     livePulse.className = 'w-2 h-2 rounded-full bg-emerald-400 inline-block animate-ping';
+                    if (liveTimer) {
+                        clearInterval(liveTimer);
+                        liveTimer = null;
+                    }
                     liveTimer = setInterval(fetchVesselsData, 60000);
                 } else {
                     btnToggleLive.textContent = 'OFF';
                     btnToggleLive.className = 'px-2.5 py-0.5 rounded text-[11px] font-bold bg-slate-700 text-slate-300 hover:bg-slate-600 transition';
                     livePulse.className = 'w-2 h-2 rounded-full bg-slate-500 inline-block';
-                    if (liveTimer) clearInterval(liveTimer);
+                    if (liveTimer) {
+                        clearInterval(liveTimer);
+                        liveTimer = null;
+                    }
                 }
             });
 
@@ -1654,8 +1661,9 @@
                         month: 'short',
                         day: 'numeric',
                         hour: '2-digit',
-                        minute: '2-digit'
-                    });
+                        minute: '2-digit',
+                        timeZone: 'Asia/Jakarta'
+                    }) + ' WIB';
                 } catch (e) {
                     return isoStr;
                 }
