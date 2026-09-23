@@ -504,12 +504,11 @@
 
 
     {{-- Public Data Disclaimer --}}
-    <div class="flex items-start gap-3 bg-sky-500/10 text-sky-200 px-4 py-3.5 text-xs border border-sky-500/25 rounded-xl">
-        <span class="text-base shrink-0 mt-0.5">ℹ️</span>
+    <div class="flex items-start gap-3 bg-yellow-500/20 text-yellow-200 px-4 py-3.5 text-xs border border-yellow-500/40 rounded-xl">
+        <span class="text-base shrink-0 mt-0.5">⚠️</span>
         <span>
-            Data yang ditampilkan pada halaman ini merupakan <strong>statistik agregat</strong> untuk kebutuhan informasi publik.
-            Identitas operasional (nama kapal, nelayan, nomor trip, koordinat mentah) tidak disertakan.
-            Sumber data: sistem perikanan tangkap Provinsi Aceh.
+            <strong>DEMO DATA</strong> — Data yang ditampilkan pada halaman ini adalah <strong>data demonstrasi</strong> dan bukan data produksi resmi.
+            Seluruh angka, grafik, dan statistik bersifat simulasi untuk keperluan pengembangan dan presentasi sistem.
         </span>
     </div>
 
