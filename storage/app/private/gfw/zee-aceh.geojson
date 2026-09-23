@@ -1,0 +1,30 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "ZEE Aceh",
+        "description": "Aceh Maritime Observation AOI (Wilayah Pengamatan Maritim Perairan Aceh)",
+        "source": "Badan Informasi Geospasial (BIG) / KKP / Qanun Aceh 1/2020 Reference / Marine Regions MRGID 8492",
+        "source_url": "https://geoportal.big.go.id",
+        "crs": "EPSG:4326",
+        "jurisdiction_note": "AOI filter geospasial untuk analisis pergerakan kapal Global Fishing Watch di perairan sekitar Aceh (WPPNRI 571 & 572).",
+        "created_at": "2026-09-21T03:40:00Z"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [94.5, 1.8],
+            [94.5, 6.2],
+            [98.3, 6.2],
+            [98.3, 3.8],
+            [97.8, 1.8],
+            [94.5, 1.8]
+          ]
+        ]
+      }
+    }
+  ]
+}
