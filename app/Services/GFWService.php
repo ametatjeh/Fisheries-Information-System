@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Gfw\GfwVessel;
+use App\Services\Gfw\AoiService;
 use App\Services\Gfw\GfwActivityService;
 use Carbon\Carbon;
 use Illuminate\Http\Client\ConnectionException;
@@ -213,11 +214,29 @@ class GFWService
                 $rawEntries = $payload['entries'] ?? [];
                 $total = (int) ($payload['total'] ?? count($rawEntries));
 
-                // Deduplicate events by unique event.id while preserving upstream ordering
+                // Filter events strictly inside BIG ZEE Aceh and deduplicate by unique event.id
                 $normalizedEvents = [];
                 $seenIds = [];
+                /** @var AoiService $aoiService */
+                $aoiService = app(AoiService::class);
 
                 foreach ($rawEntries as $entry) {
+                    $lat = isset($entry['position']['lat']) && is_numeric($entry['position']['lat']) ? (float) $entry['position']['lat'] : null;
+                    $lon = isset($entry['position']['lon']) && is_numeric($entry['position']['lon']) ? (float) $entry['position']['lon'] : null;
+
+                    if ($lat !== null && ($lat < -90.0 || $lat > 90.0)) {
+                        $lat = null;
+                    }
+                    if ($lon !== null && ($lon < -180.0 || $lon > 180.0)) {
+                        $lon = null;
+                    }
+
+                    if ($lat !== null && $lon !== null) {
+                        if (! $aoiService->isPointInGeometry($lon, $lat, $cleanGeometry)) {
+                            continue; // Exclude events located outside BIG ZEE Aceh
+                        }
+                    }
+
                     $id = $entry['id'] ?? null;
                     if ($id !== null && isset($seenIds[$id])) {
                         continue;
@@ -235,6 +254,13 @@ class GFWService
                     'success' => true,
                     'source' => 'Global Fishing Watch',
                     'aoi' => $aoiName,
+                    'aoi_metadata' => [
+                        'id' => 'zee-indonesia-aceh',
+                        'name' => 'ZEE Indonesia - Kawasan Aceh',
+                        'source' => 'BIG',
+                        'crs' => 'EPSG:4326',
+                    ],
+                    'description' => 'Observasi kapal Global Fishing Watch yang berada di dalam batas ZEE Aceh berdasarkan BIG',
                     'start_date' => $startDate,
                     'end_date' => $endDate,
                     'event_count' => $total,
@@ -482,9 +508,29 @@ class GFWService
             $vesselKeyByMmsi = [];
             $vesselKeyByImo = [];
 
+            $aoiService = app(AoiService::class);
+
             foreach ($rawEntries as $entry) {
                 if (! is_array($entry)) {
                     continue;
+                }
+
+                $lat = isset($entry['position']['lat']) && is_numeric($entry['position']['lat']) ? (float) $entry['position']['lat'] : null;
+                $lon = isset($entry['position']['lon']) && is_numeric($entry['position']['lon']) ? (float) $entry['position']['lon'] : null;
+
+                if ($lat !== null && ($lat < -90.0 || $lat > 90.0)) {
+                    $lat = null;
+                }
+                if ($lon !== null && ($lon < -180.0 || $lon > 180.0)) {
+                    $lon = null;
+                }
+
+                // Strict point-in-polygon verification:
+                // Any observation with spatial coordinates MUST fall strictly inside the official BIG ZEE Aceh polygon.
+                if ($lat !== null && $lon !== null) {
+                    if (! $aoiService->isPointInGeometry($lon, $lat, $cleanGeometry)) {
+                        continue; // Strictly excluded outside BIG ZEE
+                    }
                 }
 
                 $vesselRaw = $entry['vessel'] ?? [];
@@ -514,16 +560,6 @@ class GFWService
                 }
                 if ($imo !== null) {
                     $vesselKeyByImo[$imo] = $vKey;
-                }
-
-                $lat = isset($entry['position']['lat']) && is_numeric($entry['position']['lat']) ? (float) $entry['position']['lat'] : null;
-                $lon = isset($entry['position']['lon']) && is_numeric($entry['position']['lon']) ? (float) $entry['position']['lon'] : null;
-
-                if ($lat !== null && ($lat < -90.0 || $lat > 90.0)) {
-                    $lat = null;
-                }
-                if ($lon !== null && ($lon < -180.0 || $lon > 180.0)) {
-                    $lon = null;
                 }
 
                 $eventType = strtolower(trim((string) ($entry['type'] ?? 'fishing')));
@@ -563,17 +599,15 @@ class GFWService
                         'lon' => $lon,
                     ];
                 } else {
-                    // Update latest observation and positions
-                    if ($lat !== null && $lon !== null) {
+                    // Update latest observation and positions if newer
+                    if ($obsTime && (! $vesselsById[$vKey]['last_seen'] || $obsTime >= $vesselsById[$vKey]['last_seen'])) {
                         $vesselsById[$vKey]['position'] = ['lat' => $lat, 'lon' => $lon];
                         $vesselsById[$vKey]['lat'] = $lat;
                         $vesselsById[$vKey]['lon'] = $lon;
+                        $vesselsById[$vKey]['last_seen'] = $obsTime;
                     }
                     if ($startTime && (! $vesselsById[$vKey]['first_seen'] || $startTime < $vesselsById[$vKey]['first_seen'])) {
                         $vesselsById[$vKey]['first_seen'] = $startTime;
-                    }
-                    if ($obsTime && (! $vesselsById[$vKey]['last_seen'] || $obsTime > $vesselsById[$vKey]['last_seen'])) {
-                        $vesselsById[$vKey]['last_seen'] = $obsTime;
                     }
                     if ($activityName === 'Fishing Activity') {
                         $vesselsById[$vKey]['activity'] = 'Fishing Activity';
@@ -695,6 +729,7 @@ class GFWService
             return [
                 'success' => true,
                 'live' => true,
+                'message' => $totalVessels > 0 ? null : 'No vessel detected in BIG ZEE Aceh for selected period.',
                 'last_updated' => $latestSeenTimestamp ?? $nowUtc->toIso8601String(),
                 'data_age_seconds' => $minDataAgeSeconds ?? 0,
                 'aoi' => [
@@ -703,6 +738,7 @@ class GFWService
                     'source' => 'BIG',
                     'crs' => 'EPSG:4326',
                 ],
+                'description' => 'Observasi kapal Global Fishing Watch yang berada di dalam batas ZEE Aceh berdasarkan BIG',
                 'period' => [
                     'start' => $startDate,
                     'end' => $endDate,
@@ -923,6 +959,12 @@ class GFWService
                 return $tA <=> $tB;
             });
 
+            $scope = $options['scope'] ?? 'zee_aceh';
+            $isZeeAcehScope = $scope !== 'global';
+            /** @var AoiService $aoiService */
+            $aoiService = app(AoiService::class);
+            $bigGeometry = $isZeeAcehScope ? $aoiService->getZeeIndonesiaAcehGeometry() : null;
+
             $coordinates = [];
             $pointFeatures = [];
             $firstDetected = null;
@@ -934,6 +976,10 @@ class GFWService
                 $time = $pt['timestamp'] ?? $pt['observed_at'] ?? null;
 
                 if ($lat !== null && $lon !== null && $lat >= -90 && $lat <= 90 && $lon >= -180 && $lon <= 180) {
+                    if ($isZeeAcehScope && ! $aoiService->isPointInGeometry($lon, $lat, $bigGeometry)) {
+                        continue;
+                    }
+
                     $coordinates[] = [$lon, $lat];
 
                     if ($firstDetected === null && $time !== null) {
@@ -983,6 +1029,14 @@ class GFWService
             return [
                 'success' => true,
                 'vessel_id' => $cleanId,
+                'track_scope' => $isZeeAcehScope ? 'ZEE Aceh Track' : 'Global Vessel Track',
+                'track_scope_description' => $isZeeAcehScope ? 'Track di ZEE Aceh berdasarkan batas BIG' : 'Global Vessel Track',
+                'aoi' => [
+                    'id' => 'zee-indonesia-aceh',
+                    'name' => 'ZEE Indonesia - Kawasan Aceh',
+                    'source' => 'BIG',
+                    'crs' => 'EPSG:4326',
+                ],
                 'sufficient' => $sufficient,
                 'message' => $sufficient ? 'Data lintasan tersedia.' : 'Track data insufficient',
                 'points_count' => count($coordinates),
@@ -1140,6 +1194,7 @@ class GFWService
             'last_updated' => $vesselsResult['last_updated'] ?? now()->toIso8601String(),
             'data_age_seconds' => $vesselsResult['data_age_seconds'] ?? 0,
             'aoi' => $vesselsResult['aoi'],
+            'description' => 'Observasi kapal Global Fishing Watch yang berada di dalam batas ZEE Aceh berdasarkan BIG',
             'period' => $vesselsResult['period'],
             'timezone' => 'UTC',
             'timezone_display' => 'WIB (UTC+7)',

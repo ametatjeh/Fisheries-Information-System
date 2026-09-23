@@ -587,7 +587,7 @@
                             id: 'big-zee-outline',
                             type: 'line',
                             source: 'big-zee-poly',
-                            paint: { 'line-color': '#0284c7', 'line-width': 2, 'line-dasharray': [3, 1] }
+                            paint: { 'line-color': '#0284c7', 'line-width': 2.5 }
                         });
                     }
                 } catch (e) {

@@ -531,4 +531,180 @@ class AoiService
 
         return $bufferedGeoJson;
     }
+
+    /**
+     * Strictly validate that the BIG ZEE Aceh GeoJSON file exists, has valid syntax,
+     * valid Polygon/MultiPolygon geometry and CRS EPSG:4326.
+     *
+     * @return array<string, mixed>
+     *
+     * @throws RuntimeException
+     */
+    public function validateAoiOrThrow(string $relative = 'private/gfw/zee-indonesia-aceh.geojson'): array
+    {
+        $path = $this->getStoragePath($relative);
+        if (! file_exists($path) && ! Storage::disk('local')->exists($relative)) {
+            throw new RuntimeException('BIG ZEE Aceh AOI configuration is invalid: File not found.');
+        }
+
+        try {
+            $geoJson = $this->readGeoJsonFile($relative);
+        } catch (\Throwable $e) {
+            throw new RuntimeException('BIG ZEE Aceh AOI configuration is invalid: '.$e->getMessage(), 0, $e);
+        }
+
+        $summary = $this->extractSummaryFromGeoJson($geoJson, 'ZEE Indonesia - Kawasan Aceh');
+        if (($summary['crs'] ?? '') !== 'EPSG:4326') {
+            throw new RuntimeException('BIG ZEE Aceh AOI configuration is invalid: CRS must be EPSG:4326.');
+        }
+
+        return $geoJson;
+    }
+
+    /**
+     * Check if a 2D point [longitude, latitude] falls within the official BIG ZEE Aceh AOI.
+     */
+    public function isPointInAoi(float $lon, float $lat): bool
+    {
+        $geometry = $this->getZeeIndonesiaAcehGeometry();
+
+        return $this->isPointInGeometry($lon, $lat, $geometry);
+    }
+
+    /**
+     * Check if a 2D point [longitude, latitude] falls within any GeoJSON Geometry, Feature, or FeatureCollection.
+     *
+     * @param  array<string, mixed>  $geometry
+     */
+    public function isPointInGeometry(float $lon, float $lat, array $geometry): bool
+    {
+        $type = $geometry['type'] ?? '';
+
+        if ($type === 'FeatureCollection' && ! empty($geometry['features'])) {
+            foreach ($geometry['features'] as $feature) {
+                if (isset($feature['geometry']) && $this->isPointInGeometry($lon, $lat, $feature['geometry'])) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        if ($type === 'Feature' && isset($geometry['geometry'])) {
+            return $this->isPointInGeometry($lon, $lat, $geometry['geometry']);
+        }
+
+        $coords = $geometry['coordinates'] ?? [];
+
+        if ($type === 'Polygon' && is_array($coords)) {
+            return $this->isPointInPolygon($lon, $lat, $coords);
+        }
+
+        if ($type === 'MultiPolygon' && is_array($coords)) {
+            return $this->isPointInMultiPolygon($lon, $lat, $coords);
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if a 2D point [longitude, latitude] falls within a GeoJSON Polygon exterior ring and outside interior holes.
+     *
+     * @param  array<mixed>  $polygonRings
+     */
+    public function isPointInPolygon(float $lon, float $lat, array $polygonRings): bool
+    {
+        if (empty($polygonRings) || ! isset($polygonRings[0]) || ! is_array($polygonRings[0])) {
+            return false;
+        }
+
+        // 1. Check outer exterior ring
+        $exteriorRing = $polygonRings[0];
+        if (! $this->pointInLinearRing($lon, $lat, $exteriorRing)) {
+            return false;
+        }
+
+        // 2. Check interior rings (holes)
+        $ringCount = count($polygonRings);
+        for ($i = 1; $i < $ringCount; $i++) {
+            if (is_array($polygonRings[$i]) && $this->pointInLinearRing($lon, $lat, $polygonRings[$i])) {
+                return false; // Point falls inside a hole
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Check if a 2D point [longitude, latitude] falls within a GeoJSON MultiPolygon.
+     *
+     * @param  array<mixed>  $multiPolygonCoordinates
+     */
+    public function isPointInMultiPolygon(float $lon, float $lat, array $multiPolygonCoordinates): bool
+    {
+        foreach ($multiPolygonCoordinates as $polygonRings) {
+            if (is_array($polygonRings) && $this->isPointInPolygon($lon, $lat, $polygonRings)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Ray-casting point-in-polygon algorithm on a closed linear ring with boundary inclusion.
+     *
+     * @param  array<mixed>  $ring
+     */
+    public function pointInLinearRing(float $x, float $y, array $ring): bool
+    {
+        $numPoints = count($ring);
+        if ($numPoints < 3) {
+            return false;
+        }
+
+        $inside = false;
+
+        for ($i = 0, $j = $numPoints - 1; $i < $numPoints; $j = $i++) {
+            $xi = (float) ($ring[$i][0] ?? 0);
+            $yi = (float) ($ring[$i][1] ?? 0);
+            $xj = (float) ($ring[$j][0] ?? 0);
+            $yj = (float) ($ring[$j][1] ?? 0);
+
+            // Check if point lies directly on edge or vertex (boundary inclusion)
+            if ($this->isPointOnSegment($x, $y, $xi, $yi, $xj, $yj)) {
+                return true;
+            }
+
+            $intersect = (($yi > $y) !== ($yj > $y))
+                && ($x < ($xj - $xi) * ($y - $yi) / (($yj - $yi) ?: 1e-12) + $xi);
+
+            if ($intersect) {
+                $inside = ! $inside;
+            }
+        }
+
+        return $inside;
+    }
+
+    /**
+     * Check if a point (px, py) lies on line segment from (ax, ay) to (bx, by) within tolerance.
+     */
+    public function isPointOnSegment(float $px, float $py, float $ax, float $ay, float $bx, float $by, float $epsilon = 1e-7): bool
+    {
+        // Check bounding box first
+        $minX = min($ax, $bx) - $epsilon;
+        $maxX = max($ax, $bx) + $epsilon;
+        $minY = min($ay, $by) - $epsilon;
+        $maxY = max($ay, $by) + $epsilon;
+
+        if ($px < $minX || $px > $maxX || $py < $minY || $py > $maxY) {
+            return false;
+        }
+
+        // Cross product for collinearity: (px - ax)*(by - ay) - (py - ay)*(bx - ax)
+        $crossProduct = ($px - $ax) * ($by - $ay) - ($py - $ay) * ($bx - $ax);
+
+        return abs($crossProduct) <= $epsilon;
+    }
 }

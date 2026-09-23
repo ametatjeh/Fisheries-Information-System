@@ -187,13 +187,14 @@ class GFWController extends Controller
             $offset = (int) $rawOffset;
         }
 
-        // 7. Load AOI Geometry
+        // 7. Load & Validate AOI Geometry
         try {
-            $geometryData = $aoiService->getZeeIndonesiaAcehGeometry();
+            $geometryData = $aoiService->validateAoiOrThrow();
         } catch (Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal memuat AOI ZEE Indonesia Kawasan Aceh: '.$e->getMessage(),
+                'message' => 'BIG ZEE Aceh AOI configuration is invalid.',
+                'error' => $e->getMessage(),
             ], 500);
         }
 
@@ -305,13 +306,14 @@ class GFWController extends Controller
             $offset = (int) $rawOffset;
         }
 
-        // 7. Load AOI Geometry
+        // 7. Load & Validate AOI Geometry
         try {
-            $geometryData = $aoiService->getZeeIndonesiaAcehGeometry();
+            $geometryData = $aoiService->validateAoiOrThrow();
         } catch (Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'AOI unavailable: Gagal memuat AOI ZEE Indonesia Kawasan Aceh: '.$e->getMessage(),
+                'message' => 'BIG ZEE Aceh AOI configuration is invalid.',
+                'error' => $e->getMessage(),
             ], 500);
         }
 
@@ -459,7 +461,7 @@ class GFWController extends Controller
     /**
      * Query vessel movement track points & line string.
      */
-    public function vesselTrack(string $vesselId, Request $request, GFWService $gfw): JsonResponse
+    public function vesselTrack(string $vesselId, Request $request, GFWService $gfw, AoiService $aoiService): JsonResponse
     {
         $cleanId = trim($vesselId);
         if ($cleanId === '') {
@@ -519,7 +521,19 @@ class GFWController extends Controller
             ], 422);
         }
 
-        $result = $gfw->getVesselTrack($cleanId, $startDateStr, $endDateStr);
+        // Load & Validate AOI Geometry
+        try {
+            $aoiService->validateAoiOrThrow();
+        } catch (Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'BIG ZEE Aceh AOI configuration is invalid.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+
+        $scope = $request->query('scope', 'zee_aceh');
+        $result = $gfw->getVesselTrack($cleanId, $startDateStr, $endDateStr, ['scope' => $scope]);
         $status = $result['status'] ?? ($result['success'] ? 200 : 500);
         unset($result['status']);
 
@@ -581,13 +595,14 @@ class GFWController extends Controller
             ], 422);
         }
 
-        // Load AOI Geometry
+        // Load & Validate AOI Geometry
         try {
-            $geometryData = $aoiService->getZeeIndonesiaAcehGeometry();
+            $geometryData = $aoiService->validateAoiOrThrow();
         } catch (Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'AOI unavailable: Gagal memuat AOI ZEE Indonesia Kawasan Aceh: '.$e->getMessage(),
+                'message' => 'BIG ZEE Aceh AOI configuration is invalid.',
+                'error' => $e->getMessage(),
             ], 500);
         }
 

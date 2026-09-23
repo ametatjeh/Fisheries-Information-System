@@ -65,6 +65,9 @@
                     <p class="text-slate-300 text-xs sm:text-sm leading-relaxed max-w-2xl">
                         Observatori pemantauan spasial terpadu seluruh armada kapal (fishing vessel & other commercial vessels) yang terdeteksi satelit AIS/VMS dalam Area of Interest (AOI) ZEE Aceh, dengan visualisasi posisi dan lintasan pergerakan (Observed Track) dalam batas poligon resmi <strong>ZEE Indonesia Kawasan Aceh (Badan Informasi Geospasial)</strong>.
                     </p>
+                    <p class="text-[11px] text-indigo-300/80 leading-relaxed max-w-2xl">
+                        Observasi kapal Global Fishing Watch yang berada di dalam batas ZEE Aceh berdasarkan BIG.
+                    </p>
                 </div>
 
                 {{-- AOI & Provenance Summary Badge --}}
@@ -839,18 +842,6 @@
                                     'fill-opacity': 0.08
                                 }
                             });
-
-                            // Boundary stroke layer
-                            map.addLayer({
-                                id: 'big-zee-aoi-line',
-                                type: 'line',
-                                source: 'big-zee-aoi',
-                                paint: {
-                                    'line-color': '#0284c7',
-                                    'line-width': 2.5,
-                                    'line-dasharray': [3, 1]
-                                }
-                            });
                         }
 
                         // Fit bounds to polygon
@@ -860,7 +851,7 @@
                     console.warn('Gagal memuat poligon AOI ZEE Aceh:', e);
                 }
 
-                // Also load BIG Maritime Boundary line if available
+                // Load official BIG Maritime Boundary line (solid line only, no dasharray)
                 try {
                     const resBig = await fetch('/api/gis/big/zee/aceh');
                     const jsonBig = await resBig.json();
@@ -874,7 +865,7 @@
                             type: 'line',
                             source: 'big-zee-line-src',
                             paint: {
-                                'line-color': '#2563eb',
+                                'line-color': '#0284c7',
                                 'line-width': 2.5
                             }
                         });
@@ -884,7 +875,6 @@
                             const vis = this.checked ? 'visible' : 'none';
                             if (map.getLayer('big-zee-aceh-line')) map.setLayoutProperty('big-zee-aceh-line', 'visibility', vis);
                             if (map.getLayer('big-zee-aoi-fill')) map.setLayoutProperty('big-zee-aoi-fill', 'visibility', vis);
-                            if (map.getLayer('big-zee-aoi-line')) map.setLayoutProperty('big-zee-aoi-line', 'visibility', vis);
                         });
                     }
                 } catch (e) {
@@ -999,7 +989,7 @@
                     updateMapVessels(displayVessels);
 
                     // Update table
-                    renderVesselsTable(displayVessels);
+                    renderVesselsTable(displayVessels, json.message);
 
                     // Update pagination controls
                     updatePaginationUI();
@@ -1322,9 +1312,9 @@
             }
 
             // Render Table Rows
-            function renderVesselsTable(vessels) {
+            function renderVesselsTable(vessels, emptyMsg = null) {
                 if (!vessels || vessels.length === 0) {
-                    renderEmptyTable('Tidak ada kapal terdeteksi pada filter ini (0 vessels).');
+                    renderEmptyTable(emptyMsg || 'No vessel detected in BIG ZEE Aceh for selected period.');
                     return;
                 }
 
