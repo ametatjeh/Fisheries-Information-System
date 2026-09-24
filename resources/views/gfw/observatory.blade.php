@@ -2,8 +2,8 @@
     <x-slot name="header">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div class="flex items-center gap-2">
-                <span class="text-xl">🔭</span>
-                <span class="font-bold text-slate-800">{{ __('GFW Vessel Observatory — Aceh & Perairan Sekitarnya') }}</span>
+                <span>🔭</span>
+                <span>{{ __('GFW Vessel Observatory — Aceh & Perairan Sekitarnya') }}</span>
             </div>
             <div class="flex items-center gap-2 shrink-0">
                 <a href="{{ route('dashboard') }}" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs transition shadow-xs flex items-center gap-1.5">

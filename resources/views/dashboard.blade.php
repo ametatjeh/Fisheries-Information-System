@@ -2,8 +2,8 @@
     <x-slot name="header">
         <div class="flex items-center justify-between flex-wrap gap-2">
             <div class="hidden md:flex items-center gap-2">
-                <span class="text-xl">📊</span>
-                <span class="font-bold text-white">{{ __('Dashboard Eksekutif & Analisis Terpadu') }}</span>
+                <span>📊</span>
+                <span>{{ __('Dashboard Eksekutif & Analisis Terpadu') }}</span>
             </div>
             <div class="flex items-center gap-2 text-xs">
                 <span class="px-2.5 py-1 rounded-lg bg-ocean-100 text-ocean-800 font-semibold flex items-center gap-1.5">

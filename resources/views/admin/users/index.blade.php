@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex items-center gap-2">
-            <span class="text-lg">👥</span>
+            <span>👥</span>
             <span>{{ __('Manajemen Akun & Hak Akses Pengguna') }}</span>
         </div>
     </x-slot>

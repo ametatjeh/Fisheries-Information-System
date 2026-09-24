@@ -2,8 +2,8 @@
     <x-slot name="header">
         <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
-                <span class="text-xl">📊</span>
-                <span class="font-bold text-white">{{ __('Analisis: Estimasi Tangkapan (Catch Estimation & Raising Factor)') }}</span>
+                <span>📊</span>
+                <span>{{ __('Analisis: Estimasi Tangkapan (Catch Estimation & Raising Factor)') }}</span>
             </div>
             <button type="button" @click="showGenerateModal = true" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-sm transition">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>

@@ -1,19 +1,8 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div class="flex items-center gap-2.5">
-                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-600 text-white flex items-center justify-center shadow-xs">
-                    <span class="text-lg">🚢</span>
-                </div>
-                <div>
-                    <h1 class="text-base font-bold text-white tracking-tight leading-tight">
-                        {{ __('GFW VESSEL OBSERVATORY') }}
-                    </h1>
-                    <p class="text-xs text-white font-medium">
-                        {{ __('ZEE Indonesia – Kawasan Aceh') }}
-                    </p>
-                </div>
-            </div>
+        <div class="flex items-center gap-2">
+            <span>🚢</span>
+            <span>{{ __('GFW Vessel Observatory (ZEE Indonesia – Kawasan Aceh)') }}</span>
         </div>
     </x-slot>
 

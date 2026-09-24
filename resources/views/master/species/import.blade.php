@@ -7,7 +7,7 @@
                 </svg>
             </a>
             <span>🐠</span>
-            <span class="font-semibold text-gray-800">{{ __('Import Data Spesies Ikan') }}</span>
+            <span>{{ __('Import Data Spesies Ikan') }}</span>
         </div>
     </x-slot>
 

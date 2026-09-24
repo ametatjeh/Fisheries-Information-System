@@ -1,12 +1,8 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center justify-between flex-wrap gap-2">
-            <div class="flex items-center gap-2">
-                <span class="text-xl">⚙️</span>
-                <h1 class="text-xl font-bold text-white leading-tight">
-                    {{ __('Pengaturan Identitas Organisasi') }}
-                </h1>
-            </div>
+        <div class="flex items-center gap-2">
+            <span>⚙️</span>
+            <span>{{ __('Pengaturan Identitas Organisasi') }}</span>
         </div>
     </x-slot>
 
