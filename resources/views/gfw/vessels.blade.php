@@ -117,29 +117,29 @@
         </div>
 
         {{-- Upstream Pagination Truncated Warning Banner --}}
-        <div id="vessels-truncated-banner" class="hidden p-3.5 sm:p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex items-start gap-2.5">
-            <span class="text-base shrink-0 mt-0.5">⚠️</span>
+        <div id="vessels-truncated-banner" class="hidden p-3.5 sm:p-4 rounded-xl bg-amber-50 border border-amber-300/80 text-amber-900 text-xs flex items-start gap-2.5 shadow-xs">
+            <span class="text-lg shrink-0 mt-0.5">⚠️</span>
             <div class="space-y-1">
-                <div class="font-bold text-amber-100 flex items-center gap-2">
+                <div class="font-bold text-amber-950 flex items-center gap-2">
                     <span>{{ __('Data Dibatasi oleh Safety Limit Upstream') }}</span>
-                    <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-800">Maks. 500 Events / 5 Halaman</span>
+                    <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300 font-bold">Maks. 500 Events / 5 Halaman</span>
                 </div>
-                <p class="text-amber-300 leading-relaxed text-[11px]">
+                <p class="text-amber-900 leading-relaxed text-[11px] font-medium">
                     Jumlah event hulu pada rentang waktu ini mencapai batas aman pengambilan data. Hasil observasi mungkin belum mencakup seluruh event yang tersedia di GFW API. Disarankan mempersempit rentang tanggal untuk kelengkapan data yang lebih detail.
                 </p>
             </div>
         </div>
 
         {{-- Fallback / Error Resilience Notice --}}
-        <div id="vessels-refresh-error-notice" class="hidden p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div class="flex items-center gap-2">
-                <span class="text-base">⚠️</span>
+        <div id="vessels-refresh-error-notice" class="hidden p-3.5 rounded-2xl bg-amber-50 border border-amber-300/80 text-amber-900 text-xs flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+            <div class="flex items-center gap-2.5">
+                <span class="text-lg shrink-0">⚠️</span>
                 <div>
-                    <span class="font-bold text-amber-100">Gagal memperbarui data dari GFW API.</span>
-                    <span class="text-[11px] text-amber-300 ml-1">Menampilkan dataset berhasil terakhir. Data kapal tidak direset ke 0.</span>
+                    <span class="font-bold text-amber-950 text-sm">Gagal memperbarui data dari GFW API.</span>
+                    <span class="text-xs text-amber-900 font-medium ml-1">Menampilkan dataset berhasil terakhir. Data kapal tidak direset ke 0.</span>
                 </div>
             </div>
-            <button type="button" id="btn-retry-vessels" class="px-3 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition shrink-0">
+            <button type="button" id="btn-retry-vessels" class="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition shrink-0 shadow-xs">
                 🔄 Coba Lagi
             </button>
         </div>

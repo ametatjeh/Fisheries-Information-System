@@ -105,15 +105,15 @@
         </div>
 
         {{-- Fallback / Warning Error Notice --}}
-        <div id="gfw-dashboard-error-notice" class="hidden p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div class="flex items-center gap-2">
-                <span class="text-lg">⚠️</span>
+        <div id="gfw-dashboard-error-notice" class="hidden p-4 rounded-2xl bg-amber-50 border border-amber-300/80 text-amber-900 text-xs flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+            <div class="flex items-center gap-3">
+                <span class="text-2xl shrink-0">⚠️</span>
                 <div>
-                    <span class="font-bold text-amber-100" id="error-notice-title">Gagal mengambil data dari Global Fishing Watch.</span>
-                    <p class="text-[11px] text-amber-300 mt-0.5" id="error-notice-detail">Menampilkan dataset berhasil terakhir. Data operasional tetap aman dan tidak direset.</p>
+                    <span class="font-bold text-amber-950 text-sm block" id="error-notice-title">Gagal mengambil data dari Global Fishing Watch.</span>
+                    <p class="text-xs text-amber-900 font-medium mt-0.5" id="error-notice-detail">Menampilkan dataset berhasil terakhir. Data operasional tetap aman dan tidak direset.</p>
                 </div>
             </div>
-            <button type="button" id="btn-retry-fetch" class="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition shrink-0">
+            <button type="button" id="btn-retry-fetch" class="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition shrink-0 shadow-xs">
                 🔄 Coba Lagi
             </button>
         </div>
