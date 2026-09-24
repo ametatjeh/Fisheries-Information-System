@@ -163,7 +163,8 @@ class GfwApiService
 
         // Send a lightweight test request to verify API connectivity and authentication
         $res = $this->get('/vessels/search', [
-            'query' => '0',
+            'query' => 'INDONESIA',
+            'datasets[0]' => (string) config('gfw.vessel_dataset', 'public-global-vessel-identity:latest'),
             'limit' => 1,
         ]);
 

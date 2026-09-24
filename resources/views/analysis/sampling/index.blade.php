@@ -128,10 +128,12 @@
             <input type="hidden" name="tab" value="{{ $tab }}">
 
             <div class="relative">
+                <label for="sampling_search" class="sr-only">{{ __('Cari Data Sampling') }}</label>
                 <input type="text"
+                       id="sampling_search"
                        name="search"
                        value="{{ request('search') }}"
-                       placeholder="{{ $tab === 'samples' ? __('Cari kode/trip/kapal...') : __('Cari kode/judul program...') }}"
+                       placeholder="{{ $tab === 'samples' ? __('Cari Kode, Trip, atau Kapal...') : __('Cari Kode atau Judul Program...') }}"
                        class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-ocean-500 focus:bg-white transition" />
                 <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -139,8 +141,9 @@
             </div>
 
             <div>
-                <select name="landing_site_id" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-ocean-500 focus:bg-white transition">
-                    <option value="">{{ __('Semua Pelabuhan / TPI') }}</option>
+                <label for="sampling_landing_site" class="sr-only">{{ __('Pilih Pelabuhan / TPI') }}</label>
+                <select id="sampling_landing_site" name="landing_site_id" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-ocean-500 focus:bg-white transition">
+                    <option value="">{{ __('Pilih Pelabuhan / TPI') }}</option>
                     @foreach ($landingSites as $site)
                         <option value="{{ $site->id }}" {{ request('landing_site_id') == $site->id ? 'selected' : '' }}>
                             {{ $site->name }} ({{ $site->site_type }})
@@ -151,8 +154,9 @@
 
             @if ($tab === 'samples')
                 <div>
-                    <select name="sampling_plan_id" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-ocean-500 focus:bg-white transition">
-                        <option value="">{{ __('Semua Program Sampling') }}</option>
+                    <label for="sampling_plan_id" class="sr-only">{{ __('Pilih Program Sampling') }}</label>
+                    <select id="sampling_plan_id" name="sampling_plan_id" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-ocean-500 focus:bg-white transition">
+                        <option value="">{{ __('Pilih Program Sampling') }}</option>
                         @foreach ($plansList as $p)
                             <option value="{{ $p->id }}" {{ request('sampling_plan_id') == $p->id ? 'selected' : '' }}>
                                 {{ $p->code }} - {{ Str::limit($p->title, 25) }}
@@ -188,7 +192,7 @@
                     <input type="hidden" name="species_text" x-ref="hiddenText" value="{{ request('species_text') }}">
                     
                     <div @click="open = !open" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus-within:ring-2 focus-within:ring-ocean-500 focus-within:bg-white transition cursor-pointer flex justify-between items-center h-[34px]">
-                        <span x-text="selectedText || '{{ __('Semua Spesies Ikan') }}'" class="truncate" :class="selectedText ? 'text-slate-900' : 'text-slate-500'"></span>
+                        <span x-text="selectedText || '{{ __('Pilih Spesies Ikan') }}'" class="truncate" :class="selectedText ? 'text-slate-900' : 'text-slate-500'"></span>
                         <div class="flex items-center gap-1">
                             <button type="button" x-show="selectedText" @click.stop="selectOpt(null)" class="text-slate-400 hover:text-rose-500">✕</button>
                             <svg class="w-3 h-3 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -197,11 +201,11 @@
 
                     <div x-show="open" @click.away="open = false" x-cloak class="absolute z-50 w-64 left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg">
                         <div class="p-2 border-b border-slate-100">
-                            <input type="text" x-model="search" @input.debounce.300ms="fetchOptions" placeholder="Cari FAO, Nama Lokal..." class="w-full text-xs border border-slate-300 rounded-md p-1.5 focus:ring-2 focus:ring-ocean-500">
+                            <input type="text" x-model="search" @input.debounce.300ms="fetchOptions" placeholder="{{ __('Cari FAO, Nama Lokal...') }}" class="w-full text-xs border border-slate-300 rounded-md p-1.5 focus:ring-2 focus:ring-ocean-500">
                         </div>
                         <ul class="max-h-60 overflow-y-auto p-1">
-                            <li x-show="loading" class="p-2 text-xs text-slate-500 text-center">Mencari...</li>
-                            <li x-show="!loading && options.length === 0" class="p-2 text-xs text-slate-500 text-center">Tidak ditemukan</li>
+                            <li x-show="loading" class="p-2 text-xs text-slate-500 text-center">{{ __('Mencari...') }}</li>
+                            <li x-show="!loading && options.length === 0" class="p-2 text-xs text-slate-500 text-center">{{ __('Tidak ditemukan') }}</li>
                             <template x-for="opt in options" :key="opt.id">
                                 <li @click="selectOpt(opt)" class="p-2 hover:bg-ocean-50 cursor-pointer rounded-md">
                                     <div class="flex items-baseline gap-1.5">
@@ -241,7 +245,7 @@
                     <input type="hidden" name="species_text" x-ref="hiddenText" value="{{ request('species_text') }}">
                     
                     <div @click="open = !open" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus-within:ring-2 focus-within:ring-ocean-500 focus-within:bg-white transition cursor-pointer flex justify-between items-center h-[34px]">
-                        <span x-text="selectedText || '{{ __('Target Spesies') }}'" class="truncate" :class="selectedText ? 'text-slate-900' : 'text-slate-500'"></span>
+                        <span x-text="selectedText || '{{ __('Pilih Target Spesies') }}'" class="truncate" :class="selectedText ? 'text-slate-900' : 'text-slate-500'"></span>
                         <div class="flex items-center gap-1">
                             <button type="button" x-show="selectedText" @click.stop="selectOpt(null)" class="text-slate-400 hover:text-rose-500">✕</button>
                             <svg class="w-3 h-3 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -250,11 +254,11 @@
 
                     <div x-show="open" @click.away="open = false" x-cloak class="absolute z-50 w-64 left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg">
                         <div class="p-2 border-b border-slate-100">
-                            <input type="text" x-model="search" @input.debounce.300ms="fetchOptions" placeholder="Cari FAO, Nama Lokal..." class="w-full text-xs border border-slate-300 rounded-md p-1.5 focus:ring-2 focus:ring-ocean-500">
+                            <input type="text" x-model="search" @input.debounce.300ms="fetchOptions" placeholder="{{ __('Cari FAO, Nama Lokal...') }}" class="w-full text-xs border border-slate-300 rounded-md p-1.5 focus:ring-2 focus:ring-ocean-500">
                         </div>
                         <ul class="max-h-60 overflow-y-auto p-1">
-                            <li x-show="loading" class="p-2 text-xs text-slate-500 text-center">Mencari...</li>
-                            <li x-show="!loading && options.length === 0" class="p-2 text-xs text-slate-500 text-center">Tidak ditemukan</li>
+                            <li x-show="loading" class="p-2 text-xs text-slate-500 text-center">{{ __('Mencari...') }}</li>
+                            <li x-show="!loading && options.length === 0" class="p-2 text-xs text-slate-500 text-center">{{ __('Tidak ditemukan') }}</li>
                             <template x-for="opt in options" :key="opt.id">
                                 <li @click="selectOpt(opt)" class="p-2 hover:bg-ocean-50 cursor-pointer rounded-md">
                                     <div class="flex items-baseline gap-1.5">
@@ -268,8 +272,9 @@
                 </div>
 
                 <div>
-                    <select name="status" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-ocean-500 focus:bg-white transition">
-                        <option value="">{{ __('Semua Status Rencana') }}</option>
+                    <label for="sampling_plan_status" class="sr-only">{{ __('Pilih Status Rencana') }}</label>
+                    <select id="sampling_plan_status" name="status" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-ocean-500 focus:bg-white transition">
+                        <option value="">{{ __('Pilih Status Rencana') }}</option>
                         <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>{{ __('Aktif (Active)') }}</option>
                         <option value="planned" {{ request('status') === 'planned' ? 'selected' : '' }}>{{ __('Direncanakan (Planned)') }}</option>
                         <option value="completed" {{ request('status') === 'completed' ? 'selected' : '' }}>{{ __('Selesai (Completed)') }}</option>
@@ -296,6 +301,7 @@
                 <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 text-xs uppercase tracking-wider font-semibold">
+                            <th class="py-3.5 px-4 text-center w-12">#</th>
                             <th class="py-3.5 px-4">{{ __('Kode Sampel') }}</th>
                             <th class="py-3.5 px-4">{{ __('Tanggal & TPI') }}</th>
                             <th class="py-3.5 px-4">{{ __('Program / Trip Kapal') }}</th>
@@ -307,8 +313,9 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 text-xs text-slate-700">
-                        @forelse ($samples as $sample)
+                        @forelse ($samples as $index => $sample)
                             <tr class="hover:bg-slate-50/75 transition-colors">
+                                <td class="py-3.5 px-4 text-center font-mono text-slate-400 text-xs">{{ $samples->firstItem() + $index }}</td>
                                 <td class="py-3.5 px-4 font-mono font-bold text-ocean-700">
                                     <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-ocean-50 text-ocean-800 border border-ocean-200">
                                         <span>🔬</span>
@@ -423,7 +430,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="py-12 text-center text-slate-400">
+                                <td colspan="9" class="py-12 text-center text-slate-400">
                                     <div class="text-3xl mb-2">🐟</div>
                                     <div class="text-sm font-semibold text-slate-600">{{ __('Belum ada data batch sampel yang tercatat') }}</div>
                                     <div class="text-xs mt-1">{{ __('Silakan tambah sampel baru menggunakan tombol di atas.') }}</div>
@@ -446,6 +453,7 @@
                 <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 text-xs uppercase tracking-wider font-semibold">
+                            <th class="py-3.5 px-4 text-center w-12">#</th>
                             <th class="py-3.5 px-4">{{ __('Kode & Program') }}</th>
                             <th class="py-3.5 px-4">{{ __('Lokasi TPI & Target Spesies') }}</th>
                             <th class="py-3.5 px-4">{{ __('Periode Pelaksanaan') }}</th>
@@ -456,13 +464,14 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 text-xs text-slate-700">
-                        @forelse ($plans as $plan)
+                        @forelse ($plans as $index => $plan)
                             @php
                                 $progressPercent = $plan->target_sample_size > 0
                                     ? min(100, round(($plan->measured_specimens_count / $plan->target_sample_size) * 100))
                                     : 0;
                             @endphp
                             <tr class="hover:bg-slate-50/75 transition-colors">
+                                <td class="py-3.5 px-4 text-center font-mono text-slate-400 text-xs">{{ $plans->firstItem() + $index }}</td>
                                 <td class="py-3.5 px-4">
                                     <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-ocean-50 text-ocean-800 border border-ocean-200 font-mono font-bold text-xs mb-1">
                                         <span>📋</span>
@@ -551,7 +560,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="py-12 text-center text-slate-400">
+                                <td colspan="8" class="py-12 text-center text-slate-400">
                                     <div class="text-3xl mb-2">📋</div>
                                     <div class="text-sm font-semibold text-slate-600">{{ __('Belum ada rencana program sampling yang terdaftar') }}</div>
                                     <div class="text-xs mt-1">{{ __('Klik tombol "Rencana Sampling Baru" untuk membuat program baru.') }}</div>
@@ -627,13 +636,13 @@
                                 <input type="hidden" name="fish_species_id" x-ref="hiddenInput" required>
                                 
                                 <div @click="open = !open" class="w-full py-1.5 px-2 bg-white border border-slate-300 rounded-lg text-xs focus-within:ring-2 focus-within:ring-ocean-500 cursor-pointer flex justify-between items-center h-[28px]">
-                                    <span x-text="selectedText || '-- Pilih Ikan --'" class="truncate" :class="selectedText ? 'text-slate-900' : 'text-slate-500'"></span>
+                                    <span x-text="selectedText || '{{ __('Pilih Spesies Ikan') }}'" class="truncate" :class="selectedText ? 'text-slate-900' : 'text-slate-500'"></span>
                                     <svg class="w-3 h-3 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                                 </div>
 
                                 <div x-show="open" @click.away="open = false" x-cloak class="absolute z-50 w-64 left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg">
                                     <div class="p-2 border-b border-slate-100">
-                                        <input type="text" x-model="search" @input.debounce.300ms="fetchOptions" placeholder="Cari FAO, Nama Lokal..." class="w-full text-xs border border-slate-300 rounded-md p-1.5 focus:ring-2 focus:ring-ocean-500">
+                                        <input type="text" x-model="search" @input.debounce.300ms="fetchOptions" placeholder="{{ __('Cari FAO, Nama Lokal...') }}" class="w-full text-xs border border-slate-300 rounded-md p-1.5 focus:ring-2 focus:ring-ocean-500">
                                     </div>
                                     <ul class="max-h-60 overflow-y-auto p-1">
                                         <li x-show="loading" class="p-2 text-xs text-slate-500 text-center">Mencari...</li>
@@ -755,7 +764,7 @@
                            id="input_sample_code"
                            name="sample_code"
                            required
-                           placeholder="misal SMP-202609-0001"
+                           placeholder="{{ __('Contoh: SMP-202609-0001') }}"
                            class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:ring-2 focus:ring-ocean-500 focus:bg-white" />
                 </div>
 
@@ -763,7 +772,7 @@
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">{{ __('Rencana Program Induk') }}</label>
                         <select id="input_sampling_plan_id" name="sampling_plan_id" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-ocean-500 focus:bg-white">
-                            <option value="">{{ __('Non-Program / Mandiri') }}</option>
+                            <option value="">{{ __('Pilih Program Sampling (Opsional)') }}</option>
                             @foreach ($plansList as $p)
                                 <option value="{{ $p->id }}">{{ $p->code }} - {{ Str::limit($p->title, 20) }}</option>
                             @endforeach
@@ -773,7 +782,7 @@
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">{{ __('Trip Penangkapan (Opsional)') }}</label>
                         <select id="input_fishing_trip_id" name="fishing_trip_id" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-ocean-500 focus:bg-white">
-                            <option value="">{{ __('Tidak Terikat Trip') }}</option>
+                            <option value="">{{ __('Pilih Fishing Trip (Opsional)') }}</option>
                             @foreach ($tripsList as $trip)
                                 <option value="{{ $trip->id }}">{{ $trip->trip_number }} - {{ $trip->vessel ? $trip->vessel->name : '-' }}</option>
                             @endforeach
@@ -785,6 +794,7 @@
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">{{ __('Lokasi Pelabuhan / TPI *') }}</label>
                         <select id="input_landing_site_id" name="landing_site_id" required class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-ocean-500 focus:bg-white">
+                            <option value="">{{ __('Pilih Pelabuhan / TPI') }}</option>
                             @foreach ($landingSites as $site)
                                 <option value="{{ $site->id }}">{{ $site->name }}</option>
                             @endforeach
@@ -806,6 +816,7 @@
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">{{ __('Petugas Enumerator') }}</label>
                         <select id="input_enumerator_id" name="enumerator_id" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-ocean-500 focus:bg-white">
+                            <option value="">{{ __('Pilih Petugas Enumerator') }}</option>
                             @foreach ($enumerators as $user)
                                 <option value="{{ $user->id }}" {{ $user->id == auth()->id() ? 'selected' : '' }}>{{ $user->name }}</option>
                             @endforeach
@@ -818,14 +829,14 @@
                                step="0.01"
                                id="input_total_weight_kg"
                                name="total_weight_kg"
-                               placeholder="0.00"
+                               placeholder="{{ __('Contoh: 25.50') }}"
                                class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-ocean-500 focus:bg-white" />
                     </div>
                 </div>
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">{{ __('Catatan Pengambilan Sampel') }}</label>
-                    <textarea id="input_notes" name="notes" rows="2" placeholder="Catatan kondisi ikan, es, atau palka..." class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-ocean-500 focus:bg-white"></textarea>
+                    <textarea id="input_notes" name="notes" rows="2" placeholder="{{ __('Catatan kondisi ikan, es, atau palka...') }}" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-ocean-500 focus:bg-white"></textarea>
                 </div>
 
                 <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
@@ -866,7 +877,7 @@
                                id="input_plan_code"
                                name="code"
                                required
-                               placeholder="SMP-PLAN-2026-001"
+                               placeholder="{{ __('Contoh: SMP-PLAN-2026-001') }}"
                                class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:ring-2 focus:ring-ocean-500 focus:bg-white" />
                     </div>
 
@@ -876,7 +887,7 @@
                                id="input_plan_title"
                                name="title"
                                required
-                               placeholder="Program Pemantauan Biologi..."
+                               placeholder="{{ __('Program Pemantauan Biologi...') }}"
                                class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-ocean-500 focus:bg-white" />
                     </div>
                 </div>
@@ -885,6 +896,7 @@
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">{{ __('Lokasi TPI Sasaran *') }}</label>
                         <select id="input_plan_landing_site_id" name="landing_site_id" required class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-ocean-500 focus:bg-white">
+                            <option value="">{{ __('Pilih Lokasi TPI Sasaran') }}</option>
                             @foreach ($landingSites as $site)
                                 <option value="{{ $site->id }}">{{ $site->name }}</option>
                             @endforeach
@@ -929,7 +941,7 @@
                             <input type="hidden" id="input_plan_target_species_id" name="target_species_id" value="">
                             
                             <div @click="open = !open" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus-within:ring-2 focus-within:ring-ocean-500 focus-within:bg-white transition cursor-pointer flex justify-between items-center h-[34px]">
-                                <span x-text="selectedText || '{{ __('Semua / Multi Spesies') }}'" class="truncate" :class="selectedText ? 'text-slate-900' : 'text-slate-500'"></span>
+                                <span x-text="selectedText || '{{ __('Pilih Target Spesies (Opsional)') }}'" class="truncate" :class="selectedText ? 'text-slate-900' : 'text-slate-500'"></span>
                                 <div class="flex items-center gap-1">
                                     <button type="button" x-show="selectedText" @click.stop="selectOpt(null)" class="text-slate-400 hover:text-rose-500">✕</button>
                                     <svg class="w-3 h-3 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -938,11 +950,11 @@
 
                             <div x-show="open" @click.away="open = false" x-cloak class="absolute z-50 w-64 left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg">
                                 <div class="p-2 border-b border-slate-100">
-                                    <input type="text" x-model="search" @input.debounce.300ms="fetchOptions" placeholder="Cari FAO, Nama Lokal..." class="w-full text-xs border border-slate-300 rounded-md p-1.5 focus:ring-2 focus:ring-ocean-500">
+                                    <input type="text" x-model="search" @input.debounce.300ms="fetchOptions" placeholder="{{ __('Cari FAO, Nama Lokal...') }}" class="w-full text-xs border border-slate-300 rounded-md p-1.5 focus:ring-2 focus:ring-ocean-500">
                                 </div>
                                 <ul class="max-h-60 overflow-y-auto p-1">
-                                    <li x-show="loading" class="p-2 text-xs text-slate-500 text-center">Mencari...</li>
-                                    <li x-show="!loading && options.length === 0" class="p-2 text-xs text-slate-500 text-center">Tidak ditemukan</li>
+                                    <li x-show="loading" class="p-2 text-xs text-slate-500 text-center">{{ __('Mencari...') }}</li>
+                                    <li x-show="!loading && options.length === 0" class="p-2 text-xs text-slate-500 text-center">{{ __('Tidak ditemukan') }}</li>
                                     <template x-for="opt in options" :key="opt.id">
                                         <li @click="selectOpt(opt)" class="p-2 hover:bg-ocean-50 cursor-pointer rounded-md">
                                             <div class="flex items-baseline gap-1.5">
@@ -970,7 +982,7 @@
 
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">{{ __('Target Spesimen *') }}</label>
-                        <input type="number" id="input_plan_target_sample_size" name="target_sample_size" required value="100" min="1" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-ocean-500 focus:bg-white" />
+                        <input type="number" id="input_plan_target_sample_size" name="target_sample_size" required value="100" min="1" placeholder="{{ __('Contoh: 100') }}" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-ocean-500 focus:bg-white" />
                     </div>
                 </div>
 
@@ -978,26 +990,28 @@
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">{{ __('Metode Sampling *') }}</label>
                         <select id="input_plan_sampling_method" name="sampling_method" required class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-ocean-500 focus:bg-white">
-                            <option value="stratified">Stratified (Bertingkat)</option>
-                            <option value="random">Random (Acak Sederhana)</option>
-                            <option value="systematic">Systematic (Sistematik)</option>
+                            <option value="">{{ __('Pilih Metode Sampling') }}</option>
+                            <option value="stratified">{{ __('Stratified (Bertingkat)') }}</option>
+                            <option value="random">{{ __('Random (Acak Sederhana)') }}</option>
+                            <option value="systematic">{{ __('Systematic (Sistematik)') }}</option>
                         </select>
                     </div>
 
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">{{ __('Status Rencana *') }}</label>
                         <select id="input_plan_status" name="status" required class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-ocean-500 focus:bg-white">
-                            <option value="planned">Direncanakan (Planned)</option>
-                            <option value="active" selected>Aktif Berjalan (Active)</option>
-                            <option value="completed">Selesai (Completed)</option>
-                            <option value="cancelled">Dibatalkan (Cancelled)</option>
+                            <option value="">{{ __('Pilih Status Rencana') }}</option>
+                            <option value="planned">{{ __('Direncanakan (Planned)') }}</option>
+                            <option value="active" selected>{{ __('Aktif Berjalan (Active)') }}</option>
+                            <option value="completed">{{ __('Selesai (Completed)') }}</option>
+                            <option value="cancelled">{{ __('Dibatalkan (Cancelled)') }}</option>
                         </select>
                     </div>
                 </div>
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">{{ __('Catatan / Metodologi') }}</label>
-                    <textarea id="input_plan_notes" name="notes" rows="2" placeholder="Catatan metodologi pemantauan..." class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-ocean-500 focus:bg-white"></textarea>
+                    <textarea id="input_plan_notes" name="notes" rows="2" placeholder="{{ __('Catatan metodologi sampling, strata ukuran, atau target...') }}" class="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-ocean-500 focus:bg-white"></textarea>
                 </div>
 
                 <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">

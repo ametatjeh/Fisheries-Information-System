@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Http\Controllers\Api\Rzwp3kZoneController;
 use App\Models\Rzwp3kZone;
+use App\Services\AdvancedStatisticService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -162,7 +163,35 @@ class Rzwp3kMapLibreApiTest extends TestCase
 
     public function test_statistik_page_renders_rzwp3k_layer_toggle_and_maplibre_markup(): void
     {
-        $response = $this->get('/statistik');
+        $this->mock(AdvancedStatisticService::class, function ($mock) {
+            $mock->shouldReceive('getPublicCpueDashboardData')->andReturn([
+                'trip_count' => 1,
+                'vessel_count' => 1,
+                'catch_weight' => 500.0,
+                'catch_ton' => 0.5,
+                'species_count' => 1,
+                'effort_hours' => 10.0,
+                'setting_count' => 1,
+                'cpue_kg_per_hour' => 50.0,
+                'cpue_kg_per_trip' => 500.0,
+                'has_data' => true,
+                'filters' => ['tahun' => 2026],
+                'landing_trend' => ['labels' => [], 'data' => []],
+                'cpue_trend' => ['labels' => [], 'data' => []],
+                'monthly_cpue' => ['labels' => [], 'data' => []],
+                'species_catch' => ['labels' => [], 'data' => [], 'items' => []],
+                'length_frequency' => ['labels' => [], 'data' => [], 'valid_count' => 0],
+                'catch_by_gear' => ['labels' => [], 'data' => [], 'items' => []],
+                'catch_by_wpp' => ['labels' => [], 'data' => [], 'items' => []],
+                'gear_cpue_table' => [],
+                'species_cpue_table' => [],
+                'detailed_table' => [],
+                'fishing_ground' => ['points' => []],
+                'fishing_locations' => [],
+            ]);
+        });
+
+        $response = $this->get('/statistik?tahun=2026');
 
         $response->assertStatus(200);
         $response->assertSee('toggleRzwp3k');

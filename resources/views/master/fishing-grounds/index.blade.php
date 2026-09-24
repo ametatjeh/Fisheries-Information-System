@@ -9,12 +9,23 @@
     <div x-data="{
         showCreateModal: false,
         showEditModal: false,
+        showStatusModal: false,
+        statusTarget: { id: null, name: '', is_active: false, actionUrl: '' },
         editItem: {},
         editAction: '',
         openEdit(item, url) {
             this.editItem = { ...item };
             this.editAction = url;
             this.showEditModal = true;
+        },
+        openStatusModal(item, actionUrl) {
+            this.statusTarget = {
+                id: item.id,
+                name: item.name,
+                is_active: item.is_active,
+                actionUrl: actionUrl
+            };
+            this.showStatusModal = true;
         }
     }" class="space-y-6">
 
@@ -112,6 +123,7 @@
                 <table class="w-full text-xs text-left">
                     <thead class="bg-ocean-900 text-white uppercase font-semibold text-[11px] border-b border-ocean-950">
                         <tr>
+                            <th class="px-4 py-3.5 text-center text-white w-12">#</th>
                             <th class="px-4 py-3.5 text-white">{{ __('Kode') }}</th>
                             <th class="px-4 py-3.5 text-white">{{ __('Nama Daerah Penangkapan') }}</th>
                             <th class="px-4 py-3.5 text-white">{{ __('WPP-NRI') }}</th>
@@ -122,8 +134,9 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
-                        @forelse($grounds as $ground)
+                        @forelse($grounds as $index => $ground)
                             <tr class="hover:bg-slate-50/70 transition">
+                                <td class="px-4 py-3 text-center font-mono text-slate-400 text-xs">{{ $grounds->firstItem() + $index }}</td>
                                 <td class="px-4 py-3 font-mono font-bold text-slate-800">{{ $ground->code ?? '-' }}</td>
                                 <td class="px-4 py-3">
                                     <div class="font-bold text-slate-900">{{ $ground->name }}</div>
@@ -151,13 +164,13 @@
                                     {{ number_format($ground->fishing_trips_count) }}
                                 </td>
                                 <td class="px-4 py-3 text-center">
-                                    <form method="POST" action="{{ route('master.fishing-grounds.toggle-status', $ground) }}" class="inline">
-                                        @csrf
-                                        @method('PATCH')
-                                        <button type="submit" class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold transition {{ $ground->is_active ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
-                                            {{ $ground->is_active ? __('Aktif') : __('Nonaktif') }}
-                                        </button>
-                                    </form>
+                                    <button type="button"
+                                            @click="openStatusModal({{ json_encode(['id' => $ground->id, 'name' => $ground->name . ($ground->code ? ' (' . $ground->code . ')' : ''), 'is_active' => (bool)$ground->is_active]) }}, '{{ route('master.fishing-grounds.toggle-status', $ground) }}')"
+                                            class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer shadow-xs {{ $ground->is_active ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border border-emerald-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200' }}"
+                                            title="{{ __('Klik untuk ubah status aktif/nonaktif') }}">
+                                        <span class="w-1.5 h-1.5 rounded-full {{ $ground->is_active ? 'bg-emerald-500' : 'bg-slate-400' }}"></span>
+                                        <span>{{ $ground->is_active ? __('Aktif') : __('Nonaktif') }}</span>
+                                    </button>
                                 </td>
                                 <td class="px-4 py-3 text-right">
                                     <div class="inline-flex items-center gap-2">
@@ -183,7 +196,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-4 py-12 text-center text-slate-400">
+                                <td colspan="8" class="px-4 py-12 text-center text-slate-400">
                                     <div class="text-3xl mb-2">🌊</div>
                                     <div class="text-xs font-semibold">{{ __('Belum ada data master Daerah Penangkapan Ikan.') }}</div>
                                     <div class="text-[11px] text-slate-400 mt-1">{{ __('Klik tombol "Tambah Daerah Penangkapan" untuk menambahkan referensi baru.') }}</div>
@@ -376,6 +389,74 @@
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+
+        {{-- ================================================================= --}}
+        {{-- MODAL KONFIRMASI STATUS (ACTIVE / INACTIVE POPUP)                 --}}
+        {{-- ================================================================= --}}
+        <div x-show="showStatusModal"
+             x-cloak
+             class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4"
+             @keydown.escape.window="showStatusModal = false">
+            <div @click.away="showStatusModal = false"
+                 class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 text-center animate-in fade-in zoom-in-95 duration-150">
+
+                {{-- Icon Badge --}}
+                <div class="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center text-3xl shadow-inner transition-colors"
+                     :class="statusTarget.is_active ? 'bg-amber-50 text-amber-600 border border-amber-200' : 'bg-emerald-50 text-emerald-600 border border-emerald-200'">
+                    <span x-show="statusTarget.is_active">⏸️</span>
+                    <span x-show="!statusTarget.is_active">✅</span>
+                </div>
+
+                {{-- Title --}}
+                <h3 class="text-lg font-bold text-slate-900 mb-2">
+                    <span x-show="statusTarget.is_active">{{ __('Nonaktifkan Daerah Penangkapan?') }}</span>
+                    <span x-show="!statusTarget.is_active">{{ __('Aktifkan Daerah Penangkapan?') }}</span>
+                </h3>
+
+                {{-- Target Name --}}
+                <p class="text-sm text-slate-600 mb-4 leading-relaxed">
+                    {{ __('Apakah Anda yakin ingin mengubah status operasional daerah penangkapan:') }}
+                    <br>
+                    <span class="font-bold text-slate-900 text-base mt-2 inline-block bg-slate-50 px-3.5 py-1.5 rounded-xl border border-slate-200" x-text="statusTarget.name"></span>
+                </p>
+
+                {{-- Information Box --}}
+                <div class="p-3.5 rounded-xl text-xs text-left mb-6"
+                     :class="statusTarget.is_active ? 'bg-amber-50/80 border border-amber-200 text-amber-800' : 'bg-emerald-50/80 border border-emerald-200 text-emerald-800'">
+                    <div class="flex items-start gap-2.5">
+                        <span class="text-base leading-none">💡</span>
+                        <div class="leading-normal">
+                            <span x-show="statusTarget.is_active">
+                                {{ __('Daerah penangkapan yang berstatus Nonaktif tidak akan muncul sebagai opsi pilihan fishing ground pada pencatatan trip dan logbook baru.') }}
+                            </span>
+                            <span x-show="!statusTarget.is_active">
+                                {{ __('Daerah penangkapan akan kembali aktif dan dapat dipilih dalam pendataan trip kapal, logbook perikanan, serta peta spasial GIS.') }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Action Buttons --}}
+                <div class="flex items-center justify-end gap-3">
+                    <button type="button"
+                            @click="showStatusModal = false"
+                            class="w-full sm:w-auto px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition cursor-pointer">
+                        {{ __('Batal') }}
+                    </button>
+
+                    <form method="POST" :action="statusTarget.actionUrl" class="inline w-full sm:w-auto">
+                        @csrf
+                        @method('PATCH')
+                        <button type="submit"
+                                class="w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-semibold text-white shadow-sm transition flex items-center justify-center gap-2 cursor-pointer"
+                                :class="statusTarget.is_active ? 'bg-amber-600 hover:bg-amber-700' : 'bg-emerald-600 hover:bg-emerald-700'">
+                            <span x-show="statusTarget.is_active">⏸️ {{ __('Ya, Nonaktifkan') }}</span>
+                            <span x-show="!statusTarget.is_active">✅ {{ __('Ya, Aktifkan') }}</span>
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
 

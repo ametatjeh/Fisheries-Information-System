@@ -226,8 +226,13 @@ class LandingPageController extends Controller
         try {
             // Option Data Fetch (Cached as pure arrays to prevent deserialization issues)
             $years = Cache::remember('stat_filter_years_v3', 3600, function () {
+                $driver = DB::connection()->getDriverName();
+                $yearExpression = $driver === 'sqlite'
+                    ? "CAST(strftime('%Y', departure_date) AS INTEGER) as year"
+                    : 'YEAR(departure_date) as year';
+
                 return DB::table('fishing_trips')
-                    ->select(DB::raw('YEAR(departure_date) as year'))
+                    ->select(DB::raw($yearExpression))
                     ->whereNotNull('departure_date')
                     ->distinct()
                     ->orderByDesc('year')

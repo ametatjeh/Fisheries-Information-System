@@ -77,6 +77,35 @@ class BigZeeApiController extends Controller
     public function aceh(Request $request): JsonResponse
     {
         $forceRefresh = $request->boolean('refresh');
+
+        if ($request->boolean('polygon')) {
+            $polygonResult = $this->bigService->getAcehZeeGeometry($forceRefresh);
+            if (! $polygonResult['success']) {
+                return response()->json([
+                    'success' => false,
+                    'source' => 'Badan Informasi Geospasial (BIG)',
+                    'layer' => 'Batas ZEE (BIG)',
+                    'layer_id' => 10,
+                    'error' => $polygonResult['error'] ?? 'Gagal membuat poligon ZEE Aceh dari data resmi BIG.',
+                ], 502);
+            }
+
+            return response()->json([
+                'type' => 'Feature',
+                'properties' => [
+                    'source' => 'Badan Informasi Geospasial (BIG)',
+                    'layer' => 'Batas ZEE (BIG)',
+                    'layer_id' => 10,
+                    'wilayah' => 'Aceh',
+                    'vertex_count' => $polygonResult['vertex_count'] ?? null,
+                ],
+                'geometry' => $polygonResult['geometry'],
+            ], 200, [
+                'Content-Type' => 'application/geo+json',
+                'Cache-Control' => 'public, max-age=86400',
+            ]);
+        }
+
         $geoJson = $this->bigService->getZeeForAceh($forceRefresh);
 
         return response()->json($geoJson, 200, [

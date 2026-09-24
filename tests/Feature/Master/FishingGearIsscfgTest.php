@@ -482,4 +482,40 @@ class FishingGearIsscfgTest extends TestCase
 
         $this->assertDatabaseMissing('fishing_gears', ['id' => $gear->id]);
     }
+
+    public function test_gears_table_displays_number_column_and_does_not_display_id_column_and_continues_across_pages(): void
+    {
+        // Pastikan ada minimal 12 gears
+        $existingCount = FishingGear::count();
+        if ($existingCount < 12) {
+            for ($i = $existingCount; $i < 12; $i++) {
+                FishingGear::create([
+                    'code' => 'PAGE-GEAR-'.$i,
+                    'name' => 'Alat Tangkap Halaman '.$i,
+                    'category' => 'lainnya',
+                    'source' => 'LOCAL',
+                    'is_active' => true,
+                ]);
+            }
+        }
+
+        // Halaman 1 dengan per_page = 10
+        $responsePage1 = $this->actingAs($this->user)
+            ->get(route('master.gears.index', ['per_page' => 10, 'page' => 1]));
+
+        $responsePage1->assertOk();
+        // Kolom '#' ada di header
+        $responsePage1->assertSee('<th class="py-3.5 px-3 w-10 text-center text-white">#</th>', false);
+        // Kolom 'ID' tidak ada di header
+        $responsePage1->assertDontSee('<th class="py-3.5 px-2 w-12 text-center font-mono text-white">ID</th>', false);
+
+        // Halaman 2 dengan per_page = 10
+        $responsePage2 = $this->actingAs($this->user)
+            ->get(route('master.gears.index', ['per_page' => 10, 'page' => 2]));
+
+        $responsePage2->assertOk();
+        // Baris pertama halaman 2 harus bernomor 11
+        $responsePage2->assertSee('11');
+        $responsePage2->assertSee('12');
+    }
 }

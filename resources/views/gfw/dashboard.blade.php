@@ -44,7 +44,7 @@
                     <div class="flex flex-wrap items-center gap-2">
                         <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-semibold">
                             <span>🏛️</span>
-                            <span>Batas ZEE: BIG</span>
+                            <span>Batas ZEE: BIG Layer 10</span>
                         </span>
                         <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30 text-[11px] font-semibold">
                             <span>🛰️</span>
@@ -56,13 +56,13 @@
                     </div>
 
                     <h2 class="text-xl sm:text-2xl font-black tracking-tight text-white flex flex-wrap items-center gap-2">
-                        <span>GFW OPERATIONAL DASHBOARD</span>
+                        <span>GFW MONITORING DASHBOARD</span>
                         <span class="text-indigo-400 font-light">|</span>
-                        <span class="text-indigo-200 text-base font-semibold">ZEE Indonesia — Kawasan Aceh</span>
+                        <span class="text-indigo-200 text-base font-semibold">ZEE Indonesia — Kawasan Aceh (BIG Layer 10)</span>
                     </h2>
 
                     <p class="text-slate-300 text-xs sm:text-sm leading-relaxed max-w-2xl">
-                        Pusat kendali operasional pemantauan terpadu aktivitas maritim perikanan di wilayah ZEE Aceh. Mengintegrasikan deteksi kehadiran kapal, klasifikasi armada berbendera, indikasi penangkapan (<em>Fishing Activity</em>), perjumpaan (<em>Encounter</em>), dan persinggahan pelabuhan (<em>Port Visit</em>).
+                        Pusat kendali operasional pemantauan terpadu maritim di wilayah ZEE Aceh. Mengintegrasikan observasi kapal terdeteksi, lintasan pergerakan (<em>Vessel Track</em>), indikasi penangkapan (<em>Fishing Activity</em>), pola menunggu (<em>Loitering</em>), dan sistem <em>Monitoring Alert</em> berbasis bukti spasial.
                     </p>
                 </div>
 
@@ -71,17 +71,19 @@
                     <div class="flex items-center justify-between gap-3">
                         <span class="font-semibold text-slate-300 text-xs flex items-center gap-1.5">
                             <span id="live-pulse-indicator" class="w-2.5 h-2.5 rounded-full bg-slate-500 inline-block"></span>
-                            <span>Live Monitoring</span>
+                            <span>Pemantauan Operasional</span>
                         </span>
-                        <button type="button" id="btn-toggle-live" class="px-3 py-1 rounded-lg text-xs font-bold transition bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700">
-                            OFF
+                        <button type="button" id="btn-refresh-dashboard" class="px-2.5 py-1 rounded-lg text-xs font-bold transition bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs flex items-center gap-1">
+                            <span id="btn-toggle-live" class="sr-only">Toggle Live</span>
+                            <span>🔄</span>
+                            <span>Refresh Data</span>
                         </button>
                     </div>
 
                     <div class="space-y-1 text-[11px] border-t border-slate-800 pt-2">
                         <div class="flex items-center justify-between text-slate-400">
                             <span>Status Pembaruan:</span>
-                            <span id="live-status-text" class="text-slate-200 font-mono">Manual (Siap)</span>
+                            <span id="live-status-text" class="text-slate-200 font-mono">Siap</span>
                         </div>
                         <div class="flex items-center justify-between text-slate-400">
                             <span>Terakhir Diperbarui:</span>
@@ -107,8 +109,8 @@
             <div class="flex items-center gap-2">
                 <span class="text-lg">⚠️</span>
                 <div>
-                    <span class="font-bold text-amber-100">Gagal memperbarui data dari GFW API.</span>
-                    <p class="text-[11px] text-amber-300 mt-0.5">Menampilkan dataset berhasil terakhir. Data operasional tetap aman dan tidak direset ke 0.</p>
+                    <span class="font-bold text-amber-100" id="error-notice-title">Gagal mengambil data dari Global Fishing Watch.</span>
+                    <p class="text-[11px] text-amber-300 mt-0.5" id="error-notice-detail">Menampilkan dataset berhasil terakhir. Data operasional tetap aman dan tidak direset.</p>
                 </div>
             </div>
             <button type="button" id="btn-retry-fetch" class="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition shrink-0">
@@ -116,66 +118,92 @@
             </button>
         </div>
 
-        {{-- KPI Row: 6 Summary Cards --}}
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
-            {{-- Detected Vessels --}}
-            <div class="bg-white p-3.5 rounded-2xl shadow-2xs border border-slate-200/80">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Detected Vessels</span>
+        {{-- KPI Row: 8 Summary Cards (Stage 5.1) --}}
+        <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+            {{-- 1. Total GFW Vessels --}}
+            <div class="bg-white p-3 rounded-2xl shadow-2xs border border-slate-200/80">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 block truncate">Total Vessels</span>
                 <div class="flex items-baseline justify-between mt-1">
-                    <h3 id="kpi-detected-vessels" class="text-xl font-black text-slate-800">...</h3>
+                    <h3 id="kpi-detected-vessels" class="text-lg font-black text-slate-800">...</h3>
                     <span class="text-xs">🚢</span>
                 </div>
-                <p class="text-[10px] text-slate-400 mt-0.5">Armada di ZEE Aceh</p>
+                <p class="text-[9px] text-slate-400 mt-0.5 truncate">Armada di ZEE</p>
             </div>
 
-            {{-- Live / Recent --}}
-            <div class="bg-white p-3.5 rounded-2xl shadow-2xs border border-slate-200/80">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Live / Recent</span>
+            {{-- 2. Active / Observed Vessels --}}
+            <div class="bg-white p-3 rounded-2xl shadow-2xs border border-slate-200/80">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-600 block truncate">Active Vessels</span>
                 <div class="flex items-baseline justify-between mt-1">
-                    <h3 id="kpi-live-recent" class="text-xl font-black text-emerald-600">...</h3>
+                    <h3 id="kpi-live-recent" class="text-lg font-black text-emerald-600">...</h3>
                     <span class="text-xs">🟢</span>
                 </div>
-                <p class="text-[10px] text-slate-400 mt-0.5">Observasi &lt; 72 jam</p>
+                <p class="text-[9px] text-slate-400 mt-0.5 truncate">Observasi &lt; 72j</p>
             </div>
 
-            {{-- Fishing Activity --}}
-            <div class="bg-white p-3.5 rounded-2xl shadow-2xs border border-slate-200/80">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-cyan-600">Fishing Activity</span>
+            {{-- 3. Fishing Events --}}
+            <div class="bg-white p-3 rounded-2xl shadow-2xs border border-slate-200/80">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-cyan-600 block truncate">Fishing Events</span>
                 <div class="flex items-baseline justify-between mt-1">
-                    <h3 id="kpi-fishing-activity" class="text-xl font-black text-cyan-600">...</h3>
+                    <h3 id="kpi-fishing-activity" class="text-lg font-black text-cyan-600">...</h3>
                     <span class="text-xs">🎣</span>
                 </div>
-                <p class="text-[10px] text-slate-400 mt-0.5">Indikasi penangkapan</p>
+                <p class="text-[9px] text-slate-400 mt-0.5 truncate">Aktivitas tangkap</p>
             </div>
 
-            {{-- Encounters --}}
-            <div class="bg-white p-3.5 rounded-2xl shadow-2xs border border-slate-200/80">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-amber-600">Encounters</span>
+            {{-- 4. Track Points --}}
+            <div class="bg-white p-3 rounded-2xl shadow-2xs border border-slate-200/80">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-blue-600 block truncate">Track Points</span>
                 <div class="flex items-baseline justify-between mt-1">
-                    <h3 id="kpi-encounters" class="text-xl font-black text-amber-600">...</h3>
-                    <span class="text-xs">🤝</span>
+                    <h3 id="kpi-track-points" class="text-lg font-black text-blue-600">...</h3>
+                    <span class="text-xs">📍</span>
                 </div>
-                <p class="text-[10px] text-slate-400 mt-0.5">Kedekatan antar kapal</p>
+                <p class="text-[9px] text-slate-400 mt-0.5 truncate">Titik posisi kapal</p>
             </div>
 
-            {{-- Loitering --}}
-            <div class="bg-white p-3.5 rounded-2xl shadow-2xs border border-slate-200/80">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-purple-600">Loitering</span>
+            {{-- 5. Loitering --}}
+            <div class="bg-white p-3 rounded-2xl shadow-2xs border border-slate-200/80">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-purple-600 block truncate">Loitering</span>
                 <div class="flex items-baseline justify-between mt-1">
-                    <h3 id="kpi-loitering" class="text-xl font-black text-purple-600">...</h3>
+                    <h3 id="kpi-loitering" class="text-lg font-black text-purple-600">...</h3>
                     <span class="text-xs">⏳</span>
                 </div>
-                <p class="text-[10px] text-slate-400 mt-0.5">Pola menunggu di laut</p>
+                <p class="text-[9px] text-slate-400 mt-0.5 truncate">Pola menunggu</p>
             </div>
 
-            {{-- Port Visits --}}
-            <div class="bg-white p-3.5 rounded-2xl shadow-2xs border border-slate-200/80">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-sky-600">Port Visits</span>
+            {{-- 6. Encounters --}}
+            <div class="bg-white p-3 rounded-2xl shadow-2xs border border-slate-200/80 relative">
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-amber-600 block truncate">Encounters</span>
+                    <span class="text-[8px] font-bold px-1 py-0.2 rounded bg-amber-100 text-amber-800 border border-amber-300" title="Dataset GFW API tidak tersedia untuk credential saat ini">BLOCKED</span>
+                </div>
                 <div class="flex items-baseline justify-between mt-1">
-                    <h3 id="kpi-port-visits" class="text-xl font-black text-sky-600">...</h3>
+                    <h3 id="kpi-encounters" class="text-lg font-black text-amber-600">N/A</h3>
+                    <span class="text-xs">🤝</span>
+                </div>
+                <p class="text-[9px] text-amber-700/80 mt-0.5 truncate font-medium" title="Upstream GFW API v3 mengembalikan 404 (Bukan berarti 0 event di laut)">API Not Available</p>
+            </div>
+
+            {{-- 7. Port Visits --}}
+            <div class="bg-white p-3 rounded-2xl shadow-2xs border border-slate-200/80 relative">
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-sky-600 block truncate">Port Visits</span>
+                    <span class="text-[8px] font-bold px-1 py-0.2 rounded bg-sky-100 text-sky-800 border border-sky-300" title="Dataset GFW API tidak tersedia untuk credential saat ini">BLOCKED</span>
+                </div>
+                <div class="flex items-baseline justify-between mt-1">
+                    <h3 id="kpi-port-visits" class="text-lg font-black text-sky-600">N/A</h3>
                     <span class="text-xs">⚓</span>
                 </div>
-                <p class="text-[10px] text-slate-400 mt-0.5">Persinggahan pelabuhan</p>
+                <p class="text-[9px] text-sky-700/80 mt-0.5 truncate font-medium" title="Upstream GFW API v3 mengembalikan 404 (Bukan berarti 0 event di laut)">API Not Available</p>
+            </div>
+
+            {{-- 8. Monitoring Alerts --}}
+            <div class="bg-white p-3 rounded-2xl shadow-2xs border border-slate-200/80">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-rose-600 block truncate">Alerts</span>
+                <div class="flex items-baseline justify-between mt-1">
+                    <h3 id="kpi-alerts" class="text-lg font-black text-rose-600">...</h3>
+                    <span class="text-xs">🚨</span>
+                </div>
+                <p class="text-[9px] text-slate-400 mt-0.5 truncate">Perlu ditinjau</p>
             </div>
         </div>
 
@@ -229,7 +257,6 @@
                         <option value="Tanker">Tanker</option>
                         <option value="Cargo">Cargo</option>
                         <option value="Passenger">Passenger</option>
-                        <option value="Recreational">Recreational</option>
                         <option value="Other">Other</option>
                         <option value="Unknown">Unknown</option>
                     </select>
@@ -279,27 +306,27 @@
                 <div class="space-y-1.5 text-[11px]">
                     <label class="flex items-center gap-2 cursor-pointer hover:text-indigo-300">
                         <input type="checkbox" id="layer-opt-zee" checked class="rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-0">
-                        <span class="font-semibold text-sky-400">Batas ZEE Aceh (BIG)</span>
+                        <span class="font-semibold text-sky-400">Batas ZEE Aceh (BIG Layer 10)</span>
                     </label>
                     <label class="flex items-center gap-2 cursor-pointer hover:text-indigo-300">
                         <input type="checkbox" id="layer-opt-vessels" checked class="rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-0">
                         <span class="text-slate-200">Posisi Kapal (Vessels)</span>
                     </label>
                     <label class="flex items-center gap-2 cursor-pointer hover:text-indigo-300">
-                        <input type="checkbox" id="layer-opt-track" class="rounded border-slate-600 bg-slate-800 text-cyan-400 focus:ring-0">
-                        <span class="text-cyan-300">Histori Lintasan (Track)</span>
+                        <input type="checkbox" id="layer-opt-track" checked class="rounded border-slate-600 bg-slate-800 text-cyan-400 focus:ring-0">
+                        <span class="text-cyan-300">Lintasan Kapal (Track)</span>
                     </label>
                     <label class="flex items-center gap-2 cursor-pointer hover:text-indigo-300">
-                        <input type="checkbox" id="layer-opt-fishing" class="rounded border-slate-600 bg-slate-800 text-emerald-500 focus:ring-0">
-                        <span class="text-emerald-300">Fishing Activity</span>
+                        <input type="checkbox" id="layer-opt-fishing" checked class="rounded border-slate-600 bg-slate-800 text-emerald-500 focus:ring-0">
+                        <span class="text-emerald-300">Fishing Events</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer hover:text-indigo-300">
+                        <input type="checkbox" id="layer-opt-loitering" checked class="rounded border-slate-600 bg-slate-800 text-purple-500 focus:ring-0">
+                        <span class="text-purple-300">Loitering</span>
                     </label>
                     <label class="flex items-center gap-2 cursor-pointer hover:text-indigo-300">
                         <input type="checkbox" id="layer-opt-encounters" class="rounded border-slate-600 bg-slate-800 text-amber-500 focus:ring-0">
                         <span class="text-amber-300">Encounters</span>
-                    </label>
-                    <label class="flex items-center gap-2 cursor-pointer hover:text-indigo-300">
-                        <input type="checkbox" id="layer-opt-loitering" class="rounded border-slate-600 bg-slate-800 text-purple-500 focus:ring-0">
-                        <span class="text-purple-300">Loitering</span>
                     </label>
                     <label class="flex items-center gap-2 cursor-pointer hover:text-indigo-300">
                         <input type="checkbox" id="layer-opt-port-visits" class="rounded border-slate-600 bg-slate-800 text-sky-500 focus:ring-0">
@@ -311,56 +338,85 @@
             {{-- Map Legend Footer --}}
             <div class="mt-2.5 px-2 flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-600 border-t border-slate-100 pt-2">
                 <div class="flex flex-wrap items-center gap-3">
-                    <span class="font-semibold text-slate-700">Simbol:</span>
-                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Fishing</span>
-                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span> Carrier</span>
-                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Tanker/Bunker</span>
-                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span> Cargo</span>
-                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-slate-500"></span> Other</span>
-                    <span class="flex items-center gap-1"><span class="w-3.5 h-1 bg-cyan-400 rounded"></span> Vessel Track</span>
-                    <span class="flex items-center gap-1"><span class="w-3.5 h-1 bg-blue-600 rounded"></span> Garis ZEE (BIG)</span>
+                    <span class="font-semibold text-slate-700">Simbol Peta:</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Fishing Event</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span> Loitering Event</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Encounter</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span> Port Visit</span>
+                    <span class="flex items-center gap-1"><span class="w-3.5 h-1 bg-amber-500 rounded"></span> Vessel Track</span>
+                    <span class="flex items-center gap-1"><span class="w-3.5 h-1 bg-blue-600 rounded"></span> Garis ZEE (BIG Layer 10)</span>
                 </div>
                 <div class="text-slate-400 font-mono text-[10px]">
-                    Proyeksi: EPSG:4326 | Sumber Garis: Badan Informasi Geospasial
+                    Proyeksi: EPSG:4326 | Sumber Garis: Badan Informasi Geospasial (BIG Layer 10)
                 </div>
             </div>
         </div>
 
-        {{-- Bottom Split Layout: Activity Feed & Alerts vs Vessel Table & Detail --}}
+        {{-- Bottom Split Layout: Activity & Alerts vs Vessel Table & Detail --}}
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {{-- Left Column (5 cols): Activity Feed & Alerts --}}
+            {{-- Left Column (5 cols): Activity Feed & Monitoring Alerts Tabs --}}
             <div class="lg:col-span-5 space-y-4">
-                {{-- Activity Feed Container --}}
                 <div class="bg-white rounded-2xl p-4 shadow-2xs border border-slate-200/80 space-y-3">
+                    {{-- Tab Navigation --}}
                     <div class="flex items-center justify-between pb-2 border-b border-slate-100">
-                        <div class="flex items-center gap-2">
-                            <span class="text-base">⚡</span>
-                            <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Recent Activities & Alerts</h3>
+                        <div class="flex items-center gap-1.5" id="nav-tabs-container">
+                            <button type="button" id="tab-btn-activities" class="px-3 py-1.5 rounded-xl font-bold text-xs bg-indigo-600 text-white shadow-2xs transition flex items-center gap-1.5">
+                                <span>⚡</span>
+                                <span>Aktivitas Maritim</span>
+                            </button>
+                            <button type="button" id="tab-btn-alerts" class="px-3 py-1.5 rounded-xl font-bold text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 transition flex items-center gap-1.5">
+                                <span>🚨</span>
+                                <span>Monitoring Alerts</span>
+                                <span id="alerts-tab-badge" class="px-1.5 py-0.2 rounded-full text-[10px] bg-rose-500 text-white">0</span>
+                            </button>
                         </div>
-                        <span id="activity-feed-count" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700">
-                            0 events
-                        </span>
+                        <span id="tab-summary-count" class="text-[11px] font-mono text-slate-500">0 data</span>
                     </div>
 
-                    {{-- Activity Filter Chips --}}
-                    <div class="flex flex-wrap items-center gap-1 text-[11px]" id="feed-filter-chips">
-                        <button type="button" data-type="all" class="feed-chip px-2.5 py-1 rounded-lg bg-indigo-600 text-white font-semibold transition">Semua</button>
-                        <button type="button" data-type="fishing" class="feed-chip px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-semibold transition">Fishing</button>
-                        <button type="button" data-type="encounter" class="feed-chip px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-semibold transition">Encounter</button>
-                        <button type="button" data-type="loitering" class="feed-chip px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-semibold transition">Loitering</button>
-                        <button type="button" data-type="port" class="feed-chip px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-semibold transition">Port</button>
+                    {{-- Panel 1: Activity Feed (Stage 4, 6, 7, 8) --}}
+                    <div id="panel-activities" class="space-y-2.5">
+                        {{-- Activity Filter Chips --}}
+                        <div class="flex flex-wrap items-center gap-1 text-[11px]" id="feed-filter-chips">
+                            <button type="button" data-type="all" class="feed-chip px-2.5 py-1 rounded-lg bg-indigo-600 text-white font-semibold transition">Semua</button>
+                            <button type="button" data-type="fishing" class="feed-chip px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-semibold transition">Fishing</button>
+                            <button type="button" data-type="loitering" class="feed-chip px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-semibold transition">Loitering</button>
+                            <button type="button" data-type="encounter" class="feed-chip px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-semibold transition">Encounter</button>
+                            <button type="button" data-type="port" class="feed-chip px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-semibold transition">Port</button>
+                        </div>
+
+                        {{-- Feed List --}}
+                        <div id="activity-feed-list" class="space-y-2 max-h-[460px] overflow-y-auto pr-1 text-xs">
+                            <div class="py-8 text-center text-slate-400">
+                                <span class="animate-pulse">Memuat aktivitas maritim...</span>
+                            </div>
+                        </div>
                     </div>
 
-                    {{-- Feed List --}}
-                    <div id="activity-feed-list" class="space-y-2 max-h-[460px] overflow-y-auto pr-1 text-xs">
-                        <div class="py-8 text-center text-slate-400">
-                            <span class="animate-pulse">Memuat aktivitas...</span>
+                    {{-- Panel 2: Monitoring Alerts / Alarm (Stage 9) --}}
+                    <div id="panel-alerts" class="hidden space-y-2.5">
+                        <div class="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[11px] leading-relaxed">
+                            <strong>Perlu Ditinjau:</strong> Alert adalah indikator analitik untuk ditinjau manusia, bukan merupakan keputusan pelanggaran hukum.
+                        </div>
+
+                        {{-- Severity Filter Chips --}}
+                        <div class="flex flex-wrap items-center gap-1 text-[11px]" id="alert-filter-chips">
+                            <button type="button" data-severity="all" class="alert-chip px-2.5 py-1 rounded-lg bg-indigo-600 text-white font-semibold transition">Semua</button>
+                            <button type="button" data-severity="WARNING" class="alert-chip px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-semibold transition">WARNING</button>
+                            <button type="button" data-severity="INFO" class="alert-chip px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-semibold transition">INFO</button>
+                            <button type="button" data-severity="CRITICAL" class="alert-chip px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-semibold transition">CRITICAL</button>
+                        </div>
+
+                        {{-- Alerts List --}}
+                        <div id="alerts-feed-list" class="space-y-2 max-h-[440px] overflow-y-auto pr-1 text-xs">
+                            <div class="py-8 text-center text-slate-400">
+                                <span class="animate-pulse">Memuat monitoring alerts...</span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {{-- Right Column (7 cols): Vessel Table & Detail Intelligence --}}
+            {{-- Right Column (7 cols): Vessel Profile & Intelligence + Vessel Table --}}
             <div class="lg:col-span-7 space-y-4">
                 {{-- Vessel Detail & Intelligence Card --}}
                 <div id="dashboard-vessel-detail" class="bg-white rounded-2xl p-4 shadow-2xs border border-slate-200/80 space-y-3">
@@ -373,7 +429,7 @@
                             <span id="detail-status-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600">
                                 Pilih Kapal
                             </span>
-                            <button type="button" id="btn-load-track" class="hidden px-2.5 py-1 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-[11px] transition shadow-xs flex items-center gap-1">
+                            <button type="button" id="btn-load-track" class="hidden px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-[11px] transition shadow-xs flex items-center gap-1">
                                 <span>🗺️</span>
                                 <span>Lihat Track</span>
                             </button>
@@ -382,7 +438,7 @@
 
                     <div id="vessel-detail-empty" class="py-6 text-center text-slate-400">
                         <span class="text-2xl block mb-1">🚢</span>
-                        <p class="text-xs font-medium">Klik kapal pada peta atau tabel untuk melihat data intelligence & riwayat posisi</p>
+                        <p class="text-xs font-medium">Klik kapal pada peta atau tabel untuk melihat riwayat pergerakan & lintasan</p>
                     </div>
 
                     <div id="vessel-detail-body" class="hidden space-y-3">
@@ -405,20 +461,20 @@
                             </div>
                         </div>
 
-                        {{-- Track Info Box (Shown when track loaded) --}}
-                        <div id="track-summary-box" class="hidden p-3 rounded-xl bg-cyan-50 border border-cyan-200 text-xs text-cyan-950 space-y-1">
-                            <div class="flex items-center justify-between font-bold text-cyan-900 pb-1 border-b border-cyan-200/60">
-                                <span>Histori Pergerakan (Observed Track)</span>
-                                <span id="track-points-count" class="font-mono text-[11px] bg-cyan-200/60 px-1.5 py-0.5 rounded">0 titik</span>
+                        {{-- Track Info Box (Shown when track loaded - Stage 3) --}}
+                        <div id="track-summary-box" class="hidden p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-950 space-y-1">
+                            <div class="flex items-center justify-between font-bold text-amber-900 pb-1 border-b border-amber-200/60">
+                                <span>Lintasan Pergerakan Kapal (Vessel Track)</span>
+                                <span id="track-points-count" class="font-mono text-[11px] bg-amber-200/60 px-1.5 py-0.5 rounded">0 titik</span>
                             </div>
                             <div class="grid grid-cols-2 gap-2 text-[11px] pt-1">
                                 <div>
-                                    <span class="text-cyan-700">Pertama Terdeteksi:</span>
-                                    <span id="track-first-seen" class="font-medium text-cyan-900 ml-1">-</span>
+                                    <span class="text-amber-700">Pertama Terdeteksi:</span>
+                                    <span id="track-first-seen" class="font-medium text-amber-900 ml-1">-</span>
                                 </div>
                                 <div>
-                                    <span class="text-cyan-700">Terakhir Terdeteksi:</span>
-                                    <span id="track-last-seen" class="font-medium text-cyan-900 ml-1">-</span>
+                                    <span class="text-amber-700">Terakhir Terdeteksi:</span>
+                                    <span id="track-last-seen" class="font-medium text-amber-900 ml-1">-</span>
                                 </div>
                             </div>
                         </div>
@@ -441,7 +497,8 @@
                         <table class="w-full text-left text-xs text-slate-600">
                             <thead class="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
                                 <tr>
-                                    <th class="py-2 px-2.5">Kapal</th>
+                                    <th class="py-2 px-2.5">#</th>
+                                    <th class="py-2 px-2">Kapal</th>
                                     <th class="py-2 px-2">MMSI</th>
                                     <th class="py-2 px-2">Bendera</th>
                                     <th class="py-2 px-2">Tipe</th>
@@ -451,7 +508,7 @@
                             </thead>
                             <tbody id="dashboard-table-body" class="divide-y divide-slate-100">
                                 <tr>
-                                    <td colspan="6" class="py-6 text-center text-slate-400">
+                                    <td colspan="7" class="py-6 text-center text-slate-400">
                                         <span class="animate-pulse">Memuat data armada...</span>
                                     </td>
                                 </tr>
@@ -463,6 +520,70 @@
         </div>
     </div>
 
+    {{-- Stage 9: Alert Detail Modal --}}
+    <div id="alert-detail-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl border border-slate-200 space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div class="flex items-center gap-2">
+                    <span id="modal-alert-icon" class="text-xl">🚨</span>
+                    <div>
+                        <h3 id="modal-alert-title" class="text-sm font-bold text-slate-800">Detail Monitoring Alert</h3>
+                        <p class="text-[10px] text-slate-400">Indikator pemantauan untuk ditinjau manusia</p>
+                    </div>
+                </div>
+                <button type="button" id="btn-close-modal" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-bold flex items-center justify-center">
+                    ✕
+                </button>
+            </div>
+
+            <div class="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs">
+                <strong>Catatan Penting:</strong> Alert ini merupakan indikator pemantauan berdasarkan data analitik GFW. Ini <em>bukan</em> vonis atau bukti hukum terjadinya pelanggaran.
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 text-xs">
+                <div class="p-2 rounded-xl bg-slate-50 border border-slate-100">
+                    <span class="text-[10px] text-slate-400 block">Tingkat Severity</span>
+                    <span id="modal-alert-severity" class="font-bold text-xs">-</span>
+                </div>
+                <div class="p-2 rounded-xl bg-slate-50 border border-slate-100">
+                    <span class="text-[10px] text-slate-400 block">Status Review</span>
+                    <span id="modal-alert-status" class="font-bold text-xs">-</span>
+                </div>
+                <div class="p-2 rounded-xl bg-slate-50 border border-slate-100">
+                    <span class="text-[10px] text-slate-400 block">Kapal</span>
+                    <span id="modal-alert-vessel" class="font-semibold text-slate-800 block truncate">-</span>
+                </div>
+                <div class="p-2 rounded-xl bg-slate-50 border border-slate-100">
+                    <span class="text-[10px] text-slate-400 block">Waktu Terdeteksi</span>
+                    <span id="modal-alert-time" class="font-mono text-slate-700 block text-[11px]">-</span>
+                </div>
+                <div class="col-span-2 p-2 rounded-xl bg-slate-50 border border-slate-100">
+                    <span class="text-[10px] text-slate-400 block">Lokasi & Batas</span>
+                    <span id="modal-alert-location" class="font-mono text-slate-700 block text-[11px]">-</span>
+                </div>
+                <div class="col-span-2 p-2 rounded-xl bg-slate-50 border border-slate-100">
+                    <span class="text-[10px] text-slate-400 block">Alasan Indikator (Reason)</span>
+                    <p id="modal-alert-reason" class="text-slate-700 text-xs mt-0.5 leading-relaxed">-</p>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+                <div class="flex items-center gap-1.5">
+                    <button type="button" id="btn-alert-ack" class="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs transition">
+                        ✓ Tandai Ditinjau
+                    </button>
+                    <button type="button" id="btn-alert-resolve" class="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs transition">
+                        ✓ Selesai
+                    </button>
+                </div>
+                <button type="button" id="btn-modal-fly-map" class="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition shadow-xs flex items-center gap-1">
+                    <span>🗺️</span>
+                    <span>Pusatkan Peta</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     {{-- Frontend Javascript Controller --}}
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -470,19 +591,22 @@
             let map = null;
             let vesselsList = [];
             let eventsList = [];
+            let alertsList = [];
             let activeSelectedVessel = null;
-            let isLiveActive = false;
-            let liveTimer = null;
-            let previousVesselsMap = new Map();
             let currentFeedFilter = 'all';
+            let currentAlertFilter = 'all';
+            let activeTab = 'activities';
+            let activeModalAlert = null;
 
             // DOM References
             const kpiDetected = document.getElementById('kpi-detected-vessels');
             const kpiLive = document.getElementById('kpi-live-recent');
             const kpiFishing = document.getElementById('kpi-fishing-activity');
-            const kpiEncounters = document.getElementById('kpi-encounters');
+            const kpiTrackPoints = document.getElementById('kpi-track-points');
             const kpiLoitering = document.getElementById('kpi-loitering');
+            const kpiEncounters = document.getElementById('kpi-encounters');
             const kpiPort = document.getElementById('kpi-port-visits');
+            const kpiAlerts = document.getElementById('kpi-alerts');
 
             const filterSearch = document.getElementById('filter-search');
             const filterStart = document.getElementById('filter-start-date');
@@ -492,20 +616,26 @@
             const btnApply = document.getElementById('btn-apply-filters');
             const btnReset = document.getElementById('btn-reset-filters');
             const filterSpinner = document.getElementById('filter-spinner');
+            const btnRefresh = document.getElementById('btn-refresh-dashboard');
 
-            const btnToggleLive = document.getElementById('btn-toggle-live');
-            const livePulse = document.getElementById('live-pulse-indicator');
             const liveStatusText = document.getElementById('live-status-text');
             const metaLastUpdated = document.getElementById('meta-last-updated');
             const metaDataAge = document.getElementById('meta-data-age');
-            const metaDeltaContainer = document.getElementById('meta-delta-container');
-            const metaDeltaBadge = document.getElementById('meta-delta-badge');
 
             const errorNotice = document.getElementById('gfw-dashboard-error-notice');
+            const errorTitle = document.getElementById('error-notice-title');
+            const errorDetail = document.getElementById('error-notice-detail');
             const btnRetry = document.getElementById('btn-retry-fetch');
 
+            const tabBtnActivities = document.getElementById('tab-btn-activities');
+            const tabBtnAlerts = document.getElementById('tab-btn-alerts');
+            const panelActivities = document.getElementById('panel-activities');
+            const panelAlerts = document.getElementById('panel-alerts');
+            const alertsTabBadge = document.getElementById('alerts-tab-badge');
+            const tabSummaryCount = document.getElementById('tab-summary-count');
+
             const activityFeedList = document.getElementById('activity-feed-list');
-            const activityFeedCount = document.getElementById('activity-feed-count');
+            const alertsFeedList = document.getElementById('alerts-feed-list');
             const tableBody = document.getElementById('dashboard-table-body');
             const tableRecordCount = document.getElementById('table-record-count');
 
@@ -527,11 +657,24 @@
             const optVessels = document.getElementById('layer-opt-vessels');
             const optTrack = document.getElementById('layer-opt-track');
             const optFishing = document.getElementById('layer-opt-fishing');
-            const optEncounters = document.getElementById('layer-opt-encounters');
             const optLoitering = document.getElementById('layer-opt-loitering');
+            const optEncounters = document.getElementById('layer-opt-encounters');
             const optPortVisits = document.getElementById('layer-opt-port-visits');
 
-            // Initialize MapLibre
+            // Modal elements
+            const alertModal = document.getElementById('alert-detail-modal');
+            const btnCloseModal = document.getElementById('btn-close-modal');
+            const modalAlertSeverity = document.getElementById('modal-alert-severity');
+            const modalAlertStatus = document.getElementById('modal-alert-status');
+            const modalAlertVessel = document.getElementById('modal-alert-vessel');
+            const modalAlertTime = document.getElementById('modal-alert-time');
+            const modalAlertLocation = document.getElementById('modal-alert-location');
+            const modalAlertReason = document.getElementById('modal-alert-reason');
+            const btnAlertAck = document.getElementById('btn-alert-ack');
+            const btnAlertResolve = document.getElementById('btn-alert-resolve');
+            const btnModalFlyMap = document.getElementById('btn-modal-fly-map');
+
+            // Initialize MapLibre Map
             function initMap() {
                 map = new maplibregl.Map({
                     container: 'gfw-dashboard-map',
@@ -570,13 +713,13 @@
                 });
             }
 
-            // Load BIG ZEE Aceh boundary lines and polygon
+            // Load BIG ZEE Aceh boundary lines and polygon (Single authoritative source: BIG Layer 10)
             async function loadBigZeeBoundaries() {
                 try {
-                    const res = await fetch('/api/gfw/aoi/zee-indonesia-aceh?geojson=1');
-                    const json = await res.json();
-                    if (json.success && json.geojson && !map.getSource('big-zee-poly')) {
-                        map.addSource('big-zee-poly', { type: 'geojson', data: json.geojson });
+                    const resPoly = await fetch('/api/gis/big/zee/aceh?polygon=1');
+                    const polyJson = await resPoly.json();
+                    if (polyJson && polyJson.success && polyJson.geojson && !map.getSource('big-zee-poly')) {
+                        map.addSource('big-zee-poly', { type: 'geojson', data: polyJson.geojson });
                         map.addLayer({
                             id: 'big-zee-fill',
                             type: 'fill',
@@ -587,11 +730,11 @@
                             id: 'big-zee-outline',
                             type: 'line',
                             source: 'big-zee-poly',
-                            paint: { 'line-color': '#0284c7', 'line-width': 2.5 }
+                            paint: { 'line-color': '#0284c7', 'line-width': 1.5, 'line-opacity': 0.4 }
                         });
                     }
                 } catch (e) {
-                    console.warn('Gagal memuat poligon ZEE:', e);
+                    console.warn('Gagal memuat poligon ZEE BIG:', e);
                 }
 
                 try {
@@ -612,8 +755,9 @@
             }
 
             // Main Dashboard Fetcher
-            async function fetchDashboardData() {
+            async function fetchDashboardData(isRefresh = false) {
                 filterSpinner.classList.remove('hidden');
+                liveStatusText.textContent = 'Memuat data...';
 
                 const params = new URLSearchParams({
                     start: filterStart.value,
@@ -621,6 +765,7 @@
                     limit: 100,
                 });
 
+                if (isRefresh) params.append('refresh', '1');
                 if (filterType.value) params.append('vessel_type', filterType.value);
                 if (filterSearch.value.trim()) params.append('search', filterSearch.value.trim());
 
@@ -630,23 +775,23 @@
                     filterSpinner.classList.add('hidden');
 
                     if (!response.ok || !json.success) {
-                        handleFetchFailure(json.message || 'Gagal memuat data dari GFW.');
+                        handleFetchFailure(json.message || 'Gagal memuat data dari Global Fishing Watch.');
                         return;
                     }
 
                     // Success - hide error notice
                     errorNotice.classList.add('hidden');
+                    liveStatusText.textContent = 'Terkini (Siap)';
 
-                    // Delta detection
-                    detectDatasetDeltas(json.vessels || []);
-
-                    // Update KPIs
-                    kpiDetected.textContent = (json.kpi?.detected_vessels ?? 0).toLocaleString();
-                    kpiLive.textContent = (json.kpi?.live_recent ?? 0).toLocaleString();
-                    kpiFishing.textContent = (json.kpi?.fishing_activity ?? 0).toLocaleString();
-                    kpiEncounters.textContent = (json.kpi?.encounters ?? 0).toLocaleString();
+                    // Update KPIs (Stage 5.1)
+                    kpiDetected.textContent = (json.kpi?.detected_vessels ?? json.kpi?.total_vessels ?? 0).toLocaleString();
+                    kpiLive.textContent = (json.kpi?.live_recent ?? json.kpi?.active_vessels ?? 0).toLocaleString();
+                    kpiFishing.textContent = (json.kpi?.fishing_activity ?? json.kpi?.fishing_events ?? 0).toLocaleString();
+                    kpiTrackPoints.textContent = (json.kpi?.track_points ?? 0).toLocaleString();
                     kpiLoitering.textContent = (json.kpi?.loitering ?? 0).toLocaleString();
-                    kpiPort.textContent = (json.kpi?.port_visits ?? 0).toLocaleString();
+                    kpiEncounters.textContent = json.kpi?.encounters_status ? 'N/A' : (json.kpi?.encounters ?? 0).toLocaleString();
+                    kpiPort.textContent = json.kpi?.port_visits_status ? 'N/A' : (json.kpi?.port_visits ?? 0).toLocaleString();
+                    kpiAlerts.textContent = (json.kpi?.alerts ?? json.kpi?.alerts_count ?? (json.alerts ? json.alerts.length : 0)).toLocaleString();
 
                     // Update Timers & Metadata
                     metaLastUpdated.textContent = formatDate(json.last_updated);
@@ -656,6 +801,7 @@
                     // Store lists
                     vesselsList = json.vessels || [];
                     eventsList = json.activity_feed || [];
+                    alertsList = json.alerts || [];
 
                     // Filter status locally if requested
                     let displayVessels = vesselsList;
@@ -666,7 +812,11 @@
                     // Update Visuals
                     updateMapLayers(displayVessels, json.events || []);
                     renderActivityFeed(eventsList);
+                    renderAlertsFeed(alertsList);
                     renderVesselsTable(displayVessels);
+
+                    alertsTabBadge.textContent = alertsList.length;
+                    updateTabCount();
 
                 } catch (err) {
                     filterSpinner.classList.add('hidden');
@@ -677,51 +827,13 @@
             // Error Resilience - Last Successful Data fallback
             function handleFetchFailure(msg) {
                 errorNotice.classList.remove('hidden');
-                liveStatusText.textContent = 'Gagal memperbarui (Menampilkan data terakhir)';
+                errorTitle.textContent = 'Gagal mengambil data dari Global Fishing Watch.';
+                errorDetail.textContent = msg + ' Menampilkan dataset terakhir yang berhasil dimuat.';
+                liveStatusText.textContent = 'Gagal memperbarui (Data Tersimpan)';
                 liveStatusText.classList.add('text-amber-400');
             }
 
-            // Delta Detection between fetches
-            function detectDatasetDeltas(newVessels) {
-                if (previousVesselsMap.size > 0) {
-                    let newCount = 0;
-                    let movedCount = 0;
-
-                    const currentIds = new Set();
-                    newVessels.forEach(v => {
-                        currentIds.add(String(v.id));
-                        if (!previousVesselsMap.has(String(v.id))) {
-                            newCount++;
-                        } else {
-                            const prev = previousVesselsMap.get(String(v.id));
-                            if (prev.lat !== v.lat || prev.lon !== v.lon) {
-                                movedCount++;
-                            }
-                        }
-                    });
-
-                    let missingCount = 0;
-                    previousVesselsMap.forEach((_, id) => {
-                        if (!currentIds.has(id)) missingCount++;
-                    });
-
-                    if (newCount > 0 || movedCount > 0 || missingCount > 0) {
-                        const parts = [];
-                        if (newCount > 0) parts.push(`+${newCount} kapal baru`);
-                        if (movedCount > 0) parts.push(`${movedCount} posisi berubah`);
-                        if (missingCount > 0) parts.push(`${missingCount} tidak terdeteksi pada snapshot terkini`);
-
-                        metaDeltaBadge.textContent = parts.join(' • ');
-                        metaDeltaContainer.classList.remove('hidden');
-                    }
-                }
-
-                // Update Map
-                previousVesselsMap.clear();
-                newVessels.forEach(v => previousVesselsMap.set(String(v.id), v));
-            }
-
-            // MapLibre GeoJSON update with Clustering
+            // MapLibre GeoJSON update with Clustering and Event Layers
             function updateMapLayers(vessels, events) {
                 if (!map) return;
 
@@ -830,13 +942,14 @@
                                     <div class="font-bold text-slate-800">${escapeHtml(props.name)}</div>
                                     <div class="text-[11px] text-slate-500">MMSI: ${escapeHtml(props.mmsi)} • Tipe: ${escapeHtml(props.type)}</div>
                                     <div class="text-[10px] text-indigo-600 font-semibold">${escapeHtml(props.status)} • ${escapeHtml(props.activity)}</div>
+                                    <div class="text-[10px] text-slate-400">Wilayah: ZEE Aceh (BIG Layer 10)</div>
                                 </div>
                             `)
                             .addTo(map);
                     });
                 }
 
-                // 2. Activity Events Points
+                // 2. Activity Events Points (Stage 4 & Stage 6)
                 const eventsGeoJson = {
                     type: 'FeatureCollection',
                     features: events
@@ -846,9 +959,14 @@
                             geometry: { type: 'Point', coordinates: [e.position.lon, e.position.lat] },
                             properties: {
                                 id: e.id,
-                                type: e.type || 'activity',
+                                type: (e.type || 'activity').toLowerCase(),
                                 vessel: e.vessel?.name || 'Kapal',
-                                time: e.start || e.end || ''
+                                vessel_id: e.vessel?.id || '',
+                                mmsi: e.vessel?.ssvid || '',
+                                flag: e.vessel?.flag || '',
+                                time: e.start || e.end || '',
+                                lat: e.position.lat,
+                                lon: e.position.lon
                             }
                         }))
                 };
@@ -857,18 +975,57 @@
                     map.getSource('dashboard-events-src').setData(eventsGeoJson);
                 } else {
                     map.addSource('dashboard-events-src', { type: 'geojson', data: eventsGeoJson });
+
+                    // Fishing Events layer (Emerald)
                     map.addLayer({
-                        id: 'events-layer',
+                        id: 'fishing-events-layer',
                         type: 'circle',
                         source: 'dashboard-events-src',
-                        layout: { visibility: 'none' }, // Default OFF per requirement
+                        filter: ['==', ['get', 'type'], 'fishing'],
                         paint: {
-                            'circle-radius': 4.5,
-                            'circle-color': '#e11d48',
-                            'circle-stroke-width': 1,
+                            'circle-radius': 5.5,
+                            'circle-color': '#10b981',
+                            'circle-stroke-width': 1.5,
                             'circle-stroke-color': '#ffffff'
                         }
                     });
+
+                    // Loitering Events layer (Purple)
+                    map.addLayer({
+                        id: 'loitering-events-layer',
+                        type: 'circle',
+                        source: 'dashboard-events-src',
+                        filter: ['==', ['get', 'type'], 'loitering'],
+                        paint: {
+                            'circle-radius': 5.5,
+                            'circle-color': '#a855f7',
+                            'circle-stroke-width': 1.5,
+                            'circle-stroke-color': '#ffffff'
+                        }
+                    });
+
+                    // Event Click Popup
+                    const onEventClick = (e) => {
+                        const props = e.features[0].properties;
+                        new maplibregl.Popup({ offset: 12 })
+                            .setLngLat(e.features[0].geometry.coordinates)
+                            .setHTML(`
+                                <div class="p-2 space-y-1 text-xs">
+                                    <div class="font-bold text-slate-800">${escapeHtml(props.vessel)}</div>
+                                    <div class="text-[11px] text-slate-500">MMSI: ${escapeHtml(props.mmsi)} • Bendera: ${escapeHtml(props.flag)}</div>
+                                    <div class="text-[11px] font-semibold ${props.type === 'loitering' ? 'text-purple-600' : 'text-emerald-600'}">
+                                        Peristiwa: ${props.type === 'loitering' ? 'Loitering Event' : 'Fishing Activity'}
+                                    </div>
+                                    <div class="text-[10px] text-slate-400 font-mono">${formatDate(props.time)}</div>
+                                    <div class="text-[10px] text-slate-400">Koordinat: ${roundCoord(props.lat)}, ${roundCoord(props.lon)}</div>
+                                    <div class="text-[9px] text-amber-700 bg-amber-50 p-1 rounded mt-1">Indikator pemantauan algoritmik untuk ditinjau manusia.</div>
+                                </div>
+                            `)
+                            .addTo(map);
+                    };
+
+                    map.on('click', 'fishing-events-layer', onEventClick);
+                    map.on('click', 'loitering-events-layer', onEventClick);
                 }
             }
 
@@ -897,20 +1054,18 @@
                     setVis('vessel-track-points', e.target.checked);
                 });
 
-                optFishing?.addEventListener('change', e => setVis('events-layer', e.target.checked));
-                optEncounters?.addEventListener('change', e => setVis('events-layer', e.target.checked));
-                optLoitering?.addEventListener('change', e => setVis('events-layer', e.target.checked));
-                optPortVisits?.addEventListener('change', e => setVis('events-layer', e.target.checked));
+                optFishing?.addEventListener('change', e => setVis('fishing-events-layer', e.target.checked));
+                optLoitering?.addEventListener('change', e => setVis('loitering-events-layer', e.target.checked));
+                optEncounters?.addEventListener('change', e => setVis('encounters-events-layer', e.target.checked));
+                optPortVisits?.addEventListener('change', e => setVis('port-visits-events-layer', e.target.checked));
             }
             bindLayerToggles();
 
-            // Activity Feed Rendering
+            // Activity Feed Rendering (Stage 4, 6)
             function renderActivityFeed(feed) {
-                activityFeedCount.textContent = `${feed.length} events`;
-
                 const filtered = feed.filter(item => {
                     if (currentFeedFilter === 'all') return true;
-                    return (item.activity || '').toLowerCase().includes(currentFeedFilter);
+                    return (item.activity || '').toLowerCase().includes(currentFeedFilter) || (item.type || '').toLowerCase().includes(currentFeedFilter);
                 });
 
                 if (filtered.length === 0) {
@@ -946,7 +1101,7 @@
 
                     el.addEventListener('click', () => {
                         if (item.lat !== null && item.lon !== null && map) {
-                            map.flyTo({ center: [item.lon, item.lat], zoom: 10 });
+                            map.flyTo({ center: [item.lon, item.lat], zoom: 9 });
                         }
                         if (item.vessel_id) {
                             selectVesselById(item.vessel_id);
@@ -957,18 +1112,148 @@
                 });
             }
 
+            // Monitoring Alerts Rendering (Stage 9)
+            function renderAlertsFeed(alerts) {
+                const filtered = alerts.filter(item => {
+                    if (currentAlertFilter === 'all') return true;
+                    return (item.severity || '').toUpperCase() === currentAlertFilter.toUpperCase();
+                });
+
+                if (filtered.length === 0) {
+                    alertsFeedList.innerHTML = `
+                        <div class="py-8 text-center text-slate-400 text-xs">
+                            Tidak ada alert pemantauan pada kategori ini.
+                        </div>
+                    `;
+                    return;
+                }
+
+                alertsFeedList.innerHTML = '';
+                filtered.forEach((item, idx) => {
+                    const el = document.createElement('div');
+                    el.className = 'p-3 rounded-xl border border-slate-200/80 hover:border-indigo-300 bg-white hover:bg-slate-50 transition cursor-pointer space-y-1.5 shadow-2xs';
+
+                    let sevBadge = 'bg-blue-100 text-blue-800 border-blue-200';
+                    if (item.severity === 'WARNING') sevBadge = 'bg-amber-100 text-amber-800 border-amber-200';
+                    if (item.severity === 'CRITICAL') sevBadge = 'bg-rose-100 text-rose-800 border-rose-200';
+
+                    let statusBadge = 'bg-slate-100 text-slate-700';
+                    if (item.status === 'NEW') statusBadge = 'bg-rose-50 text-rose-700 border border-rose-200';
+                    else if (item.status === 'ACKNOWLEDGED') statusBadge = 'bg-amber-50 text-amber-700 border border-amber-200';
+                    else if (item.status === 'RESOLVED') statusBadge = 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+
+                    el.innerHTML = `
+                        <div class="flex items-center justify-between text-xs">
+                            <div class="flex items-center gap-1.5 truncate">
+                                <span class="px-1.5 py-0.5 rounded text-[10px] font-black border ${sevBadge}">${escapeHtml(item.severity)}</span>
+                                <span class="font-bold text-slate-800 truncate">${escapeHtml(item.title)}</span>
+                            </div>
+                            <span class="px-1.5 py-0.5 rounded text-[9px] font-bold ${statusBadge}">${escapeHtml(item.status)}</span>
+                        </div>
+                        <div class="text-[11px] text-slate-600 flex items-center justify-between">
+                            <span>Kapal: <strong>${escapeHtml(item.vessel)}</strong></span>
+                            <span class="font-mono text-[10px] text-slate-400">${formatDate(item.time)}</span>
+                        </div>
+                        <div class="text-[10px] text-slate-400 flex items-center justify-between">
+                            <span>Lokasi: ${escapeHtml(item.location)}</span>
+                            <span class="text-indigo-600 font-semibold hover:underline">Tinjau Detail →</span>
+                        </div>
+                    `;
+
+                    el.addEventListener('click', () => openAlertModal(item));
+                    alertsFeedList.appendChild(el);
+                });
+            }
+
+            // Open Alert Modal (Stage 9.4)
+            function openAlertModal(alertItem) {
+                activeModalAlert = alertItem;
+                modalAlertSeverity.textContent = alertItem.severity;
+                modalAlertSeverity.className = 'font-bold text-xs ' + (alertItem.severity === 'WARNING' ? 'text-amber-600' : (alertItem.severity === 'CRITICAL' ? 'text-rose-600' : 'text-blue-600'));
+                modalAlertStatus.textContent = alertItem.status;
+                modalAlertVessel.textContent = alertItem.vessel + (alertItem.mmsi ? ` (MMSI: ${alertItem.mmsi})` : '');
+                modalAlertTime.textContent = formatDate(alertItem.time);
+                modalAlertLocation.textContent = alertItem.location + ' (ZEE Aceh BIG Layer 10)';
+                modalAlertReason.textContent = alertItem.reason || alertItem.description;
+
+                alertModal.classList.remove('hidden');
+            }
+
+            btnCloseModal?.addEventListener('click', () => alertModal.classList.add('hidden'));
+
+            btnAlertAck?.addEventListener('click', () => {
+                if (!activeModalAlert) return;
+                activeModalAlert.status = 'ACKNOWLEDGED';
+                modalAlertStatus.textContent = 'ACKNOWLEDGED';
+                renderAlertsFeed(alertsList);
+            });
+
+            btnAlertResolve?.addEventListener('click', () => {
+                if (!activeModalAlert) return;
+                activeModalAlert.status = 'RESOLVED';
+                modalAlertStatus.textContent = 'RESOLVED';
+                renderAlertsFeed(alertsList);
+            });
+
+            btnModalFlyMap?.addEventListener('click', () => {
+                if (!activeModalAlert) return;
+                alertModal.classList.add('hidden');
+                if (activeModalAlert.lat !== null && activeModalAlert.lon !== null && map) {
+                    map.flyTo({ center: [activeModalAlert.lon, activeModalAlert.lat], zoom: 9 });
+                }
+                if (activeModalAlert.vessel_id) {
+                    selectVesselById(activeModalAlert.vessel_id);
+                }
+            });
+
+            // Tab switching
+            tabBtnActivities.addEventListener('click', () => {
+                activeTab = 'activities';
+                tabBtnActivities.className = 'px-3 py-1.5 rounded-xl font-bold text-xs bg-indigo-600 text-white shadow-2xs transition flex items-center gap-1.5';
+                tabBtnAlerts.className = 'px-3 py-1.5 rounded-xl font-bold text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 transition flex items-center gap-1.5';
+                panelActivities.classList.remove('hidden');
+                panelAlerts.classList.add('hidden');
+                updateTabCount();
+            });
+
+            tabBtnAlerts.addEventListener('click', () => {
+                activeTab = 'alerts';
+                tabBtnAlerts.className = 'px-3 py-1.5 rounded-xl font-bold text-xs bg-indigo-600 text-white shadow-2xs transition flex items-center gap-1.5';
+                tabBtnActivities.className = 'px-3 py-1.5 rounded-xl font-bold text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 transition flex items-center gap-1.5';
+                panelAlerts.classList.remove('hidden');
+                panelActivities.classList.add('hidden');
+                updateTabCount();
+            });
+
+            function updateTabCount() {
+                if (activeTab === 'activities') {
+                    tabSummaryCount.textContent = `${eventsList.length} peristiwa`;
+                } else {
+                    tabSummaryCount.textContent = `${alertsList.length} alerts`;
+                }
+            }
+
             // Feed Chip Buttons
             document.querySelectorAll('.feed-chip').forEach(btn => {
                 btn.addEventListener('click', () => {
                     document.querySelectorAll('.feed-chip').forEach(b => {
-                        b.classList.remove('bg-indigo-600', 'text-white');
-                        b.classList.add('bg-slate-100', 'text-slate-700');
+                        b.className = 'feed-chip px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-semibold transition';
                     });
-                    btn.classList.add('bg-indigo-600', 'text-white');
-                    btn.classList.remove('bg-slate-100', 'text-slate-700');
-
+                    btn.className = 'feed-chip px-2.5 py-1 rounded-lg bg-indigo-600 text-white font-semibold transition';
                     currentFeedFilter = btn.dataset.type;
                     renderActivityFeed(eventsList);
+                });
+            });
+
+            // Alert Chip Buttons
+            document.querySelectorAll('.alert-chip').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.alert-chip').forEach(b => {
+                        b.className = 'alert-chip px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-semibold transition';
+                    });
+                    btn.className = 'alert-chip px-2.5 py-1 rounded-lg bg-indigo-600 text-white font-semibold transition';
+                    currentAlertFilter = btn.dataset.severity;
+                    renderAlertsFeed(alertsList);
                 });
             });
 
@@ -979,8 +1264,9 @@
                 if (vessels.length === 0) {
                     tableBody.innerHTML = `
                         <tr>
-                            <td colspan="6" class="py-8 text-center text-slate-400 text-xs">
-                                Tidak ada kapal terdeteksi pada periode dan filter ini.
+                            <td colspan="7" class="py-8 text-center text-slate-400 text-xs">
+                                Tidak ada data monitoring pada periode yang dipilih.
+                                <span class="block text-[11px] text-slate-400 mt-1">Data monitoring bersumber dari satelit Global Fishing Watch dalam batas resmi ZEE Aceh BIG Layer 10. Tidak adanya data terdeteksi bukan berarti tidak ada kapal fisik di laut.</span>
                             </td>
                         </tr>
                     `;
@@ -988,65 +1274,63 @@
                 }
 
                 tableBody.innerHTML = '';
-                vessels.slice(0, 50).forEach(v => {
-                    const row = document.createElement('tr');
-                    row.className = 'hover:bg-slate-50 transition cursor-pointer';
+                vessels.forEach((v, index) => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-indigo-50/40 transition cursor-pointer';
 
-                    let statusClass = 'bg-slate-100 text-slate-600';
-                    if (v.status === 'LIVE') statusClass = 'bg-emerald-100 text-emerald-800';
-                    else if (v.status === 'RECENT') statusClass = 'bg-sky-100 text-sky-800';
+                    let statusBadge = 'bg-slate-100 text-slate-600';
+                    if (v.status === 'LIVE') statusBadge = 'bg-emerald-100 text-emerald-800';
+                    else if (v.status === 'RECENT') statusBadge = 'bg-sky-100 text-sky-800';
 
-                    row.innerHTML = `
-                        <td class="py-2 px-2.5 font-bold text-slate-800 truncate max-w-[140px]">${escapeHtml(v.name || 'Unnamed')}</td>
-                        <td class="py-2 px-2 font-mono text-slate-600 text-[11px]">${escapeHtml(v.mmsi || '-')}</td>
-                        <td class="py-2 px-2 font-medium text-slate-700">${escapeHtml(v.flag || '-')}</td>
-                        <td class="py-2 px-2 text-[11px]">${escapeHtml(v.vessel_type || 'Unknown')}</td>
-                        <td class="py-2 px-2">
-                            <span class="inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold ${statusClass}">${escapeHtml(v.status || 'STALE')}</span>
+                    tr.innerHTML = `
+                        <td class="py-2.5 px-2.5 font-mono text-slate-400 text-[11px]">${index + 1}</td>
+                        <td class="py-2.5 px-2 font-bold text-slate-800">${escapeHtml(v.name || 'Unnamed')}</td>
+                        <td class="py-2.5 px-2 font-mono text-slate-500">${escapeHtml(v.mmsi || '-')}</td>
+                        <td class="py-2.5 px-2 font-semibold text-slate-600">${escapeHtml(v.flag || '-')}</td>
+                        <td class="py-2.5 px-2 text-slate-600">${escapeHtml(v.vessel_type || '-')}</td>
+                        <td class="py-2.5 px-2">
+                            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${statusBadge}">${escapeHtml(v.status || 'STALE')}</span>
                         </td>
-                        <td class="py-2 px-2 text-right">
-                            <button type="button" class="btn-select-v px-2 py-0.5 rounded bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-[10px] transition">
-                                Detail ↗
+                        <td class="py-2.5 px-2 text-right">
+                            <button type="button" class="btn-select-vessel px-2 py-1 rounded bg-slate-100 hover:bg-indigo-600 hover:text-white font-bold text-[10px] transition" data-id="${escapeHtml(v.id)}">
+                                Pilih
                             </button>
                         </td>
                     `;
 
-                    row.addEventListener('click', () => {
-                        selectVessel(v);
-                        if (v.lat !== null && v.lon !== null && map) {
-                            map.flyTo({ center: [v.lon, v.lat], zoom: 9 });
-                        }
-                    });
-
-                    tableBody.appendChild(row);
+                    tr.addEventListener('click', () => selectVesselById(v.id));
+                    tableBody.appendChild(tr);
                 });
             }
 
-            // Vessel Selection
-            function selectVesselById(id) {
-                const vessel = vesselsList.find(v => String(v.id) === String(id));
-                if (vessel) selectVessel(vessel);
-            }
+            // Vessel Selection & Detail Intelligence
+            function selectVesselById(vesselId) {
+                const vessel = vesselsList.find(v => String(v.id) === String(vesselId));
+                if (!vessel) return;
 
-            function selectVessel(v) {
-                activeSelectedVessel = v;
+                activeSelectedVessel = vessel;
+
                 vesselDetailEmpty.classList.add('hidden');
                 vesselDetailBody.classList.remove('hidden');
+
+                vesselNameEl.textContent = vessel.name || 'Unnamed Vessel';
+                vesselMmsiEl.textContent = vessel.mmsi || '-';
+                vesselImoEl.textContent = vessel.imo || '-';
+                vesselFlagTypeEl.textContent = `${vessel.flag || '-'} / ${vessel.vessel_type || '-'}`;
+
+                detailStatusBadge.textContent = vessel.status || 'STALE';
+                detailStatusBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold ' +
+                    (vessel.status === 'LIVE' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700');
+
                 btnLoadTrack.classList.remove('hidden');
-
-                vesselNameEl.textContent = v.name || 'Unnamed Vessel';
-                vesselMmsiEl.textContent = v.mmsi || 'N/A';
-                vesselImoEl.textContent = v.imo || 'N/A';
-                vesselFlagTypeEl.textContent = `${v.flag || 'N/A'} • ${v.vessel_type || 'Unknown'}`;
-
-                detailStatusBadge.textContent = v.status || 'STALE';
-                detailStatusBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold ' + 
-                    (v.status === 'LIVE' ? 'bg-emerald-100 text-emerald-800' : (v.status === 'RECENT' ? 'bg-sky-100 text-sky-800' : 'bg-slate-100 text-slate-700'));
-
                 trackSummaryBox.classList.add('hidden');
+
+                if (vessel.lat !== null && vessel.lon !== null && map) {
+                    map.easeTo({ center: [vessel.lon, vessel.lat], zoom: 8 });
+                }
             }
 
-            // Load & Render Track
+            // Load Movement Track for Selected Vessel (Stage 3)
             btnLoadTrack.addEventListener('click', async () => {
                 if (!activeSelectedVessel) return;
                 btnLoadTrack.textContent = 'Memuat Track...';
@@ -1072,7 +1356,7 @@
                     trackFirstSeen.textContent = formatDate(json.first_detected);
                     trackLastSeen.textContent = formatDate(json.last_detected);
 
-                    // Add track to map
+                    // Add track to map with distinct amber line
                     if (map.getSource('dashboard-track-src')) {
                         map.getSource('dashboard-track-src').setData(json.track);
                     } else {
@@ -1084,9 +1368,9 @@
                             source: 'dashboard-track-src',
                             filter: ['==', '$type', 'LineString'],
                             paint: {
-                                'line-color': '#06b6d4',
+                                'line-color': '#f59e0b',
                                 'line-width': 3,
-                                'line-opacity': 0.9
+                                'line-opacity': 0.95
                             }
                         });
 
@@ -1096,16 +1380,19 @@
                             source: 'dashboard-track-src',
                             filter: ['==', '$type', 'Point'],
                             paint: {
-                                'circle-radius': 3.5,
-                                'circle-color': '#22d3ee',
-                                'circle-stroke-width': 1,
-                                'circle-stroke-color': '#0f172a'
+                                'circle-radius': 4,
+                                'circle-color': '#d97706',
+                                'circle-stroke-width': 1.5,
+                                'circle-stroke-color': '#ffffff'
                             }
                         });
                     }
 
-                    // Turn on track checkbox
-                    if (optTrack) optTrack.checked = true;
+                    // Fit map bounds to track
+                    if (json.track.bbox && map) {
+                        const bbox = json.track.bbox;
+                        map.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], { padding: 40, maxZoom: 11 });
+                    }
 
                 } catch (e) {
                     btnLoadTrack.disabled = false;
@@ -1114,45 +1401,16 @@
                 }
             });
 
-            // Live Monitoring Toggle
-            btnToggleLive.addEventListener('click', () => {
-                isLiveActive = !isLiveActive;
-                if (isLiveActive) {
-                    btnToggleLive.textContent = 'ON (60s)';
-                    btnToggleLive.className = 'px-3 py-1 rounded-lg text-xs font-bold transition bg-emerald-600 text-white shadow-xs';
-                    livePulse.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block animate-ping';
-                    liveStatusText.textContent = 'Aktif (Auto-refresh 60 detik)';
-                    liveStatusText.className = 'text-emerald-300 font-mono';
-
-                    // Start 60-second timer
-                    if (liveTimer) {
-                        clearInterval(liveTimer);
-                        liveTimer = null;
-                    }
-                    liveTimer = setInterval(fetchDashboardData, 60000);
-                } else {
-                    btnToggleLive.textContent = 'OFF';
-                    btnToggleLive.className = 'px-3 py-1 rounded-lg text-xs font-bold transition bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700';
-                    livePulse.className = 'w-2.5 h-2.5 rounded-full bg-slate-500 inline-block';
-                    liveStatusText.textContent = 'Manual (Siap)';
-                    liveStatusText.className = 'text-slate-200 font-mono';
-
-                    if (liveTimer) {
-                        clearInterval(liveTimer);
-                        liveTimer = null;
-                    }
-                }
-            });
-
             // Filter Buttons
-            btnApply.addEventListener('click', fetchDashboardData);
+            btnApply.addEventListener('click', () => fetchDashboardData(false));
             btnReset.addEventListener('click', () => {
                 filterSearch.value = '';
                 filterType.value = '';
                 filterStatus.value = '';
-                fetchDashboardData();
+                fetchDashboardData(false);
             });
-            btnRetry?.addEventListener('click', fetchDashboardData);
+            btnRetry?.addEventListener('click', () => fetchDashboardData(true));
+            btnRefresh?.addEventListener('click', () => fetchDashboardData(true));
 
             // Helpers
             function formatDate(str) {
@@ -1173,6 +1431,11 @@
                 if (seconds < 3600) return `${Math.floor(seconds / 60)} menit yang lalu`;
                 if (seconds < 86400) return `${Math.floor(seconds / 3600)} jam yang lalu`;
                 return `${Math.floor(seconds / 86400)} hari yang lalu`;
+            }
+
+            function roundCoord(c) {
+                if (c === null || c === undefined || isNaN(c)) return '-';
+                return Number(c).toFixed(4);
             }
 
             function escapeHtml(str) {

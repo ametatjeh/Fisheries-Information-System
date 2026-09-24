@@ -5,6 +5,8 @@ namespace Tests\Feature\Gfw;
 use App\Models\User;
 use App\Services\Gfw\AoiService;
 use App\Services\Gfw\GfwActivityService;
+use App\Services\Gfw\GfwIngestionService;
+use App\Services\Gis\BigMaritimeBoundaryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
@@ -307,21 +309,85 @@ class GfwBigZeeSpatialFilterTest extends TestCase
     }
 
     /**
-     * 9. AOI failure test: invalid or missing BIG GeoJSON configuration returns HTTP 500.
+     * 9. BIG boundary failure test: invalid or unavailable BIG GeoJSON boundary fails safely with HTTP 502.
+     * Strictly verifies no silent fallback to old box AOI.
      */
     public function test_invalid_aoi_configuration_returns_http_500(): void
     {
-        $mockAoi = $this->createMock(AoiService::class);
-        $mockAoi->method('validateAoiOrThrow')
-            ->willThrowException(new \RuntimeException('BIG ZEE Aceh AOI configuration is invalid: File not found.'));
-        $this->app->instance(AoiService::class, $mockAoi);
+        $mockBig = $this->createMock(BigMaritimeBoundaryService::class);
+        $mockBig->method('getAcehZeeGeometry')
+            ->willReturn([
+                'success' => false,
+                'error' => 'BIG ZEE Aceh boundary geometry tidak tersedia atau tidak valid.',
+            ]);
+        $this->app->instance(BigMaritimeBoundaryService::class, $mockBig);
 
         $response = $this->actingAs($this->user)->getJson('/api/gfw/vessels/zee-indonesia-aceh');
 
-        $response->assertStatus(500);
+        $response->assertStatus(502);
         $response->assertJson([
             'success' => false,
-            'message' => 'BIG ZEE Aceh AOI configuration is invalid.',
+            'boundary_source' => 'BIG',
+            'boundary_layer' => 10,
         ]);
+    }
+
+    /**
+     * 10. GfwIngestionService spatial filter test:
+     * Observations inside BIG ZEE Aceh are accepted, observations outside are excluded.
+     */
+    public function test_gfw_ingestion_service_filters_outside_big_zee_points(): void
+    {
+        /** @var GfwIngestionService $ingestionService */
+        $ingestionService = app(GfwIngestionService::class);
+
+        // Point strictly inside BIG ZEE Aceh (near Sabang / Banda Aceh)
+        $insideTrack = [
+            'latitude' => 5.55,
+            'longitude' => 95.32,
+            'observation_timestamp' => '2026-09-22T10:00:00Z',
+            'speed_knots' => 8.5,
+            'course' => 180.0,
+        ];
+
+        $insideResult = $ingestionService->ingestPresence('GFW-TEST-001', $insideTrack, 'zee-indonesia-aceh', dryRun: true);
+        $this->assertSame('new', $insideResult['status']);
+
+        // Point strictly outside BIG ZEE Aceh (deep in Gulf of Thailand)
+        $outsideTrack = [
+            'latitude' => 5.0,
+            'longitude' => 102.0,
+            'observation_timestamp' => '2026-09-22T10:00:00Z',
+            'speed_knots' => 10.0,
+            'course' => 90.0,
+        ];
+
+        $outsideResult = $ingestionService->ingestPresence('GFW-TEST-002', $outsideTrack, 'zee-indonesia-aceh', dryRun: true);
+        $this->assertSame('outside_aoi', $outsideResult['status']);
+    }
+
+    /**
+     * 11. BIG ZEE Aceh Polygon GeoJSON endpoint test:
+     * GET /api/gis/big/zee/aceh?polygon=1 returns a valid Polygon with 400 authentic vertices.
+     */
+    public function test_big_zee_aceh_polygon_endpoint_returns_valid_polygon(): void
+    {
+        $response = $this->actingAs($this->user)->getJson('/api/gis/big/zee/aceh?polygon=1');
+
+        $response->assertStatus(200);
+        $this->assertSame('Feature', $response->json('type'));
+        $this->assertSame('Polygon', $response->json('geometry.type'));
+        $this->assertSame('Badan Informasi Geospasial (BIG)', $response->json('properties.source'));
+        $this->assertSame(10, $response->json('properties.layer_id'));
+
+        $coords = $response->json('geometry.coordinates.0');
+        $this->assertIsArray($coords);
+        $this->assertGreaterThanOrEqual(100, count($coords));
+
+        // Ring must be closed
+        $first = $coords[0];
+        $last = $coords[count($coords) - 1];
+        $this->assertEquals($first[0], $last[0]);
+        $this->assertEquals($first[1], $last[1]);
     }
 }

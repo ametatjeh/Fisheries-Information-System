@@ -153,12 +153,13 @@
             <form method="GET" action="{{ route('landings.index') }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                 {{-- Search Box --}}
                 <div class="lg:col-span-2">
-                    <label class="block text-xs font-medium text-slate-600 mb-1">{{ __('Cari No. Manifest, Kapal, atau Trip') }}</label>
+                    <label for="search_landing" class="sr-only">{{ __('Cari No. Manifest, Kapal, atau Trip') }}</label>
                     <div class="relative">
                         <input type="text"
+                               id="search_landing"
                                name="search"
                                value="{{ request('search') }}"
-                               placeholder="No manifest (LND-...), kapal, trip, TPI..."
+                               placeholder="{{ __('Cari No. Manifest, Kapal, atau Trip') }}"
                                class="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-ocean-500">
                         <span class="absolute left-3 top-2.5 text-slate-400 text-sm">🔍</span>
                     </div>
@@ -166,9 +167,9 @@
 
                 {{-- Filter Pelabuhan / Landing Site --}}
                 <div>
-                    <label class="block text-xs font-medium text-slate-600 mb-1">{{ __('Pelabuhan / TPI Pendaratan') }}</label>
-                    <select name="landing_site_id" class="w-full py-2 px-3 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-ocean-500">
-                        <option value="">{{ __('Semua Pelabuhan / TPI') }}</option>
+                    <label for="landing_site_id" class="sr-only">{{ __('Pelabuhan / TPI Pendaratan') }}</label>
+                    <select id="landing_site_id" name="landing_site_id" class="w-full py-2 px-3 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-ocean-500">
+                        <option value="">{{ __('Pilih Pelabuhan / TPI') }}</option>
                         @foreach($landingSites as $ls)
                             <option value="{{ $ls->id }}" {{ request('landing_site_id') == $ls->id ? 'selected' : '' }}>
                                 [{{ $ls->type }}] {{ $ls->name }}
@@ -179,15 +180,17 @@
 
                 {{-- Filter Tanggal --}}
                 <div>
-                    <label class="block text-xs font-medium text-slate-600 mb-1">{{ __('Tanggal Pendaratan Dari') }}</label>
+                    <label for="date_from" class="sr-only">{{ __('Tanggal Pendaratan Dari') }}</label>
                     <input type="date"
+                           id="date_from"
                            name="date_from"
                            value="{{ request('date_from') }}"
+                           title="{{ __('Tanggal Pendaratan Dari') }}"
                            class="w-full py-2 px-3 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-ocean-500">
                 </div>
 
                 {{-- Buttons --}}
-                <div class="flex items-end gap-2">
+                <div class="flex items-center gap-2">
                     <button type="submit" class="flex-1 py-2 px-3 bg-ocean-800 hover:bg-ocean-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors text-center">
                         {{ __('Filter') }}
                     </button>

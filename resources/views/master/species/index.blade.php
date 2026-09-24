@@ -188,7 +188,7 @@
                 <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="bg-ocean-900 border-b border-ocean-950 text-xs font-semibold text-white uppercase tracking-wider">
-                            <th class="py-3.5 px-4 w-12 text-center text-white">{{ __('No') }}</th>
+                            <th class="py-3.5 px-4 w-12 text-center text-white">#</th>
                             <th class="py-3.5 px-4 w-12 text-center">
                                 <input type="checkbox"
                                        @change="toggleSelectAll($event)"

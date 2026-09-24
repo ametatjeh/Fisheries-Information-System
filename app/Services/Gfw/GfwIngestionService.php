@@ -5,6 +5,7 @@ namespace App\Services\Gfw;
 use App\Models\Gfw\GfwSyncRun;
 use App\Models\Gfw\GfwVessel;
 use App\Models\Gfw\GfwVesselPresence;
+use App\Services\Gis\BigMaritimeBoundaryService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -15,8 +16,11 @@ class GfwIngestionService
         protected GfwApiService $apiService,
         protected GfwVesselService $vesselService,
         protected GfwActivityService $activityService,
-        protected AoiService $aoiService
-    ) {}
+        protected AoiService $aoiService,
+        protected ?BigMaritimeBoundaryService $bigBoundaryService = null
+    ) {
+        $this->bigBoundaryService = $bigBoundaryService ?? app(BigMaritimeBoundaryService::class);
+    }
 
     /**
      * Execute a controlled vessel and presence ingestion.
@@ -143,6 +147,9 @@ class GfwIngestionService
                         $stats['new_presence']++;
                     } elseif ($presenceResult['status'] === 'duplicate') {
                         $stats['duplicate_presence']++;
+                    } elseif ($presenceResult['status'] === 'outside_aoi') {
+                        // Excluded by authoritative BIG ZEE spatial filter
+                        continue;
                     } else {
                         $stats['invalid_records']++;
                     }
@@ -254,10 +261,11 @@ class GfwIngestionService
     }
 
     /**
-     * Ingest a single vessel presence/track observation with deterministic deduplication.
+     * Ingest a single vessel presence/track observation with deterministic deduplication
+     * and authoritative BIG ZEE spatial validation.
      *
      * @param  array<string, mixed>  $track
-     * @return array{status: 'new'|'duplicate'|'invalid'}
+     * @return array{status: 'new'|'duplicate'|'invalid'|'outside_aoi'}
      */
     public function ingestPresence(string $vesselId, array $track, string $aoi, bool $dryRun = false): array
     {
@@ -281,6 +289,19 @@ class GfwIngestionService
             $observedAt = Carbon::parse($observedAtStr);
         } catch (Throwable) {
             return ['status' => 'invalid'];
+        }
+
+        // Spatial validation: verify coordinates reside within authoritative BIG ZEE boundary
+        if (! $this->bigBoundaryService->isPointInBigZee($lonFloat, $latFloat)) {
+            Log::info('GFW presence point excluded by spatial filter (outside BIG ZEE Aceh boundary)', [
+                'vessel_id' => $vesselId,
+                'latitude' => $latFloat,
+                'longitude' => $lonFloat,
+                'boundary_source' => 'BIG',
+                'boundary_layer' => 10,
+            ]);
+
+            return ['status' => 'outside_aoi'];
         }
 
         $speed = isset($track['speed_knots']) && is_numeric($track['speed_knots'])

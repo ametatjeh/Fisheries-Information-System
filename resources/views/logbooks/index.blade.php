@@ -121,17 +121,18 @@
             </div>
         </div>
 
-        {{-- Filters & Search Toolbar --}}
+        {{-- Filters & Search Toolbar (Card ke-3) --}}
         <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-6">
             <form method="GET" action="{{ route('logbooks.index') }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                 {{-- Search Box --}}
                 <div class="lg:col-span-2">
-                    <label class="block text-xs font-medium text-slate-600 mb-1">{{ __('Cari Aktivitas, Kapal, atau No. Trip') }}</label>
+                    <label for="search_logbook" class="sr-only">{{ __('Cari Aktivitas, Kapal, atau No. Trip') }}</label>
                     <div class="relative">
                         <input type="text"
+                               id="search_logbook"
                                name="search"
                                value="{{ request('search') }}"
-                               placeholder="Cari aktivitas, no trip, kapal, ombak..."
+                               placeholder="{{ __('Cari Aktivitas, Kapal, atau No. Trip') }}"
                                class="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-ocean-500">
                         <span class="absolute left-3 top-2.5 text-slate-400 text-sm">🔍</span>
                     </div>
@@ -139,9 +140,9 @@
 
                 {{-- Filter Cuaca --}}
                 <div>
-                    <label class="block text-xs font-medium text-slate-600 mb-1">{{ __('Kondisi Cuaca') }}</label>
-                    <select name="weather_condition" class="w-full py-2 px-3 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-ocean-500">
-                        <option value="">{{ __('Semua Kondisi Cuaca') }}</option>
+                    <label for="weather_condition" class="sr-only">{{ __('Kondisi Cuaca') }}</label>
+                    <select id="weather_condition" name="weather_condition" class="w-full py-2 px-3 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-ocean-500">
+                        <option value="">{{ __('Kondisi Cuaca') }}</option>
                         @foreach($weatherOptions as $val => $label)
                             <option value="{{ $val }}" {{ request('weather_condition') == $val ? 'selected' : '' }}>
                                 {{ $label }}
@@ -152,9 +153,9 @@
 
                 {{-- Filter Trip --}}
                 <div>
-                    <label class="block text-xs font-medium text-slate-600 mb-1">{{ __('Trip Penangkapan') }}</label>
-                    <select name="fishing_trip_id" class="w-full py-2 px-3 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-ocean-500">
-                        <option value="">{{ __('Semua Trip') }}</option>
+                    <label for="fishing_trip_id" class="sr-only">{{ __('Fishing Trips') }}</label>
+                    <select id="fishing_trip_id" name="fishing_trip_id" class="w-full py-2 px-3 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-ocean-500">
+                        <option value="">{{ __('Fishing Trips') }}</option>
                         @foreach($trips as $t)
                             <option value="{{ $t->id }}" {{ request('fishing_trip_id') == $t->id ? 'selected' : '' }}>
                                 {{ $t->trip_number }} - {{ $t->vessel->name ?? 'Tanpa Kapal' }}
@@ -164,7 +165,7 @@
                 </div>
 
                 {{-- Buttons --}}
-                <div class="flex items-end gap-2">
+                <div class="flex items-center gap-2">
                     <button type="submit" class="flex-1 py-2 px-3 bg-ocean-800 hover:bg-ocean-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors text-center">
                         {{ __('Filter') }}
                     </button>

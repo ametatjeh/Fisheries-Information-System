@@ -3,16 +3,23 @@
 namespace App\Services;
 
 use App\Models\Gfw\GfwVessel;
-use App\Services\Gfw\AoiService;
 use App\Services\Gfw\GfwActivityService;
+use App\Services\Gis\BigMaritimeBoundaryService;
 use Carbon\Carbon;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class GFWService
 {
+    public const MAX_UPSTREAM_EVENTS = 500;
+
+    public const MAX_UPSTREAM_PAGES = 5;
+
+    public const UPSTREAM_PAGE_SIZE = 100;
+
     protected string $url;
 
     protected ?string $token;
@@ -189,6 +196,11 @@ class GFWService
         $limit = isset($options['limit']) ? max(1, min(100, (int) $options['limit'])) : 50;
         $offset = isset($options['offset']) ? max(0, (int) $options['offset']) : 0;
 
+        $cacheKey = 'gfw:events:'.md5(json_encode([$dataset, $startDate, $endDate, $limit, $offset]));
+        if (! ($options['refresh'] ?? false) && Cache::has($cacheKey)) {
+            return Cache::get($cacheKey);
+        }
+
         try {
             $response = Http::baseUrl($url)
                 ->withToken($token)
@@ -217,8 +229,8 @@ class GFWService
                 // Filter events strictly inside BIG ZEE Aceh and deduplicate by unique event.id
                 $normalizedEvents = [];
                 $seenIds = [];
-                /** @var AoiService $aoiService */
-                $aoiService = app(AoiService::class);
+                /** @var BigMaritimeBoundaryService $bigService */
+                $bigService = app(BigMaritimeBoundaryService::class);
 
                 foreach ($rawEntries as $entry) {
                     $lat = isset($entry['position']['lat']) && is_numeric($entry['position']['lat']) ? (float) $entry['position']['lat'] : null;
@@ -232,7 +244,7 @@ class GFWService
                     }
 
                     if ($lat !== null && $lon !== null) {
-                        if (! $aoiService->isPointInGeometry($lon, $lat, $cleanGeometry)) {
+                        if (! $bigService->isPointInGeometry($lon, $lat, $cleanGeometry)) {
                             continue; // Exclude events located outside BIG ZEE Aceh
                         }
                     }
@@ -250,7 +262,7 @@ class GFWService
                 $returnedCount = count($normalizedEvents);
                 $nextOffset = $payload['nextOffset'] ?? ($offset + $returnedCount < $total ? $offset + $returnedCount : null);
 
-                return [
+                $result = [
                     'success' => true,
                     'source' => 'Global Fishing Watch',
                     'aoi' => $aoiName,
@@ -258,6 +270,8 @@ class GFWService
                         'id' => 'zee-indonesia-aceh',
                         'name' => 'ZEE Indonesia - Kawasan Aceh',
                         'source' => 'BIG',
+                        'boundary_source' => 'BIG',
+                        'boundary_layer' => 10,
                         'crs' => 'EPSG:4326',
                     ],
                     'description' => 'Observasi kapal Global Fishing Watch yang berada di dalam batas ZEE Aceh berdasarkan BIG',
@@ -274,6 +288,10 @@ class GFWService
                     'events' => $normalizedEvents,
                     'status' => 200,
                 ];
+
+                Cache::put($cacheKey, $result, 300);
+
+                return $result;
             }
 
             if ($status === 400) {
@@ -419,88 +437,194 @@ class GFWService
             $options['dataset'] ?? config('gfw.fishing_events_dataset', 'public-global-fishing-events:latest'),
         ];
 
+        $cacheKey = 'gfw:vessels_in_aoi:'.md5(json_encode([$startDate, $endDate, $limit, $offset, $vesselTypeFilter, $flagFilter, $activityFilter, $searchQuery]));
+        if (! ($options['refresh'] ?? false) && Cache::has($cacheKey)) {
+            return Cache::get($cacheKey);
+        }
+
+        $maxPages = self::MAX_UPSTREAM_PAGES;
+        $maxUpstreamEvents = self::MAX_UPSTREAM_EVENTS;
+        $upstreamLimit = self::UPSTREAM_PAGE_SIZE;
+        $currentOffset = 0;
+        $page = 1;
+        $allEntries = [];
+        $paginationComplete = true;
+        $paginationTruncated = false;
+
         try {
-            $response = Http::baseUrl($url)
-                ->withToken($token)
-                ->timeout(30)
-                ->connectTimeout(5)
-                ->acceptJson()
-                ->asJson()
-                ->withQueryParameters([
-                    'limit' => 100,
-                    'offset' => 0,
-                ])
-                ->post('/v3/events', [
-                    'datasets' => $datasets,
-                    'startDate' => $startDate,
-                    'endDate' => $endDate,
-                    'geometry' => $cleanGeometry,
+            while (true) {
+                try {
+                    $response = Http::baseUrl($url)
+                        ->withToken($token)
+                        ->timeout(30)
+                        ->connectTimeout(5)
+                        ->acceptJson()
+                        ->asJson()
+                        ->withQueryParameters([
+                            'limit' => $upstreamLimit,
+                            'offset' => $currentOffset,
+                        ])
+                        ->post('/v3/events', [
+                            'datasets' => $datasets,
+                            'startDate' => $startDate,
+                            'endDate' => $endDate,
+                            'geometry' => $cleanGeometry,
+                        ]);
+                } catch (ConnectionException $e) {
+                    if ($page === 1) {
+                        throw $e;
+                    }
+
+                    $this->logWarning('/v3/events', null, "Connection or timeout on pagination page {$page}: ".$e->getMessage());
+                    $paginationComplete = false;
+                    break;
+                } catch (Throwable $e) {
+                    if ($page === 1) {
+                        throw $e;
+                    }
+
+                    $this->logWarning('/v3/events', null, "Unexpected error on pagination page {$page}: ".$e->getMessage());
+                    $paginationComplete = false;
+                    break;
+                }
+
+                $status = $response->status();
+
+                if (! $response->successful()) {
+                    if ($page === 1) {
+                        if ($status === 400) {
+                            $this->logWarning('/v3/events', 400, 'Bad request to GFW Events API.');
+
+                            return [
+                                'success' => false,
+                                'message' => 'Invalid request sent to GFW API',
+                                'status' => 400,
+                            ];
+                        }
+
+                        if ($status === 401) {
+                            $this->logWarning('/v3/events', 401, 'Authentication failed on GFW Events API.');
+
+                            return [
+                                'success' => false,
+                                'message' => 'GFW API authentication failed',
+                                'status' => 401,
+                            ];
+                        }
+
+                        if ($status === 403) {
+                            $this->logWarning('/v3/events', 403, 'Access forbidden on GFW Events API.');
+
+                            return [
+                                'success' => false,
+                                'message' => 'GFW API access forbidden',
+                                'status' => 403,
+                            ];
+                        }
+
+                        if ($status === 422) {
+                            $this->logWarning('/v3/events', 422, 'Unprocessable entity in GFW Events API request.');
+
+                            return [
+                                'success' => false,
+                                'message' => 'Unprocessable entity in GFW request',
+                                'status' => 422,
+                            ];
+                        }
+
+                        if ($status === 429) {
+                            $this->logWarning('/v3/events', 429, 'Rate limit reached on GFW Events API.');
+
+                            return [
+                                'success' => false,
+                                'message' => 'GFW API rate limit reached',
+                                'status' => 429,
+                            ];
+                        }
+
+                        $this->logWarning('/v3/events', $status, "Upstream GFW returned HTTP {$status}");
+
+                        return [
+                            'success' => false,
+                            'message' => 'GFW API server error',
+                            'status' => 502,
+                        ];
+                    }
+
+                    // If page > 1 fails, gracefully preserve entries from previous pages
+                    $this->logWarning('/v3/events', $status, "Upstream GFW returned HTTP {$status} on pagination page {$page}. Processing previously collected pages.");
+                    $paginationComplete = false;
+                    break;
+                }
+
+                $payload = $response->json() ?? [];
+                $rawEntries = $payload['entries'] ?? [];
+                $entriesCount = count($rawEntries);
+
+                Log::info('GFW upstream pagination progress', [
+                    'boundary_source' => 'BIG',
+                    'boundary_layer' => 10,
+                    'dataset' => $datasets[0] ?? 'public-global-fishing-events:latest',
+                    'pagination_page' => $page,
+                    'offset' => $currentOffset,
+                    'events_received' => $entriesCount,
                 ]);
 
-            $status = $response->status();
-
-            if (! $response->successful()) {
-                if ($status === 400) {
-                    $this->logWarning('/v3/events', 400, 'Bad request to GFW Events API.');
-
-                    return [
-                        'success' => false,
-                        'message' => 'Invalid request sent to GFW API',
-                        'status' => 400,
-                    ];
+                foreach ($rawEntries as $entry) {
+                    if (is_array($entry)) {
+                        $allEntries[] = $entry;
+                    }
                 }
 
-                if ($status === 401) {
-                    $this->logWarning('/v3/events', 401, 'Authentication failed on GFW Events API.');
-
-                    return [
-                        'success' => false,
-                        'message' => 'GFW API authentication failed',
-                        'status' => 401,
-                    ];
+                // Check if safety limit reached
+                if (count($allEntries) >= $maxUpstreamEvents || $page >= $maxPages) {
+                    $hasMoreUpstream = ! empty($payload['nextOffset']) || (isset($payload['total']) && ($currentOffset + $entriesCount) < (int) $payload['total']);
+                    if ($hasMoreUpstream) {
+                        $paginationComplete = false;
+                        $paginationTruncated = true;
+                        Log::info('GFW upstream pagination reached safety limit', [
+                            'boundary_source' => 'BIG',
+                            'boundary_layer' => 10,
+                            'max_events' => $maxUpstreamEvents,
+                            'max_pages' => $maxPages,
+                            'events_received' => count($allEntries),
+                            'pagination_complete' => false,
+                            'pagination_truncated' => true,
+                        ]);
+                    }
+                    break;
                 }
 
-                if ($status === 403) {
-                    $this->logWarning('/v3/events', 403, 'Access forbidden on GFW Events API.');
-
-                    return [
-                        'success' => false,
-                        'message' => 'GFW API access forbidden',
-                        'status' => 403,
-                    ];
+                // Determine nextOffset
+                $nextOffset = $payload['nextOffset'] ?? null;
+                if ($nextOffset === null || $nextOffset === '') {
+                    break;
                 }
 
-                if ($status === 422) {
-                    $this->logWarning('/v3/events', 422, 'Unprocessable entity in GFW Events API request.');
-
-                    return [
-                        'success' => false,
-                        'message' => 'Unprocessable entity in GFW request',
-                        'status' => 422,
-                    ];
+                if (! is_numeric($nextOffset) || (int) $nextOffset <= $currentOffset) {
+                    Log::warning('GFW upstream pagination stopped: invalid or non-advancing nextOffset', [
+                        'current_offset' => $currentOffset,
+                        'next_offset' => $nextOffset,
+                        'pagination_stopped' => true,
+                        'reason' => 'invalid_next_offset',
+                    ]);
+                    break;
                 }
 
-                if ($status === 429) {
-                    $this->logWarning('/v3/events', 429, 'Rate limit reached on GFW Events API.');
-
-                    return [
-                        'success' => false,
-                        'message' => 'GFW API rate limit reached',
-                        'status' => 429,
-                    ];
-                }
-
-                $this->logWarning('/v3/events', $status, "Upstream GFW returned HTTP {$status}");
-
-                return [
-                    'success' => false,
-                    'message' => 'GFW API server error',
-                    'status' => 502,
-                ];
+                $currentOffset = (int) $nextOffset;
+                $page++;
             }
 
-            $payload = $response->json() ?? [];
-            $rawEntries = $payload['entries'] ?? [];
+            Log::info('GFW upstream pagination completed', [
+                'boundary_source' => 'BIG',
+                'boundary_layer' => 10,
+                'total_pages' => $page,
+                'total_events' => count($allEntries),
+                'pagination_complete' => $paginationComplete,
+                'pagination_truncated' => $paginationTruncated,
+            ]);
+
+            $rawEntries = $allEntries;
 
             // Group entries into distinct vessels
             /** @var array<string, array<string, mixed>> $vesselsById */
@@ -508,7 +632,8 @@ class GFWService
             $vesselKeyByMmsi = [];
             $vesselKeyByImo = [];
 
-            $aoiService = app(AoiService::class);
+            /** @var BigMaritimeBoundaryService $bigService */
+            $bigService = app(BigMaritimeBoundaryService::class);
 
             foreach ($rawEntries as $entry) {
                 if (! is_array($entry)) {
@@ -528,7 +653,7 @@ class GFWService
                 // Strict point-in-polygon verification:
                 // Any observation with spatial coordinates MUST fall strictly inside the official BIG ZEE Aceh polygon.
                 if ($lat !== null && $lon !== null) {
-                    if (! $aoiService->isPointInGeometry($lon, $lat, $cleanGeometry)) {
+                    if (! $bigService->isPointInGeometry($lon, $lat, $cleanGeometry)) {
                         continue; // Strictly excluded outside BIG ZEE
                     }
                 }
@@ -581,6 +706,7 @@ class GFWService
                         'id' => $vKey,
                         'name' => ! empty($vesselRaw['name']) ? trim((string) $vesselRaw['name']) : null,
                         'mmsi' => ! empty($vesselRaw['ssvid']) ? trim((string) $vesselRaw['ssvid']) : (! empty($vesselRaw['mmsi']) ? trim((string) $vesselRaw['mmsi']) : null),
+                        'ssvid' => ! empty($vesselRaw['ssvid']) ? trim((string) $vesselRaw['ssvid']) : null,
                         'imo' => ! empty($vesselRaw['imo']) ? trim((string) $vesselRaw['imo']) : null,
                         'flag' => ! empty($vesselRaw['flag']) ? strtoupper(trim((string) $vesselRaw['flag'])) : null,
                         'vessel_type' => self::normalizeVesselType($rawType),
@@ -675,6 +801,22 @@ class GFWService
             }
             unset($vItem);
 
+            // Collect distinct flags and vessel types across ALL deduplicated vessels (before user filtering)
+            $availableFlags = [];
+            $availableVesselTypes = [];
+            foreach ($vesselsById as $vb) {
+                if (! empty($vb['flag'])) {
+                    $fl = strtoupper(trim((string) $vb['flag']));
+                    $availableFlags[$fl] = ($availableFlags[$fl] ?? 0) + 1;
+                }
+                if (! empty($vb['vessel_type'])) {
+                    $vt = trim((string) $vb['vessel_type']);
+                    $availableVesselTypes[$vt] = ($availableVesselTypes[$vt] ?? 0) + 1;
+                }
+            }
+            ksort($availableFlags);
+            ksort($availableVesselTypes);
+
             // Apply filters
             $filteredVessels = array_values(array_filter($vesselsById, function (array $v) use ($vesselTypeFilter, $flagFilter, $activityFilter, $searchQuery) {
                 if ($vesselTypeFilter !== null && strcasecmp($v['vessel_type'], $vesselTypeFilter) !== 0) {
@@ -693,9 +835,11 @@ class GFWService
                 if ($searchQuery !== null) {
                     $qLower = strtolower($searchQuery);
                     $nameMatch = ! empty($v['name']) && str_contains(strtolower($v['name']), $qLower);
-                    $mmsiMatch = ! empty($v['mmsi']) && str_contains(strtolower($v['mmsi']), $qLower);
-                    $imoMatch = ! empty($v['imo']) && str_contains(strtolower($v['imo']), $qLower);
-                    if (! $nameMatch && ! $mmsiMatch && ! $imoMatch) {
+                    $mmsiMatch = ! empty($v['mmsi']) && str_contains(strtolower((string) $v['mmsi']), $qLower);
+                    $ssvidMatch = ! empty($v['ssvid']) && str_contains(strtolower((string) $v['ssvid']), $qLower);
+                    $imoMatch = ! empty($v['imo']) && str_contains(strtolower((string) $v['imo']), $qLower);
+                    $idMatch = ! empty($v['id']) && str_contains(strtolower((string) $v['id']), $qLower);
+                    if (! $nameMatch && ! $mmsiMatch && ! $ssvidMatch && ! $imoMatch && ! $idMatch) {
                         return false;
                     }
                 }
@@ -754,15 +898,27 @@ class GFWService
                     'stale_vessels' => $staleVessels,
                     'flags' => $flagsSummary,
                     'vessel_types' => $vesselTypesSummary,
+                    'available_flags' => array_keys($availableFlags),
+                    'available_vessel_types' => array_keys($availableVesselTypes),
+                    'upstream_events_count' => count($allEntries),
                 ],
                 'vessels' => $pagedVessels,
                 'pagination' => [
                     'limit' => $limit,
                     'offset' => $offset,
                     'has_more' => $hasMore,
+                    'pagination_complete' => $paginationComplete,
+                    'pagination_truncated' => $paginationTruncated,
+                    'upstream_events_count' => count($allEntries),
                 ],
+                'pagination_complete' => $paginationComplete,
+                'pagination_truncated' => $paginationTruncated,
                 'status' => 200,
             ];
+
+            Cache::put($cacheKey, $result, 300);
+
+            return $result;
         } catch (ConnectionException $e) {
             $this->logWarning('/v3/events', null, 'Connection or timeout exception reaching GFW Events API: '.$e->getMessage());
 
@@ -951,71 +1107,154 @@ class GFWService
 
             $rawPoints = $result['data'] ?? [];
 
-            // Sort chronologically
+            // Sort chronologically (oldest to newest)
             usort($rawPoints, function ($a, $b) {
-                $tA = strtotime($a['timestamp'] ?? $a['observed_at'] ?? '1970-01-01');
-                $tB = strtotime($b['timestamp'] ?? $b['observed_at'] ?? '1970-01-01');
+                $tA = strtotime($a['timestamp'] ?? $a['observed_at'] ?? $a['date'] ?? '1970-01-01');
+                $tB = strtotime($b['timestamp'] ?? $b['observed_at'] ?? $b['date'] ?? '1970-01-01');
 
                 return $tA <=> $tB;
             });
 
             $scope = $options['scope'] ?? 'zee_aceh';
             $isZeeAcehScope = $scope !== 'global';
-            /** @var AoiService $aoiService */
-            $aoiService = app(AoiService::class);
-            $bigGeometry = $isZeeAcehScope ? $aoiService->getZeeIndonesiaAcehGeometry() : null;
+            /** @var BigMaritimeBoundaryService $bigService */
+            $bigService = app(BigMaritimeBoundaryService::class);
+            $bigGeomResult = $isZeeAcehScope ? $bigService->getAcehZeeGeometry() : null;
+            $bigGeometry = ($bigGeomResult['success'] ?? false) ? ($bigGeomResult['geometry'] ?? null) : null;
 
-            $coordinates = [];
-            $pointFeatures = [];
-            $firstDetected = null;
-            $lastDetected = null;
+            $validPoints = [];
+            $seenPointKeys = [];
 
             foreach ($rawPoints as $pt) {
                 $lat = isset($pt['latitude']) ? (float) $pt['latitude'] : (isset($pt['lat']) ? (float) $pt['lat'] : null);
                 $lon = isset($pt['longitude']) ? (float) $pt['longitude'] : (isset($pt['lon']) ? (float) $pt['lon'] : null);
-                $time = $pt['timestamp'] ?? $pt['observed_at'] ?? null;
+                $time = $pt['timestamp'] ?? $pt['observed_at'] ?? $pt['date'] ?? null;
 
-                if ($lat !== null && $lon !== null && $lat >= -90 && $lat <= 90 && $lon >= -180 && $lon <= 180) {
-                    if ($isZeeAcehScope && ! $aoiService->isPointInGeometry($lon, $lat, $bigGeometry)) {
-                        continue;
-                    }
-
-                    $coordinates[] = [$lon, $lat];
-
-                    if ($firstDetected === null && $time !== null) {
-                        $firstDetected = $time;
-                    }
-                    if ($time !== null) {
-                        $lastDetected = $time;
-                    }
-
-                    $pointFeatures[] = [
-                        'type' => 'Feature',
-                        'geometry' => [
-                            'type' => 'Point',
-                            'coordinates' => [$lon, $lat],
-                        ],
-                        'properties' => [
-                            'timestamp' => $time,
-                            'speed_knots' => $pt['speed_knots'] ?? $pt['speed'] ?? null,
-                            'course' => $pt['course'] ?? null,
-                        ],
-                    ];
+                // 1. Validate coordinates (Section 11)
+                if ($lat === null || $lon === null || ! is_numeric($lat) || ! is_numeric($lon) || is_nan($lat) || is_nan($lon) || is_infinite($lat) || is_infinite($lon)) {
+                    continue;
                 }
+                if ($lat < -90 || $lat > 90 || $lon < -180 || $lon > 180) {
+                    continue;
+                }
+
+                // 2. Spatial check against BIG ZEE Layer 10 (Section 9)
+                if ($isZeeAcehScope && (! $bigGeometry || ! $bigService->isPointInGeometry($lon, $lat, $bigGeometry))) {
+                    continue;
+                }
+
+                // 3. Deduplicate track points (Section 12)
+                $ptKey = sprintf('%s:%.5f:%.5f', $time ?? '', $lat, $lon);
+                if (isset($seenPointKeys[$ptKey])) {
+                    continue;
+                }
+                $seenPointKeys[$ptKey] = true;
+
+                $timeUnix = $time ? strtotime($time) : null;
+
+                $validPoints[] = [
+                    'lat' => $lat,
+                    'lon' => $lon,
+                    'timestamp' => $time,
+                    'timestamp_unix' => $timeUnix,
+                    'speed_knots' => $pt['speed_knots'] ?? $pt['speed'] ?? null,
+                    'course' => $pt['course'] ?? $pt['heading'] ?? null,
+                ];
             }
 
-            $sufficient = count($coordinates) >= 2;
+            $totalValidPoints = count($validPoints);
+            $pointFeatures = [];
+            $firstDetected = $totalValidPoints > 0 ? $validPoints[0]['timestamp'] : null;
+            $lastDetected = $totalValidPoints > 0 ? $validPoints[$totalValidPoints - 1]['timestamp'] : null;
+
+            // Build point features with START and LAST identification (Section 18)
+            for ($i = 0; $i < $totalValidPoints; $i++) {
+                $p = $validPoints[$i];
+                $isStart = ($i === 0);
+                $isLast = ($i === $totalValidPoints - 1);
+
+                $markerType = 'waypoint';
+                if ($totalValidPoints === 1) {
+                    $markerType = 'single';
+                } elseif ($isStart) {
+                    $markerType = 'start';
+                } elseif ($isLast) {
+                    $markerType = 'last';
+                }
+
+                $pointFeatures[] = [
+                    'type' => 'Feature',
+                    'geometry' => [
+                        'type' => 'Point',
+                        'coordinates' => [$p['lon'], $p['lat']],
+                    ],
+                    'properties' => [
+                        'vessel_id' => $cleanId,
+                        'point_index' => $i + 1,
+                        'total_points' => $totalValidPoints,
+                        'timestamp' => $p['timestamp'],
+                        'speed_knots' => $p['speed_knots'],
+                        'course' => $p['course'],
+                        'marker_type' => $markerType,
+                        'is_start' => $isStart,
+                        'is_last' => $isLast,
+                    ],
+                ];
+            }
+
+            // Build LineString / MultiLineString with gap detection to avoid false lines (Section 10)
+            $segments = [];
+            $currentSegment = [];
+            $lastTime = null;
+
+            foreach ($validPoints as $p) {
+                $curTime = $p['timestamp_unix'];
+                if ($lastTime !== null && $curTime !== null) {
+                    $timeDelta = abs($curTime - $lastTime);
+                    // Gap greater than 12 hours (43200 seconds) breaks continuous segment
+                    if ($timeDelta > 43200) {
+                        if (count($currentSegment) >= 2) {
+                            $segments[] = $currentSegment;
+                        }
+                        $currentSegment = [];
+                    }
+                }
+                $currentSegment[] = [$p['lon'], $p['lat']];
+                $lastTime = $curTime;
+            }
+            if (count($currentSegment) >= 2) {
+                $segments[] = $currentSegment;
+            }
+
             $lineFeature = null;
-            if ($sufficient) {
+            if (count($segments) === 1) {
                 $lineFeature = [
                     'type' => 'Feature',
                     'geometry' => [
                         'type' => 'LineString',
-                        'coordinates' => $coordinates,
+                        'coordinates' => $segments[0],
                     ],
                     'properties' => [
                         'vessel_id' => $cleanId,
-                        'points_count' => count($coordinates),
+                        'points_count' => count($segments[0]),
+                        'segments_count' => 1,
+                    ],
+                ];
+            } elseif (count($segments) > 1) {
+                $totalCoords = 0;
+                foreach ($segments as $seg) {
+                    $totalCoords += count($seg);
+                }
+                $lineFeature = [
+                    'type' => 'Feature',
+                    'geometry' => [
+                        'type' => 'MultiLineString',
+                        'coordinates' => $segments,
+                    ],
+                    'properties' => [
+                        'vessel_id' => $cleanId,
+                        'points_count' => $totalCoords,
+                        'segments_count' => count($segments),
                     ],
                 ];
             }
@@ -1026,38 +1265,76 @@ class GFWService
             }
             $features = array_merge($features, $pointFeatures);
 
+            // Fetch vessel details from database or options (Section 14 & 27)
+            $dbVessel = null;
+            try {
+                $dbVessel = GfwVessel::where('gfw_vessel_id', $cleanId)
+                    ->orWhere('mmsi', $cleanId)
+                    ->first();
+            } catch (Throwable) {
+                // Non-blocking fallback
+            }
+
+            $vesselInfo = [
+                'id' => $cleanId,
+                'gfw_vessel_id' => $cleanId,
+                'name' => $options['name'] ?? $dbVessel?->name ?? '—',
+                'mmsi' => $options['mmsi'] ?? $dbVessel?->mmsi ?? '—',
+                'ssvid' => $options['ssvid'] ?? $options['mmsi'] ?? $dbVessel?->mmsi ?? '—',
+                'imo' => $options['imo'] ?? $dbVessel?->imo ?? '—',
+                'flag' => $options['flag'] ?? $dbVessel?->flag ?? '—',
+                'vessel_type' => $options['vessel_type'] ?? $dbVessel?->vessel_type ?? '—',
+                'first_detected' => $firstDetected,
+                'last_detected' => $lastDetected,
+            ];
+
+            $sufficient = $totalValidPoints >= 2;
+
             return [
                 'success' => true,
+                'vessel' => $vesselInfo,
                 'vessel_id' => $cleanId,
+                'track' => [
+                    'type' => 'FeatureCollection',
+                    'features' => $features,
+                ],
+                'metadata' => [
+                    'count' => $totalValidPoints,
+                    'date_from' => $startDate,
+                    'date_to' => $endDate,
+                    'boundary_source' => 'BIG',
+                    'boundary_layer' => 10,
+                    'boundary_name' => 'Peta Batas ZEE',
+                ],
+                'boundary_source' => 'BIG',
+                'boundary_layer' => 10,
+                'boundary_name' => 'Peta Batas ZEE',
                 'track_scope' => $isZeeAcehScope ? 'ZEE Aceh Track' : 'Global Vessel Track',
-                'track_scope_description' => $isZeeAcehScope ? 'Track di ZEE Aceh berdasarkan batas BIG' : 'Global Vessel Track',
+                'track_scope_description' => $isZeeAcehScope ? 'Track di ZEE Aceh berdasarkan batas BIG Layer 10' : 'Global Vessel Track',
                 'aoi' => [
                     'id' => 'zee-indonesia-aceh',
                     'name' => 'ZEE Indonesia - Kawasan Aceh',
                     'source' => 'BIG',
+                    'layer' => 10,
                     'crs' => 'EPSG:4326',
                 ],
                 'sufficient' => $sufficient,
-                'message' => $sufficient ? 'Data lintasan tersedia.' : 'Track data insufficient',
-                'points_count' => count($coordinates),
+                'message' => $sufficient ? 'Data lintasan tersedia.' : ($totalValidPoints === 1 ? 'Hanya 1 posisi tercatat dalam ZEE Aceh.' : 'Tidak ada data track untuk vessel dan periode yang dipilih.'),
+                'points_count' => $totalValidPoints,
                 'first_detected' => $firstDetected,
                 'last_detected' => $lastDetected,
-                'approximate_coverage' => count($coordinates) > 0 ? (count($coordinates).' posisi tercatat') : 'Track data insufficient',
+                'approximate_coverage' => $totalValidPoints > 0 ? ($totalValidPoints.' posisi tercatat') : 'Tidak ada data track',
                 'track_info' => [
                     'first_detected' => $firstDetected,
                     'last_detected' => $lastDetected,
-                    'position_count' => count($coordinates),
-                    'approximate_coverage' => count($coordinates) > 0 ? (count($coordinates).' posisi tercatat') : 'Track data insufficient',
+                    'position_count' => $totalValidPoints,
+                    'approximate_coverage' => $totalValidPoints > 0 ? ($totalValidPoints.' posisi tercatat') : 'Tidak ada data track',
                     'note' => $sufficient ? null : 'Track data insufficient',
                 ],
                 'line_geojson' => $lineFeature ? $lineFeature['geometry'] : null,
                 'points_geojson' => [
                     'type' => 'FeatureCollection',
                     'features' => $pointFeatures,
-                ],
-                'track' => [
-                    'type' => 'FeatureCollection',
-                    'features' => $features,
                 ],
                 'status' => 200,
             ];
@@ -1081,29 +1358,46 @@ class GFWService
      */
     public function getDashboardData(array $geometry, string $startDate, string $endDate, array $options = []): array
     {
+        $cacheKey = 'gfw:dashboard_data:'.md5(json_encode([$startDate, $endDate, $options]));
+        if (! ($options['refresh'] ?? false) && Cache::has($cacheKey)) {
+            return Cache::get($cacheKey);
+        }
+
         $vesselsResult = $this->getVesselsInAoi($geometry, $startDate, $endDate, $options);
         if (! ($vesselsResult['success'] ?? false)) {
             return $vesselsResult;
         }
 
-        $eventsResult = $this->getEvents($geometry, $startDate, $endDate, [
+        // Query Fishing Events (Stage 4)
+        $fishingResult = $this->getEvents($geometry, $startDate, $endDate, [
             'limit' => 100,
             'offset' => 0,
+            'dataset' => config('gfw.fishing_events_dataset', 'public-global-fishing-events:latest'),
         ]);
+        $rawFishingEvents = ($fishingResult['success'] ?? false) ? ($fishingResult['events'] ?? []) : [];
 
-        $rawEvents = $eventsResult['events'] ?? [];
+        // Query Loitering Events (Stage 6)
+        $loiteringResult = $this->getEvents($geometry, $startDate, $endDate, [
+            'limit' => 100,
+            'offset' => 0,
+            'dataset' => config('gfw.loitering_dataset', 'public-global-loitering-events:latest'),
+        ]);
+        $rawLoiteringEvents = ($loiteringResult['success'] ?? false) ? ($loiteringResult['events'] ?? []) : [];
 
-        // Count event types
-        $fishingCount = 0;
-        $encounterCount = 0;
-        $loiteringCount = 0;
-        $portVisitCount = 0;
+        // Note: Encounters (Stage 7) and Port Visits (Stage 8) dataset aliases returned 404 from upstream GFW API v3
+        // To uphold the FINAL RULE (REAL DATA > MOCK DATA), no fake events are invented.
+        $rawEvents = array_merge($rawFishingEvents, $rawLoiteringEvents);
+
+        $fishingCount = count(array_filter($rawFishingEvents, fn ($e) => ($e['type'] ?? 'fishing') === 'fishing'));
+        $loiteringCount = count($rawLoiteringEvents);
+        $encounterCount = count(array_filter($rawFishingEvents, fn ($e) => in_array($e['type'] ?? '', ['encounter', 'encounters'])));
+        $portVisitCount = count(array_filter($rawFishingEvents, fn ($e) => in_array($e['type'] ?? '', ['port_visit', 'port_visits'])));
 
         $activityFeed = [];
         $alerts = [];
 
-        foreach ($rawEvents as $ev) {
-            $type = strtolower((string) ($ev['type'] ?? ''));
+        // Process Loitering Events (Stage 6 & Stage 9)
+        foreach ($rawLoiteringEvents as $ev) {
             $vesselName = $ev['vessel']['name'] ?? 'Kapal Tidak Dikenal';
             $vesselId = $ev['vessel']['id'] ?? null;
             $mmsi = $ev['vessel']['ssvid'] ?? null;
@@ -1111,51 +1405,82 @@ class GFWService
             $lat = $ev['position']['lat'] ?? null;
             $lon = $ev['position']['lon'] ?? null;
 
-            $activityLabel = 'Aktivitas Terdeteksi';
-            $category = 'Activity';
-
-            if (str_contains($type, 'fish')) {
-                $fishingCount++;
-                $activityLabel = 'Fishing Activity';
-                $category = 'Fishing';
-            } elseif (str_contains($type, 'encount')) {
-                $encounterCount++;
-                $activityLabel = 'Encounter Event';
-                $category = 'Encounter';
-            } elseif (str_contains($type, 'loiter')) {
-                $loiteringCount++;
-                $activityLabel = 'Loitering Event';
-                $category = 'Loitering';
-            } elseif (str_contains($type, 'port')) {
-                $portVisitCount++;
-                $activityLabel = 'Port Visit';
-                $category = 'Port Visit';
-            }
-
             $activityFeed[] = [
-                'id' => $ev['id'] ?? uniqid('ev-'),
+                'id' => $ev['id'] ?? uniqid('ev-loiter-'),
                 'time' => $time,
                 'vessel' => $vesselName,
                 'vessel_id' => $vesselId,
                 'mmsi' => $mmsi,
-                'type' => $ev['type'] ?? 'activity',
-                'activity' => $activityLabel,
+                'type' => 'loitering',
+                'activity' => 'Loitering Event',
                 'location' => ($lat !== null && $lon !== null) ? round($lat, 4).', '.round($lon, 4) : 'N/A',
                 'lat' => $lat,
                 'lon' => $lon,
             ];
 
             $alerts[] = [
-                'id' => 'alert-'.($ev['id'] ?? uniqid()),
-                'category' => $category,
-                'title' => $activityLabel.' terdeteksi',
+                'id' => 'alert-loiter-'.($ev['id'] ?? uniqid()),
+                'category' => 'Loitering',
+                'severity' => 'WARNING',
+                'type' => 'loitering',
+                'status' => 'NEW',
+                'title' => 'Pola Loitering Terdeteksi',
                 'vessel' => $vesselName,
                 'vessel_id' => $vesselId,
                 'mmsi' => $mmsi,
                 'time' => $time,
                 'lat' => $lat,
                 'lon' => $lon,
-                'description' => "Terdeteksi {$activityLabel} oleh kapal {$vesselName} di perairan ZEE Aceh.",
+                'location' => ($lat !== null && $lon !== null) ? round($lat, 4).', '.round($lon, 4) : 'N/A',
+                'source' => 'Global Fishing Watch',
+                'boundary_source' => 'BIG',
+                'boundary_layer' => 10,
+                'reason' => 'Peristiwa perlambatan atau pola menunggu kapal di perairan ZEE Aceh teridentifikasi secara analitik. Indikator pemantauan untuk ditinjau manusia (bukan bukti pelanggaran).',
+                'description' => "Terdeteksi pola Loitering oleh kapal {$vesselName} di perairan ZEE Aceh berdasarkan inferensi analitik satelit GFW.",
+            ];
+        }
+
+        // Process Fishing Events (Stage 4 & Stage 9)
+        foreach ($rawFishingEvents as $ev) {
+            $vesselName = $ev['vessel']['name'] ?? 'Kapal Tidak Dikenal';
+            $vesselId = $ev['vessel']['id'] ?? null;
+            $mmsi = $ev['vessel']['ssvid'] ?? null;
+            $time = $ev['start'] ?? $ev['end'] ?? null;
+            $lat = $ev['position']['lat'] ?? null;
+            $lon = $ev['position']['lon'] ?? null;
+
+            $activityFeed[] = [
+                'id' => $ev['id'] ?? uniqid('ev-fish-'),
+                'time' => $time,
+                'vessel' => $vesselName,
+                'vessel_id' => $vesselId,
+                'mmsi' => $mmsi,
+                'type' => 'fishing',
+                'activity' => 'Fishing Activity',
+                'location' => ($lat !== null && $lon !== null) ? round($lat, 4).', '.round($lon, 4) : 'N/A',
+                'lat' => $lat,
+                'lon' => $lon,
+            ];
+
+            $alerts[] = [
+                'id' => 'alert-fish-'.($ev['id'] ?? uniqid()),
+                'category' => 'Fishing',
+                'severity' => 'INFO',
+                'type' => 'apparent_fishing',
+                'status' => 'NEW',
+                'title' => 'Indikasi Aktivitas Penangkapan Ikan',
+                'vessel' => $vesselName,
+                'vessel_id' => $vesselId,
+                'mmsi' => $mmsi,
+                'time' => $time,
+                'lat' => $lat,
+                'lon' => $lon,
+                'location' => ($lat !== null && $lon !== null) ? round($lat, 4).', '.round($lon, 4) : 'N/A',
+                'source' => 'Global Fishing Watch',
+                'boundary_source' => 'BIG',
+                'boundary_layer' => 10,
+                'reason' => 'Peristiwa ini merupakan indikasi penangkapan ikan berdasarkan model analitik algoritma pergerakan AIS/VMS (Apparent Fishing Event) dan bukan verifikasi penangkapan faktual atau kesimpulan penangkapan ikan ilegal.',
+                'description' => "Terdeteksi indikasi penangkapan ikan oleh kapal {$vesselName} di perairan ZEE Aceh.",
             ];
         }
 
@@ -1165,14 +1490,22 @@ class GFWService
                 $alerts[] = [
                     'id' => 'alert-live-'.$v['id'],
                     'category' => 'Live Vessel',
-                    'title' => 'Observasi kapal terbaru (LIVE)',
+                    'severity' => 'INFO',
+                    'type' => 'live_observation',
+                    'status' => 'NEW',
+                    'title' => 'Observasi Kapal Terkini (LIVE)',
                     'vessel' => $v['name'] ?? 'Kapal Tanpa Nama',
                     'vessel_id' => $v['id'],
                     'mmsi' => $v['mmsi'] ?? null,
                     'time' => $v['last_seen'] ?? null,
                     'lat' => $v['lat'] ?? null,
                     'lon' => $v['lon'] ?? null,
-                    'description' => "Kapal {$v['name']} ({$v['vessel_type']}) diobservasi dengan data terbaru < 24 jam.",
+                    'location' => (isset($v['lat'], $v['lon']) && $v['lat'] !== null && $v['lon'] !== null) ? round($v['lat'], 4).', '.round($v['lon'], 4) : 'N/A',
+                    'source' => 'Global Fishing Watch',
+                    'boundary_source' => 'BIG',
+                    'boundary_layer' => 10,
+                    'reason' => 'Kapal diobservasi di dalam batas ZEE Aceh dengan usia data terbaru < 24 jam.',
+                    'description' => "Kapal {$v['name']} ({$v['vessel_type']}) diobservasi dengan data terbaru < 24 jam di ZEE Aceh.",
                 ];
             }
         }
@@ -1187,8 +1520,9 @@ class GFWService
 
         $detectedVessels = $vesselsResult['summary']['total_vessels'] ?? 0;
         $liveRecentCount = ($vesselsResult['summary']['live_vessels'] ?? 0) + ($vesselsResult['summary']['recent_vessels'] ?? 0);
+        $trackPointsCount = count($vesselsResult['vessels'] ?? []);
 
-        return [
+        $dashboardResponse = [
             'success' => true,
             'live' => true,
             'last_updated' => $vesselsResult['last_updated'] ?? now()->toIso8601String(),
@@ -1199,12 +1533,21 @@ class GFWService
             'timezone' => 'UTC',
             'timezone_display' => 'WIB (UTC+7)',
             'kpi' => [
+                'total_vessels' => $detectedVessels,
                 'detected_vessels' => $detectedVessels,
+                'active_vessels' => $liveRecentCount,
                 'live_recent' => $liveRecentCount,
+                'fishing_events' => $fishingCount,
                 'fishing_activity' => $fishingCount,
-                'encounters' => $encounterCount,
+                'track_points' => $trackPointsCount,
                 'loitering' => $loiteringCount,
+                'loitering_events' => $loiteringCount,
+                'encounters' => $encounterCount,
+                'encounters_status' => 'BLOCKED — DATA/API NOT AVAILABLE',
                 'port_visits' => $portVisitCount,
+                'port_visits_status' => 'BLOCKED — DATA/API NOT AVAILABLE',
+                'alerts' => count($alerts),
+                'alerts_count' => count($alerts),
             ],
             'summary' => $vesselsResult['summary'],
             'vessels' => $vesselsResult['vessels'],
@@ -1214,5 +1557,23 @@ class GFWService
             'events' => $rawEvents,
             'status' => 200,
         ];
+
+        Cache::put($cacheKey, $dashboardResponse, 300);
+
+        return $dashboardResponse;
+    }
+
+    /**
+     * Determine whether a longitude/latitude coordinate is inside a GeoJSON geometry,
+     * defaulting to the authoritative BIG ZEE boundary when no geometry is passed.
+     *
+     * @param  array<string, mixed>|null  $geometry
+     */
+    public function isPointInGeometry(float $lon, float $lat, ?array $geometry = null): bool
+    {
+        /** @var BigMaritimeBoundaryService $bigService */
+        $bigService = app(BigMaritimeBoundaryService::class);
+
+        return $bigService->isPointInGeometry($lon, $lat, $geometry);
     }
 }

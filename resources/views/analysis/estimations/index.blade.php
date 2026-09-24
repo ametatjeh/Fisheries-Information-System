@@ -3,7 +3,7 @@
         <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <span class="text-xl">📊</span>
-                <span class="font-bold text-gray-900 dark:text-white">{{ __('Analisis: Estimasi Tangkapan (Catch Estimation & Raising Factor)') }}</span>
+                <span class="font-bold text-white">{{ __('Analisis: Estimasi Tangkapan (Catch Estimation & Raising Factor)') }}</span>
             </div>
             <button type="button" @click="showGenerateModal = true" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-sm transition">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
@@ -81,8 +81,9 @@
             <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
                 <form method="GET" action="{{ route('analysis.estimations.index') }}" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                     <div>
-                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">{{ __('Tahun') }}</label>
-                        <select name="year" class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700">
+                        <label for="estimation_filter_year" class="sr-only">{{ __('Pilih Tahun') }}</label>
+                        <select id="estimation_filter_year" name="year" class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700">
+                            <option value="">{{ __('Pilih Tahun') }}</option>
                             @for ($y = 2026; $y >= 2024; $y--)
                                 <option value="{{ $y }}" {{ ($filters['year'] ?? 2026) == $y ? 'selected' : '' }}>{{ $y }}</option>
                             @endfor
@@ -90,9 +91,9 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">{{ __('Bulan') }}</label>
-                        <select name="month" class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700">
-                            <option value="">{{ __('Semua Bulan') }}</option>
+                        <label for="estimation_filter_month" class="sr-only">{{ __('Pilih Bulan') }}</label>
+                        <select id="estimation_filter_month" name="month" class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700">
+                            <option value="">{{ __('Pilih Bulan') }}</option>
                             @foreach ([1=>'Jan', 2=>'Feb', 3=>'Mar', 4=>'Apr', 5=>'Mei', 6=>'Jun', 7=>'Jul', 8=>'Agu', 9=>'Sep', 10=>'Okt', 11=>'Nov', 12=>'Des'] as $num => $name)
                                 <option value="{{ $num }}" {{ ($filters['month'] ?? '') == $num ? 'selected' : '' }}>{{ $name }}</option>
                             @endforeach
@@ -100,9 +101,9 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">{{ __('Pangkalan / TPI') }}</label>
-                        <select name="landing_site_id" class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700">
-                            <option value="">{{ __('Semua Lokasi') }}</option>
+                        <label for="estimation_filter_landing_site" class="sr-only">{{ __('Pilih Pangkalan / TPI') }}</label>
+                        <select id="estimation_filter_landing_site" name="landing_site_id" class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700">
+                            <option value="">{{ __('Pilih Pangkalan / TPI') }}</option>
                             @foreach ($landingSites as $site)
                                 <option value="{{ $site->id }}" {{ ($filters['landing_site_id'] ?? '') == $site->id ? 'selected' : '' }}>{{ $site->name }}</option>
                             @endforeach
@@ -110,9 +111,9 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">{{ __('Alat Tangkap') }}</label>
-                        <select name="fishing_gear_id" class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700">
-                            <option value="">{{ __('Semua Alat Tangkap') }}</option>
+                        <label for="estimation_filter_fishing_gear" class="sr-only">{{ __('Pilih Alat Tangkap') }}</label>
+                        <select id="estimation_filter_fishing_gear" name="fishing_gear_id" class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700">
+                            <option value="">{{ __('Pilih Alat Tangkap') }}</option>
                             @foreach ($gears as $gear)
                                 <option value="{{ $gear->id }}" {{ ($filters['fishing_gear_id'] ?? '') == $gear->id ? 'selected' : '' }}>{{ $gear->name }}</option>
                             @endforeach
@@ -120,9 +121,9 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">{{ __('Spesies Ikan') }}</label>
-                        <select name="fish_species_id" class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700">
-                            <option value="">{{ __('Semua Spesies') }}</option>
+                        <label for="estimation_filter_fish_species" class="sr-only">{{ __('Pilih Spesies Ikan') }}</label>
+                        <select id="estimation_filter_fish_species" name="fish_species_id" class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700">
+                            <option value="">{{ __('Pilih Spesies Ikan') }}</option>
                             @foreach ($species as $sp)
                                 <option value="{{ $sp->id }}" {{ ($filters['fish_species_id'] ?? '') == $sp->id ? 'selected' : '' }}>{{ $sp->local_name_id ?: $sp->scientific_name }} ({{ $sp->fao_code }})</option>
                             @endforeach
@@ -130,12 +131,12 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">{{ __('Status') }}</label>
-                        <select name="status" class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700">
-                            <option value="all">{{ __('Semua Status') }}</option>
-                            <option value="validated" {{ ($filters['status'] ?? '') === 'validated' ? 'selected' : '' }}>Validated</option>
-                            <option value="draft" {{ ($filters['status'] ?? '') === 'draft' ? 'selected' : '' }}>Draft</option>
-                            <option value="rejected" {{ ($filters['status'] ?? '') === 'rejected' ? 'selected' : '' }}>Rejected</option>
+                        <label for="estimation_filter_status" class="sr-only">{{ __('Pilih Status Validasi') }}</label>
+                        <select id="estimation_filter_status" name="status" class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700">
+                            <option value="">{{ __('Pilih Status Validasi') }}</option>
+                            <option value="validated" {{ ($filters['status'] ?? '') === 'validated' ? 'selected' : '' }}>{{ __('Validated') }}</option>
+                            <option value="draft" {{ ($filters['status'] ?? '') === 'draft' ? 'selected' : '' }}>{{ __('Draft') }}</option>
+                            <option value="rejected" {{ ($filters['status'] ?? '') === 'rejected' ? 'selected' : '' }}>{{ __('Rejected') }}</option>
                         </select>
                     </div>
 
@@ -152,6 +153,7 @@
                     <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
                         <thead class="bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 font-semibold text-xs uppercase tracking-wider">
                             <tr>
+                                <th class="px-4 py-3 text-center w-12">#</th>
                                 <th class="px-4 py-3 text-left">Periode</th>
                                 <th class="px-4 py-3 text-left">Wilayah & Pangkalan</th>
                                 <th class="px-4 py-3 text-left">Alat & Spesies</th>
@@ -164,8 +166,9 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 dark:divide-gray-700/50">
-                            @forelse ($estimations as $item)
+                            @forelse ($estimations as $index => $item)
                                 <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition">
+                                    <td class="px-4 py-3 text-center font-mono text-gray-400 text-xs">{{ $estimations->firstItem() + $index }}</td>
                                     <td class="px-4 py-3 whitespace-nowrap font-medium text-gray-900 dark:text-white">
                                         {{ DateTime::createFromFormat('!m', $item->month)->format('M') }} {{ $item->year }}
                                     </td>
@@ -225,7 +228,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="9" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                                    <td colspan="10" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
                                         {{ __('Tidak ada data estimasi yang sesuai filter.') }}
                                     </td>
                                 </tr>
@@ -254,8 +257,9 @@
                 <form method="POST" action="{{ route('analysis.estimations.generate') }}" class="space-y-4">
                     @csrf
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">{{ __('Tahun Sasaran') }} *</label>
+                        <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">{{ __('Tahun Sasaran *') }}</label>
                         <select name="year" required class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700">
+                            <option value="">{{ __('Pilih Tahun') }}</option>
                             <option value="2026" selected>2026</option>
                             <option value="2025">2025</option>
                         </select>
@@ -264,7 +268,7 @@
                     <div>
                         <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">{{ __('Bulan (Opsional, kosongkan untuk 1 tahun penuh)') }}</label>
                         <select name="month" class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700">
-                            <option value="">{{ __('Semua Bulan (12 Bulan)') }}</option>
+                            <option value="">{{ __('Pilih Bulan (Semua Bulan)') }}</option>
                             @foreach ([1=>'Januari', 2=>'Februari', 3=>'Maret', 4=>'April', 5=>'Mei', 6=>'Juni', 7=>'Juli', 8=>'Agustus', 9=>'September', 10=>'Oktober', 11=>'November', 12=>'Desember'] as $num => $name)
                                 <option value="{{ $num }}">{{ $name }}</option>
                             @endforeach
@@ -274,7 +278,7 @@
                     <div>
                         <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">{{ __('Pangkalan / TPI (Opsional)') }}</label>
                         <select name="landing_site_id" class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700">
-                            <option value="">{{ __('Semua Pangkalan Pendaratan') }}</option>
+                            <option value="">{{ __('Pilih Pangkalan / TPI') }}</option>
                             @foreach ($landingSites as $site)
                                 <option value="{{ $site->id }}">{{ $site->name }}</option>
                             @endforeach
@@ -311,15 +315,16 @@
                     <div>
                         <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">{{ __('Status Verifikasi') }} *</label>
                         <select name="status" x-model="newStatus" required class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700">
-                            <option value="validated">Validated (Setujui Resmi)</option>
-                            <option value="draft">Draft (Draf)</option>
-                            <option value="rejected">Rejected (Tolak)</option>
+                            <option value="">{{ __('Pilih Status Verifikasi') }}</option>
+                            <option value="validated">{{ __('Validated (Setujui Resmi)') }}</option>
+                            <option value="draft">{{ __('Draft (Draf)') }}</option>
+                            <option value="rejected">{{ __('Rejected (Tolak)') }}</option>
                         </select>
                     </div>
 
                     <div>
                         <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">{{ __('Catatan Verifikator') }}</label>
-                        <textarea name="notes" x-model="statusNotes" rows="3" class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700" placeholder="Alasan persetujuan/penolakan..."></textarea>
+                        <textarea name="notes" x-model="statusNotes" rows="3" class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700" placeholder="{{ __('Masukkan catatan verifikasi (alasan persetujuan/penolakan)...') }}"></textarea>
                     </div>
 
                     <div class="flex justify-end gap-2 pt-2 border-t dark:border-gray-700">

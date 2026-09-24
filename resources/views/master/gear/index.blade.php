@@ -263,8 +263,7 @@
                 <table class="w-full text-left border-collapse min-w-[980px]">
                     <thead>
                         <tr class="bg-ocean-900 border-b border-ocean-950 text-xs font-semibold text-white uppercase tracking-wider">
-                            <th class="py-3.5 px-3 w-10 text-center text-white">{{ __('No') }}</th>
-                            <th class="py-3.5 px-2 w-12 text-center font-mono text-white">{{ __('ID') }}</th>
+                            <th class="py-3.5 px-3 w-10 text-center text-white">#</th>
                             <th class="py-3.5 px-3 w-10 text-center">
                                  <input type="checkbox"
                                         @change="toggleSelectAll($event)"
@@ -291,11 +290,6 @@
                                 {{-- Nomor Urut Paginated --}}
                                 <td class="py-3.5 px-3 text-center text-gray-400 font-mono text-xs">
                                     {{ $gears->firstItem() + $index }}
-                                </td>
-
-                                {{-- Database ID --}}
-                                <td class="py-3.5 px-2 text-center font-mono text-xs text-gray-500 whitespace-nowrap">
-                                    {{ $item->id }}
                                 </td>
 
                                 {{-- Checkbox --}}
@@ -466,7 +460,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="14" class="py-12 text-center text-gray-400">
+                                <td colspan="13" class="py-12 text-center text-gray-400">
                                     <div class="text-4xl mb-2">🎣</div>
                                     <p class="font-medium text-gray-600">{{ __('Tidak ada data alat tangkap ditemukan.') }}</p>
                                     <p class="text-xs text-gray-400 mt-1">{{ __('Coba sesuaikan kata kunci pencarian atau reset filter Anda.') }}</p>

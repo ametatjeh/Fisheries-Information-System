@@ -3,7 +3,7 @@
         <div class="flex items-center justify-between flex-wrap gap-2">
             <div class="flex items-center gap-2">
                 <span class="text-xl">📊</span>
-                <span class="font-bold text-gray-800">{{ __('Analisis Lanjutan: Statistik & Dashboard Perikanan') }}</span>
+                <span class="font-bold text-white">{{ __('Analisis Lanjutan: Statistik & Dashboard Perikanan') }}</span>
             </div>
             <div class="flex items-center gap-2 text-xs">
                 <span class="px-2.5 py-1 rounded-lg bg-ocean-100 text-ocean-800 font-semibold flex items-center gap-1.5">
@@ -168,9 +168,9 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 text-xs">
                 {{-- Tahun --}}
                 <div>
-                    <label class="block text-slate-500 font-semibold mb-1">{{ __('Tahun') }}</label>
-                    <select name="year" class="w-full text-xs rounded-lg border-slate-300 focus:border-ocean-500 focus:ring-ocean-500">
-                        <option value="">{{ __('Semua Tahun') }}</option>
+                    <label for="stat_filter_year" class="sr-only">{{ __('Pilih Tahun') }}</label>
+                    <select id="stat_filter_year" name="year" class="w-full text-xs rounded-lg border-slate-300 focus:border-ocean-500 focus:ring-ocean-500">
+                        <option value="">{{ __('Pilih Tahun') }}</option>
                         @foreach($filterOptions['years'] as $yr)
                             <option value="{{ $yr }}" {{ ($filters['year'] == $yr) ? 'selected' : '' }}>{{ $yr }}</option>
                         @endforeach
@@ -179,9 +179,9 @@
 
                 {{-- Bulan --}}
                 <div>
-                    <label class="block text-slate-500 font-semibold mb-1">{{ __('Bulan') }}</label>
-                    <select name="month" class="w-full text-xs rounded-lg border-slate-300 focus:border-ocean-500 focus:ring-ocean-500">
-                        <option value="">{{ __('Semua Bulan') }}</option>
+                    <label for="stat_filter_month" class="sr-only">{{ __('Pilih Bulan') }}</label>
+                    <select id="stat_filter_month" name="month" class="w-full text-xs rounded-lg border-slate-300 focus:border-ocean-500 focus:ring-ocean-500">
+                        <option value="">{{ __('Pilih Bulan') }}</option>
                         @for($m = 1; $m <= 12; $m++)
                             @php $mName = DateTime::createFromFormat('!m', $m)->format('F'); @endphp
                             <option value="{{ $m }}" {{ ($filters['month'] == $m) ? 'selected' : '' }}>{{ __($mName) }}</option>
@@ -191,9 +191,9 @@
 
                 {{-- WPP-NRI --}}
                 <div>
-                    <label class="block text-slate-500 font-semibold mb-1">{{ __('WPP-NRI') }}</label>
-                    <select name="wppnri_id" class="w-full text-xs rounded-lg border-slate-300 focus:border-ocean-500 focus:ring-ocean-500">
-                        <option value="">{{ __('Semua Wilayah WPP') }}</option>
+                    <label for="stat_filter_wppnri" class="sr-only">{{ __('Pilih WPP-NRI') }}</label>
+                    <select id="stat_filter_wppnri" name="wppnri_id" class="w-full text-xs rounded-lg border-slate-300 focus:border-ocean-500 focus:ring-ocean-500">
+                        <option value="">{{ __('Pilih WPP-NRI') }}</option>
                         @foreach($filterOptions['wpp_list'] as $wpp)
                             <option value="{{ $wpp->id }}" {{ ($filters['wppnri_id'] == $wpp->id) ? 'selected' : '' }}>{{ $wpp->name }}</option>
                         @endforeach
@@ -202,9 +202,9 @@
 
                 {{-- Pelabuhan / Landing Site --}}
                 <div>
-                    <label class="block text-slate-500 font-semibold mb-1">{{ __('Pangkalan / TPI') }}</label>
-                    <select name="landing_site_id" class="w-full text-xs rounded-lg border-slate-300 focus:border-ocean-500 focus:ring-ocean-500">
-                        <option value="">{{ __('Semua Pangkalan / TPI') }}</option>
+                    <label for="stat_filter_landing_site" class="sr-only">{{ __('Pilih Pangkalan / TPI') }}</label>
+                    <select id="stat_filter_landing_site" name="landing_site_id" class="w-full text-xs rounded-lg border-slate-300 focus:border-ocean-500 focus:ring-ocean-500">
+                        <option value="">{{ __('Pilih Pangkalan / TPI') }}</option>
                         @foreach($filterOptions['landing_sites'] as $site)
                             <option value="{{ $site->id }}" {{ ($filters['landing_site_id'] == $site->id) ? 'selected' : '' }}>{{ $site->name }}</option>
                         @endforeach
@@ -213,9 +213,9 @@
 
                 {{-- Alat Tangkap (Gear) --}}
                 <div>
-                    <label class="block text-slate-500 font-semibold mb-1">{{ __('Alat Tangkap') }}</label>
-                    <select name="gear_id" class="w-full text-xs rounded-lg border-slate-300 focus:border-ocean-500 focus:ring-ocean-500">
-                        <option value="">{{ __('Semua Alat Tangkap') }}</option>
+                    <label for="stat_filter_gear" class="sr-only">{{ __('Pilih Alat Tangkap') }}</label>
+                    <select id="stat_filter_gear" name="gear_id" class="w-full text-xs rounded-lg border-slate-300 focus:border-ocean-500 focus:ring-ocean-500">
+                        <option value="">{{ __('Pilih Alat Tangkap') }}</option>
                         @foreach($filterOptions['gears'] as $gear)
                             <option value="{{ $gear->id }}" {{ ($filters['gear_id'] == $gear->id) ? 'selected' : '' }}>{{ $gear->name }}</option>
                         @endforeach
@@ -224,9 +224,9 @@
 
                 {{-- Komoditas Spesies --}}
                 <div>
-                    <label class="block text-slate-500 font-semibold mb-1">{{ __('Jenis Ikan (Spesies)') }}</label>
-                    <select name="species_id" class="w-full text-xs rounded-lg border-slate-300 focus:border-ocean-500 focus:ring-ocean-500">
-                        <option value="">{{ __('Semua Spesies Ikan') }}</option>
+                    <label for="stat_filter_species" class="sr-only">{{ __('Pilih Jenis Ikan (Spesies)') }}</label>
+                    <select id="stat_filter_species" name="species_id" class="w-full text-xs rounded-lg border-slate-300 focus:border-ocean-500 focus:ring-ocean-500">
+                        <option value="">{{ __('Pilih Jenis Ikan (Spesies)') }}</option>
                         @foreach($filterOptions['top_species'] as $sp)
                             <option value="{{ $sp->id }}" {{ ($filters['species_id'] == $sp->id) ? 'selected' : '' }}>
                                 {{ $sp->local_name_id ?: $sp->scientific_name }}

@@ -209,6 +209,7 @@
                 <table class="w-full text-left border-collapse min-w-[800px]">
                     <thead>
                         <tr class="bg-gray-50/80 border-b border-gray-100 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                            <th scope="col" class="py-3.5 px-4 text-center w-12">#</th>
                             <th scope="col" class="py-3.5 px-6">{{ __('Pengguna') }}</th>
                             <th scope="col" class="py-3.5 px-6">{{ __('Peran (Role)') }}</th>
                             <th scope="col" class="py-3.5 px-6 text-center">{{ __('Status Email') }}</th>
@@ -217,7 +218,7 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 text-sm text-gray-700">
-                        @forelse ($users as $u)
+                        @forelse ($users as $index => $u)
                         @php
                         $primaryRole = $u->roles->first()?->name ?? 'viewer';
                         $roleMeta = $roleDefinitions[$primaryRole] ?? [
@@ -229,6 +230,9 @@
                         $isCurrentUser = $u->id === auth()->id();
                         @endphp
                         <tr class="hover:bg-ocean-50/40 transition-colors">
+                            <td class="py-3.5 px-4 text-center font-mono text-xs text-gray-400">
+                                {{ $users->firstItem() + $index }}
+                            </td>
                             {{-- Kolom Pengguna --}}
                             <td class="py-3.5 px-6">
                                 <div class="flex items-center gap-3">
@@ -316,7 +320,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="5" class="py-12 text-center text-gray-400">
+                            <td colspan="6" class="py-12 text-center text-gray-400">
                                 <div class="text-4xl mb-2">👤</div>
                                 <p class="font-medium text-gray-600">{{ __('Tidak ada data pengguna ditemukan.') }}</p>
                                 <p class="text-xs text-gray-400 mt-1">{{ __('Coba gunakan kata kunci pencarian atau filter peran yang lain.') }}</p>

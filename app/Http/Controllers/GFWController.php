@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\Gfw\AoiService;
 use App\Services\Gfw\GfwFishingGroundSpatialAnalysisService;
 use App\Services\GFWService;
+use App\Services\Gis\BigMaritimeBoundaryService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -98,12 +99,12 @@ class GFWController extends Controller
     }
 
     /**
-     * Query fishing events from GFW API v3 filtered by ZEE Indonesia di Kawasan Aceh AOI.
+     * Query fishing and maritime events from GFW API v3 filtered by BIG ZEE Aceh (BIG Layer 10).
      */
-    public function eventsZeeIndonesiaAceh(Request $request, GFWService $gfw, AoiService $aoiService): JsonResponse
+    public function eventsZeeIndonesiaAceh(Request $request, GFWService $gfw, BigMaritimeBoundaryService $bigService): JsonResponse
     {
-        $startDateStr = $request->query('start_date', '2026-09-01');
-        $endDateStr = $request->query('end_date', '2026-09-07');
+        $startDateStr = $request->query('start_date', $request->query('start', '2026-09-01'));
+        $endDateStr = $request->query('end_date', $request->query('end', '2026-09-07'));
 
         // 1. Validate date format (YYYY-MM-DD)
         if (! is_string($startDateStr) || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDateStr)
@@ -187,18 +188,42 @@ class GFWController extends Controller
             $offset = (int) $rawOffset;
         }
 
-        // 7. Load & Validate AOI Geometry
+        // 7. Load & Validate BIG ZEE Geometry (Single Authoritative Source: BIG Layer 10)
         try {
-            $geometryData = $aoiService->validateAoiOrThrow();
+            $bigGeometryResult = $bigService->getAcehZeeGeometry();
+            if (! ($bigGeometryResult['success'] ?? false) || empty($bigGeometryResult['geometry'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal memuat batas ZEE BIG.',
+                    'detail' => $bigGeometryResult['error'] ?? 'BIG Layer 10 polygon is unavailable.',
+                    'boundary_source' => 'BIG',
+                    'boundary_layer' => BigMaritimeBoundaryService::BIG_ZEE_LAYER_ID,
+                ], 502);
+            }
+
+            $geometryData = $bigGeometryResult['geometry'];
         } catch (Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'BIG ZEE Aceh AOI configuration is invalid.',
+                'message' => 'Gagal memuat batas ZEE BIG.',
                 'error' => $e->getMessage(),
-            ], 500);
+                'boundary_source' => 'BIG',
+                'boundary_layer' => BigMaritimeBoundaryService::BIG_ZEE_LAYER_ID,
+            ], 502);
         }
 
-        // 8. Execute GFW Events Query
+        // 8. Determine dataset based on event type requested
+        $typeParam = strtolower((string) $request->query('type', ''));
+        $datasetParam = (string) $request->query('dataset', '');
+
+        $dataset = match ($typeParam) {
+            'loitering' => config('gfw.loitering_dataset', 'public-global-loitering-events:latest'),
+            'encounter', 'encounters' => config('gfw.encounters_dataset', 'public-global-encounters:latest'),
+            'port_visit', 'port_visits', 'port-visits' => config('gfw.port_visits_dataset', 'public-global-port-visits-c2:latest'),
+            default => $datasetParam !== '' ? $datasetParam : config('gfw.fishing_events_dataset', 'public-global-fishing-events:latest'),
+        };
+
+        // 9. Execute GFW Events Query
         $result = $gfw->getEvents(
             $geometryData,
             $startDateStr,
@@ -207,6 +232,7 @@ class GFWController extends Controller
                 'aoi_name' => 'ZEE Indonesia - Kawasan Aceh',
                 'limit' => $limit,
                 'offset' => $offset,
+                'dataset' => $dataset,
             ]
         );
 
@@ -219,7 +245,7 @@ class GFWController extends Controller
     /**
      * Query vessels from GFW API filtered by ZEE Indonesia di Kawasan Aceh AOI.
      */
-    public function vesselsZeeIndonesiaAceh(Request $request, GFWService $gfw, AoiService $aoiService): JsonResponse
+    public function vesselsZeeIndonesiaAceh(Request $request, GFWService $gfw, BigMaritimeBoundaryService $bigService): JsonResponse
     {
         $startDateStr = $request->query('start', $request->query('start_date', '2026-09-01'));
         $endDateStr = $request->query('end', $request->query('end_date', '2026-09-07'));
@@ -306,18 +332,41 @@ class GFWController extends Controller
             $offset = (int) $rawOffset;
         }
 
-        // 7. Load & Validate AOI Geometry
+        // 7. Load & Validate BIG ZEE Geometry (Single Authoritative Source: BIG Layer 10)
         try {
-            $geometryData = $aoiService->validateAoiOrThrow();
+            $bigGeometryResult = $bigService->getAcehZeeGeometry();
+            if (! ($bigGeometryResult['success'] ?? false) || empty($bigGeometryResult['geometry'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'BIG ZEE Aceh spatial boundary is unavailable or not a valid closed polygon.',
+                    'detail' => $bigGeometryResult['error'] ?? 'BIG Layer 10 consists of open LineStrings and cannot be used as spatial filter without authoritative area source.',
+                    'boundary_source' => 'BIG',
+                    'boundary_layer' => BigMaritimeBoundaryService::BIG_ZEE_LAYER_ID,
+                ], 502);
+            }
+
+            $geometryData = $bigGeometryResult['geometry'];
         } catch (Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'BIG ZEE Aceh AOI configuration is invalid.',
+                'message' => 'BIG ZEE Aceh spatial boundary is unavailable or not a valid closed polygon.',
                 'error' => $e->getMessage(),
-            ], 500);
+                'boundary_source' => 'BIG',
+                'boundary_layer' => BigMaritimeBoundaryService::BIG_ZEE_LAYER_ID,
+            ], 502);
         }
 
-        // 8. Execute GFW Vessels in AOI Query
+        // 8. Sanitize query filter inputs
+        $searchParam = $request->query('search', $request->query('query'));
+        $cleanSearch = is_string($searchParam) ? mb_substr(strip_tags(trim($searchParam)), 0, 100) : null;
+        $flagParam = $request->query('flag');
+        $cleanFlag = is_string($flagParam) ? mb_substr(strip_tags(trim($flagParam)), 0, 10) : null;
+        $vesselTypeParam = $request->query('vessel_type');
+        $cleanVesselType = is_string($vesselTypeParam) ? mb_substr(strip_tags(trim($vesselTypeParam)), 0, 50) : null;
+        $activityParam = $request->query('activity');
+        $cleanActivity = is_string($activityParam) ? mb_substr(strip_tags(trim($activityParam)), 0, 50) : null;
+
+        // 9. Execute GFW Vessels in AOI Query using authentic BIG geometry
         $result = $gfw->getVesselsInAoi(
             $geometryData,
             $startDateStr,
@@ -325,10 +374,12 @@ class GFWController extends Controller
             [
                 'limit' => $limit,
                 'offset' => $offset,
-                'vessel_type' => $request->query('vessel_type'),
-                'flag' => $request->query('flag'),
-                'activity' => $request->query('activity'),
-                'search' => $request->query('search', $request->query('query')),
+                'vessel_type' => $cleanVesselType,
+                'flag' => $cleanFlag,
+                'activity' => $cleanActivity,
+                'search' => $cleanSearch,
+                'boundary_source' => 'BIG',
+                'boundary_layer' => BigMaritimeBoundaryService::BIG_ZEE_LAYER_ID,
             ]
         );
 
@@ -461,7 +512,7 @@ class GFWController extends Controller
     /**
      * Query vessel movement track points & line string.
      */
-    public function vesselTrack(string $vesselId, Request $request, GFWService $gfw, AoiService $aoiService): JsonResponse
+    public function vesselTrack(string $vesselId, Request $request, GFWService $gfw, BigMaritimeBoundaryService $bigService): JsonResponse
     {
         $cleanId = trim($vesselId);
         if ($cleanId === '') {
@@ -521,19 +572,38 @@ class GFWController extends Controller
             ], 422);
         }
 
-        // Load & Validate AOI Geometry
+        // Load & Validate BIG ZEE Geometry
         try {
-            $aoiService->validateAoiOrThrow();
+            $bigGeometryResult = $bigService->getAcehZeeGeometry();
+            if (! ($bigGeometryResult['success'] ?? false) || empty($bigGeometryResult['geometry'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'BIG ZEE Aceh spatial boundary is unavailable or not a valid closed polygon.',
+                    'boundary_source' => 'BIG',
+                    'boundary_layer' => BigMaritimeBoundaryService::BIG_ZEE_LAYER_ID,
+                ], 502);
+            }
         } catch (Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'BIG ZEE Aceh AOI configuration is invalid.',
+                'message' => 'BIG ZEE Aceh spatial boundary is unavailable or not a valid closed polygon.',
                 'error' => $e->getMessage(),
-            ], 500);
+                'boundary_source' => 'BIG',
+                'boundary_layer' => BigMaritimeBoundaryService::BIG_ZEE_LAYER_ID,
+            ], 502);
         }
 
         $scope = $request->query('scope', 'zee_aceh');
-        $result = $gfw->getVesselTrack($cleanId, $startDateStr, $endDateStr, ['scope' => $scope]);
+        $options = [
+            'scope' => $scope,
+            'name' => is_string($request->query('name')) ? mb_substr(strip_tags(trim($request->query('name'))), 0, 100) : null,
+            'mmsi' => is_string($request->query('mmsi')) ? mb_substr(strip_tags(trim($request->query('mmsi'))), 0, 50) : null,
+            'ssvid' => is_string($request->query('ssvid')) ? mb_substr(strip_tags(trim($request->query('ssvid'))), 0, 50) : null,
+            'imo' => is_string($request->query('imo')) ? mb_substr(strip_tags(trim($request->query('imo'))), 0, 50) : null,
+            'flag' => is_string($request->query('flag')) ? mb_substr(strip_tags(trim($request->query('flag'))), 0, 10) : null,
+            'vessel_type' => is_string($request->query('vessel_type')) ? mb_substr(strip_tags(trim($request->query('vessel_type'))), 0, 50) : null,
+        ];
+        $result = $gfw->getVesselTrack($cleanId, $startDateStr, $endDateStr, $options);
         $status = $result['status'] ?? ($result['success'] ? 200 : 500);
         unset($result['status']);
 
@@ -543,7 +613,7 @@ class GFWController extends Controller
     /**
      * Query operational dashboard summary with consolidated KPIs, vessels, events, and alerts.
      */
-    public function dashboardSummary(Request $request, GFWService $gfw, AoiService $aoiService): JsonResponse
+    public function dashboardSummary(Request $request, GFWService $gfw, BigMaritimeBoundaryService $bigService): JsonResponse
     {
         $startDateStr = $request->query('start_date', $request->query('start', now()->subDays(6)->toDateString()));
         $endDateStr = $request->query('end_date', $request->query('end', now()->toDateString()));
@@ -595,15 +665,28 @@ class GFWController extends Controller
             ], 422);
         }
 
-        // Load & Validate AOI Geometry
+        // 5. Load & Validate BIG ZEE Geometry (Single Authoritative Source: BIG Layer 10)
         try {
-            $geometryData = $aoiService->validateAoiOrThrow();
+            $bigGeometryResult = $bigService->getAcehZeeGeometry();
+            if (! ($bigGeometryResult['success'] ?? false) || empty($bigGeometryResult['geometry'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal memuat batas ZEE BIG.',
+                    'detail' => $bigGeometryResult['error'] ?? 'BIG Layer 10 polygon is unavailable.',
+                    'boundary_source' => 'BIG',
+                    'boundary_layer' => BigMaritimeBoundaryService::BIG_ZEE_LAYER_ID,
+                ], 502);
+            }
+
+            $geometryData = $bigGeometryResult['geometry'];
         } catch (Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'BIG ZEE Aceh AOI configuration is invalid.',
+                'message' => 'Gagal memuat batas ZEE BIG.',
                 'error' => $e->getMessage(),
-            ], 500);
+                'boundary_source' => 'BIG',
+                'boundary_layer' => BigMaritimeBoundaryService::BIG_ZEE_LAYER_ID,
+            ], 502);
         }
 
         $limit = max(1, min(100, (int) $request->query('limit', 50)));

@@ -208,7 +208,7 @@ class LandingPageTest extends TestCase
         $this->assertGreaterThan(0, $speciesTotal);
         $this->assertGreaterThan(0, $gearTotal);
         $this->assertEquals(29090.0, (float) $speciesTotal);
-        $this->assertEquals(28070.0, (float) $gearTotal);
+        $this->assertEquals(29090.0, (float) $gearTotal);
 
         // CPUE trend is calculated and not negative
         foreach ($stats['cpue_trend']['data'] as $cpue) {

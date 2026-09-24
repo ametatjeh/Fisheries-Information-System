@@ -282,4 +282,26 @@ class FishingGroundTest extends TestCase
             'longitude' => null,
         ]);
     }
+
+    public function test_fishing_grounds_index_contains_status_confirmation_modal(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $ground = FishingGround::create([
+            'name' => 'Perairan Ulee Lheue',
+            'code' => 'FG-UL-01',
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($admin)->get('/master/fishing-grounds');
+
+        $response->assertOk();
+        $response->assertSee('openStatusModal', false);
+        $response->assertSee('showStatusModal', false);
+        $response->assertSee('Nonaktifkan Daerah Penangkapan?');
+        $response->assertSee('Aktifkan Daerah Penangkapan?');
+        $response->assertSee('Ya, Nonaktifkan');
+        $response->assertSee('Ya, Aktifkan');
+    }
 }

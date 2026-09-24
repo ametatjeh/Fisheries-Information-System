@@ -148,12 +148,13 @@
             <form method="GET" action="{{ route('catches.index') }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                 {{-- Search Box --}}
                 <div class="lg:col-span-2">
-                    <label class="block text-xs font-medium text-slate-600 mb-1">{{ __('Cari Ikan, Nama Lokal, atau Trip') }}</label>
+                    <label for="search_catch" class="sr-only">{{ __('Cari Ikan, Nama Lokal, atau Trip') }}</label>
                     <div class="relative">
                         <input type="text"
+                               id="search_catch"
                                name="search"
                                value="{{ request('search') }}"
-                               placeholder="Nama ikan, kode FAO, nama Aceh, trip..."
+                               placeholder="{{ __('Cari Ikan, Nama Lokal, atau Trip') }}"
                                class="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-ocean-500">
                         <span class="absolute left-3 top-2.5 text-slate-400 text-sm">🔍</span>
                     </div>
@@ -161,9 +162,9 @@
 
                 {{-- Filter Status Tangkapan --}}
                 <div>
-                    <label class="block text-xs font-medium text-slate-600 mb-1">{{ __('Status Tangkapan') }}</label>
-                    <select name="catch_status" class="w-full py-2 px-3 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-ocean-500">
-                        <option value="">{{ __('Semua Status') }}</option>
+                    <label for="catch_status" class="sr-only">{{ __('Status Tangkapan') }}</label>
+                    <select id="catch_status" name="catch_status" class="w-full py-2 px-3 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-ocean-500">
+                        <option value="">{{ __('Pilih Status Tangkapan') }}</option>
                         <option value="target" {{ request('catch_status') == 'target' ? 'selected' : '' }}>🎯 Target (Utama)</option>
                         <option value="bycatch" {{ request('catch_status') == 'bycatch' ? 'selected' : '' }}>⚠️ Bycatch (Sampingan)</option>
                         <option value="discarded" {{ request('catch_status') == 'discarded' ? 'selected' : '' }}>❌ Discarded (Dibuang)</option>
@@ -172,9 +173,9 @@
 
                 {{-- Filter Kelompok Ikan --}}
                 <div>
-                    <label class="block text-xs font-medium text-slate-600 mb-1">{{ __('Kelompok Ikan') }}</label>
-                    <select name="fish_group" class="w-full py-2 px-3 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-ocean-500">
-                        <option value="">{{ __('Semua Kelompok Ikan') }}</option>
+                    <label for="fish_group" class="sr-only">{{ __('Kelompok Ikan') }}</label>
+                    <select id="fish_group" name="fish_group" class="w-full py-2 px-3 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-ocean-500">
+                        <option value="">{{ __('Pilih Kelompok Ikan') }}</option>
                         @foreach($fishGroups as $val => $lbl)
                             <option value="{{ $val }}" {{ request('fish_group') == $val ? 'selected' : '' }}>{{ $lbl }}</option>
                         @endforeach
@@ -182,7 +183,7 @@
                 </div>
 
                 {{-- Buttons --}}
-                <div class="flex items-end gap-2">
+                <div class="flex items-center gap-2">
                     <button type="submit" class="flex-1 py-2 px-3 bg-ocean-800 hover:bg-ocean-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors text-center">
                         {{ __('Filter') }}
                     </button>

@@ -138,12 +138,13 @@
             <form method="GET" action="{{ route('efforts.index') }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                 {{-- Search Box --}}
                 <div class="lg:col-span-2">
-                    <label class="block text-xs font-medium text-slate-600 mb-1">{{ __('Cari Trip, Kapal, atau Alat Tangkap') }}</label>
+                    <label for="search_effort" class="sr-only">{{ __('Cari Trip, Kapal, atau Alat Tangkap') }}</label>
                     <div class="relative">
                         <input type="text"
+                               id="search_effort"
                                name="search"
                                value="{{ request('search') }}"
-                               placeholder="Nomor trip, nama kapal, alat tangkap..."
+                               placeholder="{{ __('Cari Trip, Kapal, atau Alat Tangkap') }}"
                                class="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-ocean-500">
                         <span class="absolute left-3 top-2.5 text-slate-400 text-sm">🔍</span>
                     </div>
@@ -151,9 +152,9 @@
 
                 {{-- Filter Alat Tangkap --}}
                 <div>
-                    <label class="block text-xs font-medium text-slate-600 mb-1">{{ __('Alat Penangkapan Ikan') }}</label>
-                    <select name="fishing_gear_id" class="w-full py-2 px-3 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-ocean-500">
-                        <option value="">{{ __('Semua Alat Tangkap') }}</option>
+                    <label for="fishing_gear_id" class="sr-only">{{ __('Alat Penangkapan Ikan') }}</label>
+                    <select id="fishing_gear_id" name="fishing_gear_id" class="w-full py-2 px-3 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-ocean-500">
+                        <option value="">{{ __('Alat Penangkapan Ikan') }}</option>
                         @foreach($gears as $g)
                             <option value="{{ $g->id }}" {{ request('fishing_gear_id') == $g->id ? 'selected' : '' }}>
                                 [{{ $g->code }}] {{ $g->name }}
@@ -164,9 +165,9 @@
 
                 {{-- Filter Trip --}}
                 <div>
-                    <label class="block text-xs font-medium text-slate-600 mb-1">{{ __('Trip Penangkapan') }}</label>
-                    <select name="fishing_trip_id" class="w-full py-2 px-3 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-ocean-500">
-                        <option value="">{{ __('Semua Trip Operasional') }}</option>
+                    <label for="fishing_trip_id" class="sr-only">{{ __('Trip Penangkapan') }}</label>
+                    <select id="fishing_trip_id" name="fishing_trip_id" class="w-full py-2 px-3 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-ocean-500">
+                        <option value="">{{ __('Trip Penangkapan') }}</option>
                         @foreach($trips as $t)
                             <option value="{{ $t->id }}" {{ request('fishing_trip_id') == $t->id ? 'selected' : '' }}>
                                 {{ $t->trip_number }} - {{ $t->vessel->name ?? 'Tanpa Kapal' }}
@@ -176,7 +177,7 @@
                 </div>
 
                 {{-- Buttons --}}
-                <div class="flex items-end gap-2">
+                <div class="flex items-center gap-2">
                     <button type="submit" class="flex-1 py-2 px-3 bg-ocean-800 hover:bg-ocean-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors text-center">
                         {{ __('Filter') }}
                     </button>

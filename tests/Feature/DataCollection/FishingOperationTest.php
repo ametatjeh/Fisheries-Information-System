@@ -421,4 +421,129 @@ class FishingOperationTest extends TestCase
 
         $this->assertDatabaseMissing('logbooks', ['id' => $logbook->id]);
     }
+
+    public function test_logbooks_card_3_inputs_standardized_placeholders_and_no_duplicate_labels(): void
+    {
+        $response = $this->actingAs($this->adminUser)->get(route('logbooks.index'));
+        $response->assertOk();
+
+        // 1. Search placeholder
+        $response->assertSee('placeholder="Cari Aktivitas, Kapal, atau No. Trip"', false);
+
+        // 2. Weather condition placeholder in select
+        $response->assertSee('<option value="">Kondisi Cuaca</option>', false);
+
+        // 3. Fishing Trips placeholder in select
+        $response->assertSee('<option value="">Fishing Trips</option>', false);
+
+        // 4. No duplicate visible labels outside fields
+        $response->assertDontSee('<label class="block text-xs font-medium text-slate-600 mb-1">Cari Aktivitas, Kapal, atau No. Trip</label>', false);
+        $response->assertDontSee('<label class="block text-xs font-medium text-slate-600 mb-1">Kondisi Cuaca</label>', false);
+        $response->assertDontSee('<label class="block text-xs font-medium text-slate-600 mb-1">Trip Penangkapan</label>', false);
+
+        // 5. Search function works
+        $searchRes = $this->actingAs($this->adminUser)->get(route('logbooks.index', ['search' => 'Navigasi']));
+        $searchRes->assertOk();
+
+        // 6. Filter function works
+        $filterRes = $this->actingAs($this->adminUser)->get(route('logbooks.index', ['weather_condition' => 'cerah']));
+        $filterRes->assertOk();
+
+        // 7. Pagination works
+        $pageRes = $this->actingAs($this->adminUser)->get(route('logbooks.index', ['per_page' => 10, 'page' => 1]));
+        $pageRes->assertOk();
+    }
+
+    public function test_efforts_inputs_standardized_placeholders_and_no_duplicate_labels(): void
+    {
+        $response = $this->actingAs($this->adminUser)->get(route('efforts.index'));
+        $response->assertOk();
+
+        // 1. Search placeholder
+        $response->assertSee('placeholder="Cari Trip, Kapal, atau Alat Tangkap"', false);
+
+        // 2. Fishing Gear placeholder in select
+        $response->assertSee('<option value="">Alat Penangkapan Ikan</option>', false);
+
+        // 3. Fishing Trip placeholder in select
+        $response->assertSee('<option value="">Trip Penangkapan</option>', false);
+
+        // 4. No duplicate visible labels outside fields
+        $response->assertDontSee('<label class="block text-xs font-medium text-slate-600 mb-1">Cari Trip, Kapal, atau Alat Tangkap</label>', false);
+        $response->assertDontSee('<label class="block text-xs font-medium text-slate-600 mb-1">Alat Penangkapan Ikan</label>', false);
+        $response->assertDontSee('<label class="block text-xs font-medium text-slate-600 mb-1">Trip Penangkapan</label>', false);
+
+        // 5. Search function works
+        $searchRes = $this->actingAs($this->adminUser)->get(route('efforts.index', ['search' => 'Pancing']));
+        $searchRes->assertOk();
+
+        // 6. Filter function works
+        $filterRes = $this->actingAs($this->adminUser)->get(route('efforts.index', ['fishing_gear_id' => $this->fishingGear->id]));
+        $filterRes->assertOk();
+
+        // 7. Pagination and sorting work
+        $pageRes = $this->actingAs($this->adminUser)->get(route('efforts.index', ['per_page' => 10, 'page' => 1, 'sort' => 'setting_date', 'direction' => 'desc']));
+        $pageRes->assertOk();
+    }
+
+    public function test_catches_inputs_standardized_placeholders_and_no_duplicate_labels(): void
+    {
+        $response = $this->actingAs($this->adminUser)->get(route('catches.index'));
+        $response->assertOk();
+
+        // 1. Search placeholder
+        $response->assertSee('placeholder="Cari Ikan, Nama Lokal, atau Trip"', false);
+
+        // 2. Catch status placeholder in select
+        $response->assertSee('<option value="">Pilih Status Tangkapan</option>', false);
+
+        // 3. Fish group placeholder in select
+        $response->assertSee('<option value="">Pilih Kelompok Ikan</option>', false);
+
+        // 4. No duplicate visible labels outside fields
+        $response->assertDontSee('<label class="block text-xs font-medium text-slate-600 mb-1">Cari Ikan, Nama Lokal, atau Trip</label>', false);
+        $response->assertDontSee('<label class="block text-xs font-medium text-slate-600 mb-1">Status Tangkapan</label>', false);
+        $response->assertDontSee('<label class="block text-xs font-medium text-slate-600 mb-1">Kelompok Ikan</label>', false);
+
+        // 5. Search function works
+        $searchRes = $this->actingAs($this->adminUser)->get(route('catches.index', ['search' => 'Tongkol']));
+        $searchRes->assertOk();
+
+        // 6. Filter function works
+        $filterRes = $this->actingAs($this->adminUser)->get(route('catches.index', ['catch_status' => 'target']));
+        $filterRes->assertOk();
+
+        // 7. Pagination works
+        $pageRes = $this->actingAs($this->adminUser)->get(route('catches.index', ['per_page' => 10, 'page' => 1]));
+        $pageRes->assertOk();
+    }
+
+    public function test_landings_inputs_standardized_placeholders_and_no_duplicate_labels(): void
+    {
+        $response = $this->actingAs($this->adminUser)->get(route('landings.index'));
+        $response->assertOk();
+
+        // 1. Search placeholder
+        $response->assertSee('placeholder="Cari No. Manifest, Kapal, atau Trip"', false);
+
+        // 2. Landing site placeholder in select
+        $response->assertSee('<option value="">Pilih Pelabuhan / TPI</option>', false);
+
+        // 3. No duplicate visible labels outside fields
+        $response->assertDontSee('<label class="block text-xs font-medium text-slate-600 mb-1">Cari No. Manifest, Kapal, atau Trip</label>', false);
+        $response->assertDontSee('<label class="block text-xs font-medium text-slate-600 mb-1">Pelabuhan / TPI Pendaratan</label>', false);
+        $response->assertDontSee('<label class="block text-xs font-medium text-slate-600 mb-1">Tanggal Pendaratan Dari</label>', false);
+
+        // 4. Search function works
+        $searchRes = $this->actingAs($this->adminUser)->get(route('landings.index', ['search' => 'LND']));
+        $searchRes->assertOk();
+
+        // 5. Filter function works
+        $filterRes = $this->actingAs($this->adminUser)->get(route('landings.index', ['landing_site_id' => $this->landingSite->id]));
+        $filterRes->assertOk();
+
+        // 6. Pagination works
+        $pageRes = $this->actingAs($this->adminUser)->get(route('landings.index', ['per_page' => 10, 'page' => 1]));
+        $pageRes->assertOk();
+    }
 }

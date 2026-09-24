@@ -3,7 +3,7 @@
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div class="flex items-center gap-2">
                 <span class="text-xl">🗺️</span>
-                <span class="font-bold text-gray-800">{{ __('Sistem Informasi Geografis (GIS) & Analisis Spasial Perikanan') }}</span>
+                <span class="font-bold text-white">{{ __('Sistem Informasi Geografis (GIS) & Analisis Spasial Perikanan') }}</span>
             </div>
             <div class="flex items-center gap-2 shrink-0">
                 <a href="{{ route('dashboard') }}" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs transition shadow-xs flex items-center gap-1.5">
@@ -94,9 +94,9 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                     {{-- Tahun --}}
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">{{ __('Tahun') }}</label>
-                        <select name="year" class="w-full text-xs rounded-xl border-slate-300 focus:border-ocean-500 focus:ring-ocean-500">
-                            <option value="">{{ __('Semua Tahun') }}</option>
+                        <label for="gis_filter_year" class="sr-only">{{ __('Pilih Tahun') }}</label>
+                        <select id="gis_filter_year" name="year" class="w-full text-xs rounded-xl border-slate-300 focus:border-ocean-500 focus:ring-ocean-500">
+                            <option value="">{{ __('Pilih Tahun') }}</option>
                             @foreach($yearsList as $yr)
                                 <option value="{{ $yr }}" {{ ($filters['year'] ?? '') == $yr ? 'selected' : '' }}>{{ $yr }}</option>
                             @endforeach
@@ -105,9 +105,9 @@
 
                     {{-- Bulan --}}
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">{{ __('Bulan') }}</label>
-                        <select name="month" class="w-full text-xs rounded-xl border-slate-300 focus:border-ocean-500 focus:ring-ocean-500">
-                            <option value="">{{ __('Semua Bulan') }}</option>
+                        <label for="gis_filter_month" class="sr-only">{{ __('Pilih Bulan') }}</label>
+                        <select id="gis_filter_month" name="month" class="w-full text-xs rounded-xl border-slate-300 focus:border-ocean-500 focus:ring-ocean-500">
+                            <option value="">{{ __('Pilih Bulan') }}</option>
                             @foreach([1=>'Januari', 2=>'Februari', 3=>'Maret', 4=>'April', 5=>'Mei', 6=>'Juni', 7=>'Juli', 8=>'Agustus', 9=>'September', 10=>'Oktober', 11=>'November', 12=>'Desember'] as $mNum => $mName)
                                 <option value="{{ $mNum }}" {{ ($filters['month'] ?? '') == $mNum ? 'selected' : '' }}>{{ $mName }}</option>
                             @endforeach
@@ -116,9 +116,9 @@
 
                     {{-- WPP-NRI --}}
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">{{ __('WPP-NRI') }}</label>
-                        <select name="wppnri_id" class="w-full text-xs rounded-xl border-slate-300 focus:border-ocean-500 focus:ring-ocean-500">
-                            <option value="">{{ __('Semua Wilayah WPP') }}</option>
+                        <label for="gis_filter_wppnri" class="sr-only">{{ __('Pilih Wilayah WPP') }}</label>
+                        <select id="gis_filter_wppnri" name="wppnri_id" class="w-full text-xs rounded-xl border-slate-300 focus:border-ocean-500 focus:ring-ocean-500">
+                            <option value="">{{ __('Pilih Wilayah WPP') }}</option>
                             @foreach($wppList as $w)
                                 <option value="{{ $w->id }}" {{ ($filters['wppnri_id'] ?? '') == $w->id ? 'selected' : '' }}>
                                     {{ $w->code }} - {{ $w->name }}
@@ -129,9 +129,9 @@
 
                     {{-- Alat Tangkap --}}
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">{{ __('Alat Tangkap') }}</label>
-                        <select name="gear_id" class="w-full text-xs rounded-xl border-slate-300 focus:border-ocean-500 focus:ring-ocean-500">
-                            <option value="">{{ __('Semua Alat Tangkap') }}</option>
+                        <label for="gis_filter_gear" class="sr-only">{{ __('Pilih Alat Tangkap') }}</label>
+                        <select id="gis_filter_gear" name="gear_id" class="w-full text-xs rounded-xl border-slate-300 focus:border-ocean-500 focus:ring-ocean-500">
+                            <option value="">{{ __('Pilih Alat Tangkap') }}</option>
                             @foreach($gearsList as $gear)
                                 <option value="{{ $gear->id }}" {{ ($filters['gear_id'] ?? '') == $gear->id ? 'selected' : '' }}>
                                     {{ $gear->name }}
@@ -142,9 +142,9 @@
 
                     {{-- Jenis Ikan / Spesies --}}
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">{{ __('Jenis Ikan / Spesies') }}</label>
-                        <select name="species_id" class="w-full text-xs rounded-xl border-slate-300 focus:border-ocean-500 focus:ring-ocean-500">
-                            <option value="">{{ __('Semua Spesies Ikan') }}</option>
+                        <label for="gis_filter_species" class="sr-only">{{ __('Pilih Spesies Ikan') }}</label>
+                        <select id="gis_filter_species" name="species_id" class="w-full text-xs rounded-xl border-slate-300 focus:border-ocean-500 focus:ring-ocean-500">
+                            <option value="">{{ __('Pilih Spesies Ikan') }}</option>
                             @foreach($speciesList as $sp)
                                 <option value="{{ $sp->id }}" {{ ($filters['species_id'] ?? '') == $sp->id ? 'selected' : '' }}>
                                     {{ $sp->local_name_id ?: $sp->scientific_name }} ({{ $sp->fao_code ?: '-' }})
@@ -155,9 +155,9 @@
 
                     {{-- Pelabuhan / Landing Site --}}
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">{{ __('Pangkalan / TPI') }}</label>
-                        <select name="landing_site_id" class="w-full text-xs rounded-xl border-slate-300 focus:border-ocean-500 focus:ring-ocean-500">
-                            <option value="">{{ __('Semua Pelabuhan / TPI') }}</option>
+                        <label for="gis_filter_landing_site" class="sr-only">{{ __('Pilih Pelabuhan / TPI') }}</label>
+                        <select id="gis_filter_landing_site" name="landing_site_id" class="w-full text-xs rounded-xl border-slate-300 focus:border-ocean-500 focus:ring-ocean-500">
+                            <option value="">{{ __('Pilih Pelabuhan / TPI') }}</option>
                             @foreach($landingSites as $site)
                                 <option value="{{ $site->id }}" {{ ($filters['landing_site_id'] ?? '') == $site->id ? 'selected' : '' }}>
                                     {{ $site->name }} ({{ $site->site_type ?? 'TPI' }})
@@ -168,9 +168,9 @@
 
                     {{-- Kabupaten / Kota --}}
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">{{ __('Wilayah Kabupaten/Kota') }}</label>
-                        <select name="regency_id" class="w-full text-xs rounded-xl border-slate-300 focus:border-ocean-500 focus:ring-ocean-500">
-                            <option value="">{{ __('Semua Kabupaten / Kota') }}</option>
+                        <label for="gis_filter_regency" class="sr-only">{{ __('Pilih Kabupaten / Kota') }}</label>
+                        <select id="gis_filter_regency" name="regency_id" class="w-full text-xs rounded-xl border-slate-300 focus:border-ocean-500 focus:ring-ocean-500">
+                            <option value="">{{ __('Pilih Kabupaten / Kota') }}</option>
                             @foreach($regenciesList as $reg)
                                 <option value="{{ $reg->id }}" {{ ($filters['regency_id'] ?? '') == $reg->id ? 'selected' : '' }}>
                                     {{ $reg->name }}
@@ -181,15 +181,17 @@
 
                     {{-- Dari Tanggal --}}
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">{{ __('Dari Tanggal') }}</label>
-                        <input type="date" name="start_date" value="{{ $filters['start_date'] ?? '' }}"
+                        <label for="gis_start_date" class="sr-only">{{ __('Dari Tanggal') }}</label>
+                        <input type="date" id="gis_start_date" name="start_date" value="{{ $filters['start_date'] ?? '' }}"
+                               title="{{ __('Dari Tanggal') }}"
                                class="w-full text-xs rounded-xl border-slate-300 focus:border-ocean-500 focus:ring-ocean-500">
                     </div>
 
                     {{-- Sampai Tanggal --}}
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">{{ __('Sampai Tanggal') }}</label>
-                        <input type="date" name="end_date" value="{{ $filters['end_date'] ?? '' }}"
+                        <label for="gis_end_date" class="sr-only">{{ __('Sampai Tanggal') }}</label>
+                        <input type="date" id="gis_end_date" name="end_date" value="{{ $filters['end_date'] ?? '' }}"
+                               title="{{ __('Sampai Tanggal') }}"
                                class="w-full text-xs rounded-xl border-slate-300 focus:border-ocean-500 focus:ring-ocean-500">
                     </div>
 

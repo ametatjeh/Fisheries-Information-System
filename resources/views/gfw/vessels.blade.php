@@ -6,10 +6,10 @@
                     <span class="text-lg">🚢</span>
                 </div>
                 <div>
-                    <h1 class="text-base font-bold text-slate-800 tracking-tight leading-tight">
+                    <h1 class="text-base font-bold text-white tracking-tight leading-tight">
                         {{ __('GFW VESSEL OBSERVATORY') }}
                     </h1>
-                    <p class="text-xs text-slate-500 font-medium">
+                    <p class="text-xs text-white font-medium">
                         {{ __('ZEE Indonesia – Kawasan Aceh') }}
                     </p>
                 </div>
@@ -49,11 +49,11 @@
                         </span>
                         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-semibold">
                             <span>🏛️</span>
-                            <span>AOI: BIG</span>
+                            <span>AOI Source: BIG</span>
                         </span>
                         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30 text-[10px] font-semibold">
                             <span>📡</span>
-                            <span>AIS/VMS Satelit</span>
+                            <span>Vessel Data: Global Fishing Watch</span>
                         </span>
                         <span class="font-mono text-[9px] bg-indigo-900/50 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-700/40">EPSG:4326</span>
                     </div>
@@ -67,13 +67,30 @@
                     </div>
 
                     <p class="text-slate-300 text-xs leading-relaxed line-clamp-2 sm:line-clamp-none">
-                        Pemantauan spasial armada kapal terdeteksi satelit dalam Area of Interest batas resmi <strong>ZEE Indonesia Kawasan Aceh (Badan Informasi Geospasial)</strong>.
+                        Pemantauan spasial armada kapal terdeteksi satelit dan lintasan (Observed Track) dalam Area of Interest batas resmi <strong>ZEE Indonesia Kawasan Aceh (BIG Layer 10)</strong> menggunakan dataset GFW <code>public-global-fishing-events:latest</code>.
                     </p>
+                    <div class="p-2 rounded-lg bg-slate-800/60 border border-indigo-500/20 text-[11px] text-slate-300 leading-normal flex items-start gap-1.5">
+                        <span class="text-indigo-400 shrink-0 mt-0.5">ℹ️</span>
+                        <span>
+                            <strong>Catatan:</strong> Tidak munculnya vessel pada hasil GFW tidak membuktikan bahwa kapal tersebut tidak berada secara fisik di ZEE. Hasil bergantung pada dataset dan sumber observasi GFW.
+                        </span>
+                    </div>
                 </div>
 
                 {{-- AOI & Provenance Compact Control Badge --}}
                 <div class="p-2.5 sm:p-3 rounded-lg bg-slate-800/80 backdrop-blur-xs border border-indigo-500/30 text-xs w-full lg:w-auto lg:min-w-[340px] shrink-0 space-y-2 text-slate-200">
                     <div class="flex items-center justify-between text-[11px] pb-1.5 border-b border-slate-700/60">
+                        <span class="flex items-center gap-1 text-[10px] font-medium text-indigo-300">
+                            <span>🗺️</span>
+                            <span>{{ __('Pemberitahuan Latensi & AOI Spasial') }}</span>
+                        </span>
+                        <label class="inline-flex items-center gap-1.5 cursor-pointer text-[10px] text-indigo-300 hover:text-indigo-200">
+                            <input type="checkbox" id="toggle-big-zee-aceh" checked class="rounded border-slate-600 bg-slate-700 text-indigo-500 focus:ring-0 text-[10px]">
+                            <span>Batas ZEE (BIG)</span>
+                        </label>
+                    </div>
+
+                    <div class="flex items-center justify-between text-[11px] pb-1 border-b border-slate-700/40">
                         <div class="flex items-center gap-2">
                             <span id="vessels-live-pulse" class="w-2 h-2 rounded-full bg-slate-500 inline-block"></span>
                             <span class="font-semibold text-slate-200">Live Monitor:</span>
@@ -81,14 +98,10 @@
                                 OFF
                             </button>
                         </div>
-                        <label class="inline-flex items-center gap-1.5 cursor-pointer text-[10px] text-indigo-300 hover:text-indigo-200">
-                            <input type="checkbox" id="toggle-big-zee-aceh" checked class="rounded border-slate-600 bg-slate-700 text-indigo-500 focus:ring-0 text-[10px]">
-                            <span>Batas ZEE (BIG)</span>
-                        </label>
                     </div>
 
                     <div class="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px] text-slate-400 font-mono">
-                        <div>Poligon: <span class="text-slate-200 font-semibold font-sans">zee-indonesia-aceh</span></div>
+                        <div>Batas: <span class="text-slate-200 font-semibold font-sans">BIG ZEE Layer 10</span></div>
                         <div class="text-right">Maks: <span class="text-amber-400 font-semibold font-sans">7 Hari</span></div>
                         <div>Update: <span id="meta-last-updated" class="text-indigo-300 font-mono">-</span></div>
                         <div class="text-right">Usia: <span id="meta-data-age" class="text-slate-300 font-mono">-</span></div>
@@ -100,6 +113,20 @@
                         </span>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        {{-- Upstream Pagination Truncated Warning Banner --}}
+        <div id="vessels-truncated-banner" class="hidden p-3.5 sm:p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex items-start gap-2.5">
+            <span class="text-base shrink-0 mt-0.5">⚠️</span>
+            <div class="space-y-1">
+                <div class="font-bold text-amber-100 flex items-center gap-2">
+                    <span>{{ __('Data Dibatasi oleh Safety Limit Upstream') }}</span>
+                    <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-800">Maks. 500 Events / 5 Halaman</span>
+                </div>
+                <p class="text-amber-300 leading-relaxed text-[11px]">
+                    Jumlah event hulu pada rentang waktu ini mencapai batas aman pengambilan data. Hasil observasi mungkin belum mencakup seluruh event yang tersedia di GFW API. Disarankan mempersempit rentang tanggal untuk kelengkapan data yang lebih detail.
+                </p>
             </div>
         </div>
 
@@ -122,11 +149,14 @@
             {{-- Total Vessels --}}
             <div class="bg-white p-4 rounded-2xl shadow-2xs border border-slate-200/80 flex items-center justify-between">
                 <div>
-                    <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{{ __('Total Vessels') }}</span>
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{{ __('Total Vessels') }}</span>
+                        <span id="stat-upstream-events-badge" class="hidden text-[9px] font-mono px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 font-bold border border-indigo-100">0 events</span>
+                    </div>
                     <h3 id="stat-total-vessels" class="text-2xl font-black text-slate-800 mt-1">
                         <span class="animate-pulse">...</span>
                     </h3>
-                    <p class="text-[11px] text-slate-400 mt-0.5">Armada teramati di ZEE</p>
+                    <p class="text-[11px] text-slate-400 mt-0.5">Kapal unik lolos BIG ZEE PIP</p>
                 </div>
                 <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl shrink-0">
                     🚢
@@ -393,7 +423,15 @@
                         <table class="w-full text-xs">
                             <tbody class="divide-y divide-slate-100">
                                 <tr>
-                                    <td class="py-1.5 text-slate-500 font-medium w-1/3">MMSI</td>
+                                    <td class="py-1.5 text-slate-500 font-medium w-1/3">GFW Vessel ID</td>
+                                    <td id="detail-gfw-id" class="py-1.5 font-mono text-slate-800 break-all">: -</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-1.5 text-slate-500 font-medium">SSVID</td>
+                                    <td id="detail-ssvid" class="py-1.5 font-mono text-slate-800">: -</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-1.5 text-slate-500 font-medium">MMSI</td>
                                     <td id="detail-mmsi" class="py-1.5 font-mono font-semibold text-slate-800">: -</td>
                                 </tr>
                                 <tr>
@@ -459,23 +497,30 @@
                         </table>
 
                         {{-- Track Summary Box (Shown when track loaded) --}}
-                        <div id="vessel-track-info-box" class="hidden p-3 rounded-xl bg-cyan-50 border border-cyan-200 text-xs text-cyan-950 space-y-1.5">
-                            <div class="flex items-center justify-between font-bold text-cyan-900 pb-1 border-b border-cyan-200/60">
-                                <span>Histori Pergerakan (Track)</span>
-                                <span id="vessel-track-points-count" class="font-mono text-[10px] bg-cyan-200/70 px-1.5 py-0.5 rounded">0 titik</span>
+                        <div id="vessel-track-info-box" class="hidden p-3 rounded-xl bg-amber-50/80 border border-amber-200 text-xs text-amber-950 space-y-1.5 shadow-xs">
+                            <div class="flex items-center justify-between font-bold text-amber-950 pb-1 border-b border-amber-200/60">
+                                <span class="flex items-center gap-1.5">
+                                    <span>🗺️</span>
+                                    <span>Jejak Lintasan (Track)</span>
+                                </span>
+                                <div class="flex items-center gap-2">
+                                    <span id="vessel-track-points-count" class="font-mono text-[10px] bg-amber-200/70 text-amber-900 px-1.5 py-0.5 rounded font-bold">0 titik</span>
+                                    <button type="button" id="btn-clear-track" title="Tutup Track" class="text-amber-700 hover:text-amber-900 text-xs font-bold leading-none cursor-pointer">✕</button>
+                                </div>
                             </div>
                             <div class="grid grid-cols-2 gap-1 text-[11px]">
                                 <div>
-                                    <span class="text-cyan-700 text-[10px] block">Pertama Terdeteksi:</span>
-                                    <span id="vessel-track-first-seen" class="font-medium text-cyan-900">-</span>
+                                    <span class="text-amber-700 text-[10px] block">Titik Awal (Start):</span>
+                                    <span id="vessel-track-first-seen" class="font-medium text-amber-950">-</span>
                                 </div>
                                 <div>
-                                    <span class="text-cyan-700 text-[10px] block">Terakhir Terdeteksi:</span>
-                                    <span id="vessel-track-last-seen" class="font-medium text-cyan-900">-</span>
+                                    <span class="text-amber-700 text-[10px] block">Titik Akhir (Last):</span>
+                                    <span id="vessel-track-last-seen" class="font-medium text-amber-950">-</span>
                                 </div>
                             </div>
-                            <div class="text-[10px] text-cyan-800 pt-0.5">
-                                <span>Cakupan: <strong id="vessel-track-coverage">-</strong></span>
+                            <div class="flex items-center justify-between text-[10px] text-amber-800 pt-0.5 border-t border-amber-200/50">
+                                <span>Periode: <strong id="vessel-track-period">-</strong></span>
+                                <span>Batas: <strong class="text-amber-900">ZEE BIG Layer 10</strong></span>
                             </div>
                         </div>
 
@@ -669,6 +714,8 @@
             const metaDeltaBadge = document.getElementById('meta-delta-badge');
             const refreshErrorNotice = document.getElementById('vessels-refresh-error-notice');
             const btnRetry = document.getElementById('btn-retry-vessels');
+            const truncatedBanner = document.getElementById('vessels-truncated-banner');
+            const statUpstreamEventsBadge = document.getElementById('stat-upstream-events-badge');
 
             const tableBody = document.getElementById('vessel-table-body');
             const tableLimitSelect = document.getElementById('table-limit-select');
@@ -683,6 +730,8 @@
             const detailName = document.getElementById('detail-name');
             const detailActivity = document.getElementById('detail-activity');
             const detailFlagBadge = document.getElementById('detail-flag-badge');
+            const detailGfwId = document.getElementById('detail-gfw-id');
+            const detailSsvid = document.getElementById('detail-ssvid');
             const detailMmsi = document.getElementById('detail-mmsi');
             const detailImo = document.getElementById('detail-imo');
             const detailFlag = document.getElementById('detail-flag');
@@ -703,6 +752,7 @@
             const trackFirstSeen = document.getElementById('vessel-track-first-seen');
             const trackLastSeen = document.getElementById('vessel-track-last-seen');
             const trackCoverage = document.getElementById('vessel-track-coverage');
+            let initialTargetVesselId = null;
 
             const summaryEvFishing = document.getElementById('summary-ev-fishing');
             const summaryEvEncounter = document.getElementById('summary-ev-encounter');
@@ -787,21 +837,22 @@
                 });
             }
 
-            // Load BIG ZEE Aceh polygon to Map
+            // Load BIG ZEE Aceh polygon to Map (authoritative single source of truth from BIG)
             async function loadBigZeePolygon() {
                 try {
-                    // Fetch official ZEE Aceh AOI GeoJSON
-                    const res = await fetch('/api/gfw/aoi/zee-indonesia-aceh?geojson=1');
+                    // Fetch official ZEE Aceh BIG Polygon GeoJSON
+                    const res = await fetch('/api/gis/big/zee/aceh?polygon=1');
                     const json = await res.json();
 
-                    if (json.success && json.geojson) {
+                    if (json && (json.type === 'Feature' || json.type === 'Polygon')) {
+                        const polyData = json;
                         if (!map.getSource('big-zee-aoi')) {
                             map.addSource('big-zee-aoi', {
                                 type: 'geojson',
-                                data: json.geojson
+                                data: polyData
                             });
 
-                            // Fill layer
+                            // Fill layer for BIG ZEE Aceh boundary
                             map.addLayer({
                                 id: 'big-zee-aoi-fill',
                                 type: 'fill',
@@ -813,11 +864,11 @@
                             });
                         }
 
-                        // Fit bounds to polygon
-                        fitBoundsToGeoJson(json.geojson);
+                        // Fit bounds to authentic BIG ZEE polygon
+                        fitBoundsToGeoJson(polyData);
                     }
                 } catch (e) {
-                    console.warn('Gagal memuat poligon AOI ZEE Aceh:', e);
+                    console.warn('Gagal memuat poligon Batas ZEE (BIG) Aceh:', e);
                 }
 
                 // Load official BIG Maritime Boundary line (solid line only, no dasharray)
@@ -851,12 +902,14 @@
                 }
             }
 
-            function fitBoundsToGeoJson(geojson) {
+            function fitBoundsToGeoJson(geojson, maxZoom = 12) {
                 if (!map || !geojson) return;
                 const bounds = new maplibregl.LngLatBounds();
+                let pointCoords = [];
                 const extract = (coords) => {
                     if (typeof coords[0] === 'number') {
                         bounds.extend(coords);
+                        pointCoords.push(coords);
                     } else {
                         coords.forEach(extract);
                     }
@@ -871,15 +924,25 @@
                 });
 
                 if (!bounds.isEmpty()) {
-                    map.fitBounds(bounds, { padding: 40, maxZoom: 8.5 });
+                    if (pointCoords.length === 1) {
+                        map.easeTo({ center: pointCoords[0], zoom: 11 });
+                    } else {
+                        map.fitBounds(bounds, { padding: 50, maxZoom: maxZoom });
+                    }
                 }
             }
 
+            let isFetching = false;
+
             // Main API Fetcher for /api/gfw/vessels/zee-indonesia-aceh
             async function fetchVesselsData() {
+                if (isFetching) return;
+                isFetching = true;
+
                 hideError();
                 showStatus('Memuat data armada GFW di ZEE Aceh...', '🚢');
                 btnApplySpinner.classList.remove('hidden');
+                btnApply.disabled = true;
 
                 const startDate = filterStart.value;
                 const endDate = filterEnd.value;
@@ -900,6 +963,9 @@
                 if (activity) params.append('activity', activity);
                 if (search) params.append('search', search);
 
+                // Synchronize active filters with browser URL
+                syncUrlQueryState(params);
+
                 const endpoint = `/api/gfw/vessels/zee-indonesia-aceh?${params.toString()}`;
 
                 try {
@@ -907,7 +973,9 @@
                     const json = await response.json();
 
                     btnApplySpinner.classList.add('hidden');
+                    btnApply.disabled = false;
                     hideStatus();
+                    isFetching = false;
 
                     if (!response.ok || !json.success) {
                         let errTitle = 'GFW API unavailable';
@@ -927,6 +995,16 @@
                     // Success: hide error notice
                     if (refreshErrorNotice) refreshErrorNotice.classList.add('hidden');
 
+                    // Upstream Pagination Truncated Warning Banner
+                    const isTruncated = json.pagination_truncated || json.pagination?.pagination_truncated || false;
+                    if (truncatedBanner) {
+                        if (isTruncated) {
+                            truncatedBanner.classList.remove('hidden');
+                        } else {
+                            truncatedBanner.classList.add('hidden');
+                        }
+                    }
+
                     // Delta detection
                     detectVesselDeltas(json.vessels || []);
 
@@ -936,9 +1014,20 @@
                     statFishing.textContent = (json.summary?.fishing_vessels ?? 0).toLocaleString();
                     statOther.textContent = (json.summary?.other_vessels ?? 0).toLocaleString();
 
+                    // Upstream Events Count Badge (distinguish event count from unique vessel count)
+                    const upstreamCount = json.pagination?.upstream_events_count ?? json.summary?.upstream_events_count ?? 0;
+                    if (statUpstreamEventsBadge) {
+                        statUpstreamEventsBadge.textContent = `${upstreamCount.toLocaleString()} events`;
+                        statUpstreamEventsBadge.classList.remove('hidden');
+                    }
+
                     // Update live timing metadata
                     if (metaLastUpdated) metaLastUpdated.textContent = formatDate(json.last_updated);
                     if (metaDataAge) metaDataAge.textContent = formatAge(json.data_age_seconds);
+
+                    // Dynamically update available flags from actual GFW response
+                    const availableFlags = json.summary?.available_flags || Object.keys(json.summary?.flags || {});
+                    updateFlagOptions(availableFlags, flag);
 
                     // Calculate distinct flags from vessels
                     vesselsList = json.vessels || [];
@@ -964,7 +1053,9 @@
                     updatePaginationUI();
 
                 } catch (err) {
+                    isFetching = false;
                     btnApplySpinner.classList.add('hidden');
+                    btnApply.disabled = false;
                     hideStatus();
                     if (vesselsList.length > 0) {
                         if (refreshErrorNotice) refreshErrorNotice.classList.remove('hidden');
@@ -1127,6 +1218,7 @@
                                 id: v.id,
                                 name: v.name || 'Unknown Vessel',
                                 mmsi: v.mmsi || 'Not available',
+                                ssvid: v.ssvid || 'Not available',
                                 imo: v.imo || 'Not available',
                                 flag: v.flag || 'Not available',
                                 vessel_type: v.vessel_type || 'Unknown',
@@ -1247,23 +1339,36 @@
                         const coords = feature.geometry.coordinates.slice();
                         const p = feature.properties;
 
+                        const vName = (p.name && p.name !== 'Unknown Vessel') ? p.name : '—';
+                        const vId = p.id || '—';
+                        const vMmsi = (p.mmsi && p.mmsi !== 'Not available') ? p.mmsi : '—';
+                        const vSsvid = (p.ssvid && p.ssvid !== 'Not available') ? p.ssvid : '—';
+                        const vImo = (p.imo && p.imo !== 'Not available') ? p.imo : '—';
+                        const vFlag = (p.flag && p.flag !== 'Not available') ? p.flag : '—';
+                        const vType = (p.vessel_type && p.vessel_type !== 'Unknown') ? p.vessel_type : '—';
+                        const vFirstSeen = (p.first_seen && p.first_seen !== 'Not available') ? p.first_seen : '—';
+                        const vLastSeen = (p.last_seen && p.last_seen !== 'Not available') ? p.last_seen : '—';
+                        const vStatus = p.status || '—';
+                        const vActivity = p.activity || '—';
+
                         new maplibregl.Popup({ offset: 15 })
                             .setLngLat(coords)
                             .setHTML(`
-                                <div class="text-xs p-1 space-y-1.5 font-sans">
-                                    <div class="font-bold text-slate-800 text-sm border-b border-slate-200 pb-1 flex items-center justify-between">
-                                        <span>${p.name}</span>
-                                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-mono">${p.flag}</span>
+                                <div class="text-xs p-1.5 space-y-2 font-sans min-w-[220px]">
+                                    <div class="font-bold text-slate-800 text-sm border-b border-slate-200 pb-1 flex items-center justify-between gap-2">
+                                        <span class="truncate">${escapeHtml(vName)}</span>
+                                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-mono shrink-0">${escapeHtml(vFlag)}</span>
                                     </div>
-                                    <div class="text-[11px] space-y-0.5">
-                                        <div><span class="text-slate-400">MMSI:</span> <strong>${p.mmsi}</strong></div>
-                                        <div><span class="text-slate-400">IMO:</span> <strong>${p.imo}</strong></div>
-                                        <div><span class="text-slate-400">Type:</span> <strong>${p.vessel_type}</strong></div>
-                                        <div><span class="text-slate-400">Activity:</span> <strong class="text-indigo-600">${p.activity}</strong></div>
-                                        <div><span class="text-slate-400">Status:</span> <strong>${p.status}</strong></div>
-                                        <div><span class="text-slate-400">Last Seen:</span> ${p.last_seen}</div>
-                                        ${p.length !== 'Not available' ? `<div><span class="text-slate-400">Length:</span> ${p.length}</div>` : ''}
-                                        ${p.tonnage !== 'Not available' ? `<div><span class="text-slate-400">Tonnage:</span> ${p.tonnage}</div>` : ''}
+                                    <div class="text-[11px] space-y-1">
+                                        <div class="flex justify-between"><span class="text-slate-400">GFW ID:</span> <span class="font-mono text-slate-700 truncate max-w-[130px]">${escapeHtml(vId)}</span></div>
+                                        <div class="flex justify-between"><span class="text-slate-400">MMSI:</span> <strong class="font-mono text-slate-800">${escapeHtml(vMmsi)}</strong></div>
+                                        <div class="flex justify-between"><span class="text-slate-400">SSVID:</span> <span class="font-mono text-slate-700">${escapeHtml(vSsvid)}</span></div>
+                                        <div class="flex justify-between"><span class="text-slate-400">IMO:</span> <span class="font-mono text-slate-700">${escapeHtml(vImo)}</span></div>
+                                        <div class="flex justify-between"><span class="text-slate-400">Type:</span> <strong class="text-slate-800">${escapeHtml(vType)}</strong></div>
+                                        <div class="flex justify-between"><span class="text-slate-400">Activity:</span> <strong class="text-indigo-600">${escapeHtml(vActivity)}</strong></div>
+                                        <div class="flex justify-between"><span class="text-slate-400">First Seen:</span> <span class="text-slate-600">${escapeHtml(vFirstSeen)}</span></div>
+                                        <div class="flex justify-between"><span class="text-slate-400">Last Seen:</span> <span class="text-slate-800 font-semibold">${escapeHtml(vLastSeen)}</span></div>
+                                        <div class="flex justify-between items-center"><span class="text-slate-400">Status:</span> <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${vStatus === 'LIVE' ? 'bg-emerald-100 text-emerald-800' : (vStatus === 'RECENT' ? 'bg-sky-100 text-sky-800' : 'bg-slate-100 text-slate-600')}">${escapeHtml(vStatus)}</span></div>
                                     </div>
                                 </div>
                             `)
@@ -1345,14 +1450,35 @@
 
                     tableBody.appendChild(row);
                 });
+
+                if (initialTargetVesselId) {
+                    const targetVessel = vessels.find(v => String(v.id) === String(initialTargetVesselId));
+                    if (targetVessel) {
+                        const targetRow = tableBody.querySelector(`tr[data-vessel-id="${targetVessel.id}"]`);
+                        selectVessel(targetVessel);
+                        highlightTableRow(targetRow);
+                    }
+                    initialTargetVesselId = null;
+                }
             }
 
             function renderEmptyTable(message) {
                 tableBody.innerHTML = `
                     <tr>
-                        <td colspan="9" class="py-12 text-center text-slate-400 space-y-2">
-                            <div class="text-3xl text-slate-300">🔍</div>
-                            <p class="font-medium text-xs text-slate-500">${escapeHtml(message)}</p>
+                        <td colspan="9" class="py-12 px-4 text-center space-y-3">
+                            <div class="text-4xl text-slate-300">🔍</div>
+                            <div class="space-y-1">
+                                <h4 class="font-bold text-slate-700 text-sm">Tidak ada vessel GFW yang sesuai kriteria filter</h4>
+                                <p class="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+                                    ${escapeHtml(message || 'Tidak ada data kapal terdeteksi dalam periode atau filter yang dipilih.')}
+                                </p>
+                            </div>
+                            <div class="inline-flex flex-wrap items-center justify-center gap-1.5 pt-2 text-[11px] text-slate-500">
+                                <span class="font-semibold text-slate-600">Saran penyesuaian:</span>
+                                <span class="px-2 py-0.5 rounded bg-slate-100 border border-slate-200">Ubah rentang tanggal (maks. 7 hari)</span>
+                                <span class="px-2 py-0.5 rounded bg-slate-100 border border-slate-200">Reset pilihan bendera / tipe</span>
+                                <span class="px-2 py-0.5 rounded bg-slate-100 border border-slate-200">Hapus kata kunci pencarian</span>
+                            </div>
                         </td>
                     </tr>
                 `;
@@ -1382,6 +1508,8 @@
                 detailActivity.textContent = v.activity || 'Vessel Presence';
                 detailFlagBadge.textContent = v.flag || 'N/A';
 
+                if (detailGfwId) detailGfwId.textContent = ': ' + (v.id || 'Not available');
+                if (detailSsvid) detailSsvid.textContent = ': ' + (v.ssvid || 'Not available');
                 detailMmsi.textContent = ': ' + (v.mmsi || 'Not available');
                 detailImo.textContent = ': ' + (v.imo || 'Not available');
                 detailFlag.textContent = ': ' + (v.flag || 'Not available');
@@ -1408,8 +1536,11 @@
                     btnFocusVessel.classList.add('hidden');
                 }
 
-                // Reset track info box
+                // Reset track info box and clear track from map if different
                 if (trackInfoBox) trackInfoBox.classList.add('hidden');
+                if (map && map.getSource('vessel-track-src')) {
+                    map.getSource('vessel-track-src').setData({ type: 'FeatureCollection', features: [] });
+                }
             }
 
             // Focus on Vessel on map
@@ -1423,35 +1554,66 @@
                 }
             });
 
-            // View Track on MapLibre
+            // View Track on MapLibre (Stage 3)
             btnViewTrack.addEventListener('click', async () => {
                 if (!selectedVessel) return;
-                btnViewTrack.textContent = 'Memuat Track...';
+                btnViewTrack.innerHTML = '<span class="inline-block animate-spin mr-1">⌛</span> Memuat Track...';
                 btnViewTrack.disabled = true;
 
                 const startDate = filterStart.value;
                 const endDate = filterEnd.value;
 
+                showStatus('Memuat track lintasan kapal di ZEE Aceh...', '🗺️');
+
+                const params = new URLSearchParams({
+                    start_date: startDate,
+                    end_date: endDate,
+                    name: selectedVessel.name || '',
+                    mmsi: selectedVessel.mmsi || '',
+                    ssvid: selectedVessel.ssvid || selectedVessel.mmsi || '',
+                    imo: selectedVessel.imo || '',
+                    flag: selectedVessel.flag || '',
+                    vessel_type: selectedVessel.vessel_type || ''
+                });
+
                 try {
-                    const res = await fetch(`/api/gfw/vessels/${selectedVessel.id}/track?start_date=${startDate}&end_date=${endDate}`);
+                    const res = await fetch(`/api/gfw/vessels/${encodeURIComponent(selectedVessel.id)}/track?${params.toString()}`);
                     const json = await res.json();
                     btnViewTrack.disabled = false;
-                    btnViewTrack.textContent = 'Lihat Track';
+                    btnViewTrack.innerHTML = '<span>🗺️</span> <span>Lihat Track</span>';
 
                     if (!json.success || !json.track) {
-                        alert(json.message || 'Gagal mengambil data track.');
+                        showError('Gagal Memuat Track', json.message || 'Gagal mengambil data track dari GFW. Silakan coba lagi.');
+                        return;
+                    }
+
+                    const pointsCount = json.points_count || 0;
+                    const trackPeriodEl = document.getElementById('vessel-track-period');
+
+                    if (pointsCount === 0) {
+                        if (trackInfoBox) {
+                            trackInfoBox.classList.remove('hidden');
+                            trackPointsCount.textContent = '0 titik';
+                            trackFirstSeen.textContent = '—';
+                            trackLastSeen.textContent = '—';
+                            if (trackPeriodEl) trackPeriodEl.textContent = `${startDate} s/d ${endDate}`;
+                        }
+                        if (map.getSource('vessel-track-src')) {
+                            map.getSource('vessel-track-src').setData({ type: 'FeatureCollection', features: [] });
+                        }
+                        showStatus('Tidak ada data track untuk vessel dan periode yang dipilih.', 'ℹ️');
                         return;
                     }
 
                     if (trackInfoBox) {
                         trackInfoBox.classList.remove('hidden');
-                        trackPointsCount.textContent = `${json.points_count} titik`;
+                        trackPointsCount.textContent = `${pointsCount} titik`;
                         trackFirstSeen.textContent = formatDate(json.first_detected);
                         trackLastSeen.textContent = formatDate(json.last_detected);
-                        trackCoverage.textContent = json.approximate_coverage;
+                        if (trackPeriodEl) trackPeriodEl.textContent = `${startDate} s/d ${endDate}`;
                     }
 
-                    // Add/update track layers on MapLibre
+                    // Add or update track layers on MapLibre
                     if (map.getSource('vessel-track-src')) {
                         map.getSource('vessel-track-src').setData(json.track);
                     } else {
@@ -1460,40 +1622,183 @@
                             data: json.track
                         });
 
+                        // 1. Vessel Track Polyline (distinct amber/orange)
                         map.addLayer({
                             id: 'vessel-track-line',
                             type: 'line',
                             source: 'vessel-track-src',
-                            filter: ['==', '$type', 'LineString'],
+                            filter: ['in', '$type', 'LineString', 'MultiLineString'],
+                            layout: {
+                                'line-join': 'round',
+                                'line-cap': 'round'
+                            },
                             paint: {
-                                'line-color': '#06b6d4',
-                                'line-width': 3,
-                                'line-opacity': 0.9
+                                'line-color': '#f59e0b',
+                                'line-width': 3.5,
+                                'line-opacity': 0.95
                             }
-                        });
+                        }, map.getLayer('clusters') ? 'clusters' : undefined);
 
+                        // 2. Regular Waypoint Circles
                         map.addLayer({
                             id: 'vessel-track-points',
                             type: 'circle',
                             source: 'vessel-track-src',
-                            filter: ['==', '$type', 'Point'],
+                            filter: ['all', ['==', '$type', 'Point'], ['==', 'marker_type', 'waypoint']],
                             paint: {
-                                'circle-radius': 4,
-                                'circle-color': '#22d3ee',
+                                'circle-radius': 3.5,
+                                'circle-color': '#38bdf8',
                                 'circle-stroke-width': 1.5,
                                 'circle-stroke-color': '#0f172a'
                             }
+                        }, map.getLayer('clusters') ? 'clusters' : undefined);
+
+                        // 3. START Position Marker (Green)
+                        map.addLayer({
+                            id: 'vessel-track-start',
+                            type: 'circle',
+                            source: 'vessel-track-src',
+                            filter: ['all', ['==', '$type', 'Point'], ['==', 'marker_type', 'start']],
+                            paint: {
+                                'circle-radius': 7,
+                                'circle-color': '#10b981',
+                                'circle-stroke-width': 2.5,
+                                'circle-stroke-color': '#ffffff'
+                            }
+                        }, map.getLayer('clusters') ? 'clusters' : undefined);
+
+                        // 4. LAST Position Marker (Red)
+                        map.addLayer({
+                            id: 'vessel-track-last',
+                            type: 'circle',
+                            source: 'vessel-track-src',
+                            filter: ['all', ['==', '$type', 'Point'], ['==', 'marker_type', 'last']],
+                            paint: {
+                                'circle-radius': 7,
+                                'circle-color': '#ef4444',
+                                'circle-stroke-width': 2.5,
+                                'circle-stroke-color': '#ffffff'
+                            }
+                        }, map.getLayer('clusters') ? 'clusters' : undefined);
+
+                        // 5. SINGLE Position Marker (Cyan)
+                        map.addLayer({
+                            id: 'vessel-track-single',
+                            type: 'circle',
+                            source: 'vessel-track-src',
+                            filter: ['all', ['==', '$type', 'Point'], ['==', 'marker_type', 'single']],
+                            paint: {
+                                'circle-radius': 7,
+                                'circle-color': '#06b6d4',
+                                'circle-stroke-width': 2.5,
+                                'circle-stroke-color': '#ffffff'
+                            }
+                        }, map.getLayer('clusters') ? 'clusters' : undefined);
+
+                        // Track Point Popups (Section 19)
+                        const trackLayerIds = ['vessel-track-points', 'vessel-track-start', 'vessel-track-last', 'vessel-track-single'];
+                        trackLayerIds.forEach(layerId => {
+                            map.on('click', layerId, (e) => {
+                                if (!e.features || !e.features.length) return;
+                                const geom = e.features[0].geometry;
+                                const coords = geom.coordinates.slice();
+                                const props = e.features[0].properties;
+
+                                let badgeText = 'TITIK LINTASAN';
+                                let badgeBg = 'bg-sky-100 text-sky-800';
+                                if (props.marker_type === 'start') {
+                                    badgeText = 'TITIK AWAL (START)';
+                                    badgeBg = 'bg-emerald-100 text-emerald-800 font-bold';
+                                } else if (props.marker_type === 'last') {
+                                    badgeText = 'TITIK TERAKHIR (LAST)';
+                                    badgeBg = 'bg-rose-100 text-rose-800 font-bold';
+                                } else if (props.marker_type === 'single') {
+                                    badgeText = 'POSISI TUNGGAL';
+                                    badgeBg = 'bg-cyan-100 text-cyan-800 font-bold';
+                                }
+
+                                const speedDisplay = (props.speed_knots !== undefined && props.speed_knots !== null && props.speed_knots !== '')
+                                    ? `${Number(props.speed_knots).toFixed(1)} knots`
+                                    : '—';
+                                const courseDisplay = (props.course !== undefined && props.course !== null && props.course !== '')
+                                    ? `${Number(props.course).toFixed(0)}°`
+                                    : '—';
+                                const timeDisplay = formatDate(props.timestamp);
+
+                                const popupContent = `
+                                    <div class="p-2.5 text-xs space-y-2 min-w-[220px] text-slate-800">
+                                        <div class="flex items-center justify-between pb-1 border-b border-slate-200">
+                                            <span class="inline-block px-1.5 py-0.5 rounded text-[10px] ${badgeBg}">${badgeText}</span>
+                                            <span class="font-mono text-[10px] text-slate-500">#${props.point_index || 1} / ${props.total_points || 1}</span>
+                                        </div>
+                                        <div class="space-y-1 text-[11px]">
+                                            <div class="flex justify-between gap-2">
+                                                <span class="text-slate-500">Waktu:</span>
+                                                <span class="font-semibold text-slate-800 text-right">${timeDisplay}</span>
+                                            </div>
+                                            <div class="flex justify-between gap-2 font-mono">
+                                                <span class="text-slate-500 font-sans">Koordinat:</span>
+                                                <span>${coords[1].toFixed(5)}, ${coords[0].toFixed(5)}</span>
+                                            </div>
+                                            <div class="flex justify-between gap-2">
+                                                <span class="text-slate-500">Kecepatan:</span>
+                                                <span class="font-semibold text-slate-800">${speedDisplay}</span>
+                                            </div>
+                                            <div class="flex justify-between gap-2">
+                                                <span class="text-slate-500">Arah (Heading):</span>
+                                                <span class="font-semibold text-slate-800">${courseDisplay}</span>
+                                            </div>
+                                        </div>
+                                        <div class="pt-1 border-t border-slate-100 text-[10px] text-slate-500">
+                                            Batas: <span class="font-medium text-slate-700">ZEE Aceh (BIG Layer 10)</span>
+                                        </div>
+                                    </div>
+                                `;
+
+                                new maplibregl.Popup({ offset: 12, closeButton: true })
+                                    .setLngLat(coords)
+                                    .setHTML(popupContent)
+                                    .addTo(map);
+                            });
+
+                            map.on('mouseenter', layerId, () => { map.getCanvas().style.cursor = 'pointer'; });
+                            map.on('mouseleave', layerId, () => { map.getCanvas().style.cursor = ''; });
                         });
                     }
 
                     // Fit to track bounds
-                    fitBoundsToGeoJson(json.track);
+                    fitBoundsToGeoJson(json.track, 12);
+
+                    // Update URL query string with vessel_id
+                    try {
+                        const currentUrl = new URL(window.location.href);
+                        currentUrl.searchParams.set('vessel_id', selectedVessel.id);
+                        window.history.replaceState({}, '', currentUrl.toString());
+                    } catch (e) {
+                        // Non-blocking
+                    }
+
+                    showStatus(`Track kapal berhasil dimuat (${pointsCount} titik di ZEE Aceh).`, '✅');
 
                 } catch (e) {
                     btnViewTrack.disabled = false;
-                    btnViewTrack.textContent = 'Lihat Track';
-                    alert('Gagal memuat track: ' + e.message);
+                    btnViewTrack.innerHTML = '<span>🗺️</span> <span>Lihat Track</span>';
+                    showError('Kesalahan Jaringan', 'Gagal memuat track: ' + e.message);
                 }
+            });
+
+            // Clear Track Button Event Listener
+            document.getElementById('btn-clear-track')?.addEventListener('click', () => {
+                if (map && map.getSource('vessel-track-src')) {
+                    map.getSource('vessel-track-src').setData({ type: 'FeatureCollection', features: [] });
+                }
+                if (trackInfoBox) trackInfoBox.classList.add('hidden');
+                try {
+                    const currentUrl = new URL(window.location.href);
+                    currentUrl.searchParams.delete('vessel_id');
+                    window.history.replaceState({}, '', currentUrl.toString());
+                } catch (e) {}
+                showStatus('Track kapal ditutup.', 'ℹ️');
             });
 
             // Live Monitoring Toggle (60s timer)
@@ -1646,7 +1951,126 @@
                     .replace(/'/g, '&#039;');
             }
 
+            // Dynamically populate Flag options with actual detected flags from GFW
+            function updateFlagOptions(availableFlags, selectedFlag) {
+                if (!filterFlag || !availableFlags || !Array.isArray(availableFlags) || availableFlags.length === 0) return;
+                const currentVal = selectedFlag || filterFlag.value;
+                const existingOptions = Array.from(filterFlag.options).map(o => o.value);
+                
+                const newFlagsSet = new Set(availableFlags.filter(Boolean));
+                let needsUpdate = false;
+                if (filterFlag.options.length <= 1) {
+                    needsUpdate = true;
+                } else {
+                    for (const f of newFlagsSet) {
+                        if (!existingOptions.includes(f)) {
+                            needsUpdate = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (needsUpdate) {
+                    filterFlag.innerHTML = '<option value="">Semua Negara</option>';
+                    Array.from(newFlagsSet).sort().forEach(f => {
+                        const opt = document.createElement('option');
+                        opt.value = f;
+                        opt.textContent = f;
+                        if (f === currentVal) opt.selected = true;
+                        filterFlag.appendChild(opt);
+                    });
+                    if (currentVal && !newFlagsSet.has(currentVal)) {
+                        const opt = document.createElement('option');
+                        opt.value = currentVal;
+                        opt.textContent = currentVal;
+                        opt.selected = true;
+                        filterFlag.appendChild(opt);
+                    }
+                }
+            }
+
+            // Synchronize active filters to browser URL query string without reloading
+            function syncUrlQueryState(params) {
+                try {
+                    const url = new URL(window.location.href);
+                    ['start', 'end', 'start_date', 'end_date', 'vessel_type', 'flag', 'activity', 'search', 'query', 'limit', 'page', 'offset'].forEach(k => {
+                        url.searchParams.delete(k);
+                    });
+
+                    params.forEach((val, key) => {
+                        if (val !== null && val !== undefined && String(val).trim() !== '') {
+                            if (key === 'start') url.searchParams.set('start_date', val);
+                            else if (key === 'end') url.searchParams.set('end_date', val);
+                            else url.searchParams.set(key, val);
+                        }
+                    });
+
+                    const currentPage = Math.floor(currentOffset / currentLimit) + 1;
+                    if (currentPage > 1) {
+                        url.searchParams.set('page', currentPage);
+                        url.searchParams.delete('offset');
+                    } else {
+                        url.searchParams.delete('offset');
+                        url.searchParams.delete('page');
+                    }
+
+                    const currentVesselId = new URL(window.location.href).searchParams.get('vessel_id');
+                    if (currentVesselId) {
+                        url.searchParams.set('vessel_id', currentVesselId);
+                    }
+
+                    window.history.replaceState(null, '', url.pathname + url.search);
+                } catch (e) {
+                    // Non-blocking
+                }
+            }
+
+            // Initialize filter inputs from browser URL on page load
+            function initFiltersFromUrl() {
+                try {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    initialTargetVesselId = urlParams.get('vessel_id');
+                    const sDate = urlParams.get('start_date') || urlParams.get('start');
+                    const eDate = urlParams.get('end_date') || urlParams.get('end');
+                    const vType = urlParams.get('vessel_type');
+                    const fl = urlParams.get('flag');
+                    const act = urlParams.get('activity');
+                    const q = urlParams.get('search') || urlParams.get('query');
+                    const lim = urlParams.get('limit');
+                    const pg = urlParams.get('page');
+
+                    if (sDate && filterStart) filterStart.value = sDate;
+                    if (eDate && filterEnd) filterEnd.value = eDate;
+                    if (vType && filterType) filterType.value = vType;
+                    if (fl && filterFlag) {
+                        const opt = document.createElement('option');
+                        opt.value = fl;
+                        opt.textContent = fl;
+                        opt.selected = true;
+                        filterFlag.appendChild(opt);
+                    }
+                    if (act && filterActivity) filterActivity.value = act;
+                    if (q && filterSearch) {
+                        filterSearch.value = q;
+                        if (btnClearSearch) btnClearSearch.classList.remove('hidden');
+                    }
+                    if (lim && tableLimitSelect) {
+                        tableLimitSelect.value = lim;
+                        currentLimit = parseInt(lim, 10) || 50;
+                    }
+                    if (pg) {
+                        const pageNum = parseInt(pg, 10);
+                        if (pageNum > 1) {
+                            currentOffset = (pageNum - 1) * currentLimit;
+                        }
+                    }
+                } catch (e) {
+                    // Non-blocking
+                }
+            }
+
             // Start initialization
+            initFiltersFromUrl();
             initMap();
         });
     </script>
