@@ -41,6 +41,7 @@ class WilayahController extends Controller
 
         // Filter default untuk tab kabupaten/kecamatan/desa
         $selectedProvinceId = $request->query('province_id', $aceh?->id);
+        $perPage = $this->getPerPage($request);
 
         // Ambil data sesuai tab yang aktif (default: kabupaten)
         $items = match ($tab) {
@@ -53,7 +54,7 @@ class WilayahController extends Controller
                     $q->where('regency_id', $rId);
                 })
                 ->orderBy('code')
-                ->paginate(25)
+                ->paginate($perPage)
                 ->withQueryString(),
 
             'desa' => Village::with(['district.regency.province'])
@@ -65,7 +66,7 @@ class WilayahController extends Controller
                     $q->where('district_id', $dId);
                 })
                 ->orderBy('code')
-                ->paginate(25)
+                ->paginate($perPage)
                 ->withQueryString(),
 
             default => Regency::with('province')
@@ -79,7 +80,7 @@ class WilayahController extends Controller
                     }
                 })
                 ->orderBy('code')
-                ->paginate(25)
+                ->paginate($perPage)
                 ->withQueryString(),
         };
 

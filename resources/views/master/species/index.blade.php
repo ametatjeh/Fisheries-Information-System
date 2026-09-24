@@ -128,6 +128,7 @@
                         <option value="10" {{ $perPage == 10 ? 'selected' : '' }}>10</option>
                         <option value="25" {{ $perPage == 25 ? 'selected' : '' }}>25</option>
                         <option value="50" {{ $perPage == 50 ? 'selected' : '' }}>50</option>
+                        <option value="75" {{ $perPage == 75 ? 'selected' : '' }}>75</option>
                         <option value="100" {{ $perPage == 100 ? 'selected' : '' }}>100</option>
                         <option value="250" {{ $perPage == 250 ? 'selected' : '' }}>250</option>
                         <option value="500" {{ $perPage == 500 ? 'selected' : '' }}>500</option>
@@ -186,28 +187,28 @@
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
-                        <tr class="bg-gray-50/80 border-b border-gray-100 text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                            <th class="py-3 px-4 w-12 text-center">{{ __('No') }}</th>
-                            <th class="py-3 px-4 w-12 text-center">
+                        <tr class="bg-ocean-900 border-b border-ocean-950 text-xs font-semibold text-white uppercase tracking-wider">
+                            <th class="py-3.5 px-4 w-12 text-center text-white">{{ __('No') }}</th>
+                            <th class="py-3.5 px-4 w-12 text-center">
                                 <input type="checkbox"
                                        @change="toggleSelectAll($event)"
                                        :checked="isAllSelected"
                                        :indeterminate="isIndeterminate"
-                                       class="rounded border-gray-300 text-ocean-600 focus:ring-ocean-500 h-4 w-4 cursor-pointer">
+                                       class="rounded border-ocean-600 bg-ocean-800 text-ocean-400 focus:ring-ocean-300 h-4 w-4 cursor-pointer">
                             </th>
-                            <th class="py-3 px-4 w-28">{{ __('FAO Code') }}</th>
-                            <th class="py-3 px-4">{{ __('Scientific Name') }}</th>
-                            <th class="py-3 px-4">{{ __('English Name') }}</th>
-                            <th class="py-3 px-4">{{ __('Nama Indonesia / Aceh') }}</th>
-                            <th class="py-3 px-4">{{ __('Family') }}</th>
-                            <th class="py-3 px-4">{{ __('ISSCAAP') }}</th>
-                            <th class="py-3 px-4">{{ __('Status') }}</th>
-                            <th class="py-3 px-4 text-right">{{ __('Aksi') }}</th>
+                            <th class="py-3.5 px-4 w-28 text-white">{{ __('FAO Code') }}</th>
+                            <th class="py-3.5 px-4 text-white">{{ __('Scientific Name') }}</th>
+                            <th class="py-3.5 px-4 text-white">{{ __('English Name') }}</th>
+                            <th class="py-3.5 px-4 text-white">{{ __('Nama Indonesia / Aceh') }}</th>
+                            <th class="py-3.5 px-4 text-white">{{ __('Family') }}</th>
+                            <th class="py-3.5 px-4 text-white">{{ __('ISSCAAP') }}</th>
+                            <th class="py-3.5 px-4 text-white">{{ __('Status') }}</th>
+                            <th class="py-3.5 px-4 text-right text-white">{{ __('Aksi') }}</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100 text-sm text-gray-700">
+                    <tbody class="divide-y divide-gray-100 bg-white dark:bg-gray-900 text-sm text-gray-700 dark:text-gray-300">
                         @forelse($species as $index => $item)
-                            <tr class="hover:bg-ocean-50/40 transition-colors" :class="selectedIds.includes({{ $item->id }}) ? 'bg-ocean-50/60' : ''">
+                            <tr class="bg-white hover:bg-ocean-50/40 dark:bg-gray-900 dark:hover:bg-gray-800/60 transition-colors" :class="selectedIds.includes({{ $item->id }}) ? 'bg-ocean-50/60 dark:bg-ocean-950/40' : ''">
                                 <td class="py-3.5 px-4 text-center text-xs text-gray-400 font-mono">
                                     {{ $species->firstItem() + $index }}
                                 </td>
@@ -285,15 +286,12 @@
                             </tr>
                         @endforelse
                     </tbody>
+
                 </table>
             </div>
 
-            {{-- Pagination --}}
-            @if($species->hasPages())
-                <div class="p-4 border-t border-gray-100">
-                    {{ $species->links() }}
-                </div>
-            @endif
+            {{-- Pagination & Dropdown Jumlah Tampilan Baris Data --}}
+            <x-pagination :paginator="$species" />
         </div>
 
         {{-- Modal Toggle Status (single item — existing) --}}

@@ -73,7 +73,7 @@ class SamplingController extends Controller
             ->orderByDesc('sample_date')
             ->orderByDesc('id');
 
-        $samples = $samplesQuery->paginate(10, ['*'], 'samples_page')->withQueryString();
+        $samples = $samplesQuery->paginate($this->getPerPage($request), ['*'], 'samples_page')->withQueryString();
 
         // Query Rencana Program Sampling
         $plansQuery = SamplingPlan::with([
@@ -94,7 +94,7 @@ class SamplingController extends Controller
             ->when($status, fn ($q) => $q->where('status', $status))
             ->orderByDesc('start_date');
 
-        $plans = $plansQuery->paginate(10, ['*'], 'plans_page')->withQueryString();
+        $plans = $plansQuery->paginate($this->getPerPage($request), ['*'], 'plans_page')->withQueryString();
 
         // Data Master untuk Filter & Form Modal
         $landingSites = LandingSite::where('is_active', true)->orderBy('name')->get();

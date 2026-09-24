@@ -1,7 +1,17 @@
+@php
+    $previousUrl = session('species_index_url');
+    if (!$previousUrl) {
+        $previousUrl = url()->previous();
+        if (!$previousUrl || $previousUrl === url()->current() || !str_contains($previousUrl, '/master/species')) {
+            $previousUrl = route('master.species.index');
+        }
+    }
+@endphp
+
 <x-app-layout>
     <x-slot name="header">
         <div class="flex items-center gap-4">
-            <a href="{{ route('master.species.index') }}" class="text-gray-500 hover:text-gray-700 flex items-center gap-2 text-sm font-medium">
+            <a href="{{ $previousUrl }}" onclick="if (document.referrer && document.referrer.includes('/master/species')) { history.back(); return false; }" class="text-gray-500 hover:text-gray-700 flex items-center gap-2 text-sm font-medium">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                 </svg>
@@ -31,11 +41,7 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
             
-            @if(session('success'))
-                <div class="bg-emerald-50 text-emerald-700 p-4 rounded-xl border border-emerald-200">
-                    {{ session('success') }}
-                </div>
-            @endif
+
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="space-y-6">
@@ -216,7 +222,18 @@
                                     <textarea name="notes" rows="2" placeholder="—" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm placeholder-gray-300">{{ old('notes', $species->notes) }}</textarea>
                                 </div>
                             </div>
-                            <div class="p-6 bg-gray-50 border-t border-gray-100 flex justify-end rounded-b-2xl">
+                            <div class="p-6 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex items-center justify-end gap-3 rounded-b-2xl">
+                                {{-- Tombol Kembali di Sisi Kiri Tombol Simpan Perubahan --}}
+                                <a href="{{ $previousUrl }}"
+                                   onclick="if (document.referrer && document.referrer.includes('/master/species')) { history.back(); return false; }"
+                                   class="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 font-medium text-sm rounded-xl shadow-xs transition-all focus:outline-none focus:ring-2 focus:ring-gray-200 group"
+                                   title="{{ __('Kembali ke halaman tabel sebelumnya') }}">
+                                    <svg class="w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:-translate-x-0.5 transition-transform duration-150" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                                    </svg>
+                                    <span>{{ __('Kembali') }}</span>
+                                </a>
+
                                 <button type="submit" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-xl shadow-sm transition-all focus:ring-4 focus:ring-blue-100">
                                     Simpan Perubahan
                                 </button>

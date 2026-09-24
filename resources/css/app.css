@@ -38,21 +38,60 @@
 
 .sidebar {
     width: var(--sidebar-width);
-    min-height: 100vh;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
     background: linear-gradient(180deg, var(--color-ocean-900) 0%, var(--color-ocean-950) 100%);
-    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: fixed;
     left: 0;
     top: 0;
+    bottom: 0;
     z-index: 40;
     overflow-x: hidden;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    touch-action: pan-y;
     scrollbar-width: thin;
     scrollbar-color: var(--color-ocean-700) transparent;
 }
 
 .sidebar.collapsed {
     width: var(--sidebar-collapsed-width);
+}
+
+.sidebar-header-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-header-wrapper .sidebar-brand {
+    border-bottom: none;
+    flex: 1;
+}
+
+.sidebar-close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    margin-right: 0.75rem;
+    border-radius: 8px;
+    color: var(--color-ocean-300);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.sidebar-close-btn:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .sidebar-brand {
@@ -67,19 +106,39 @@
     width: 36px;
     height: 36px;
     min-width: 36px;
-    background: #ffffff;
-    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 5px;
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 3px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, background 0.3s ease;
+    cursor: pointer;
+}
+
+.sidebar-brand-icon:hover,
+.sidebar-brand:hover .sidebar-brand-icon {
+    transform: translateY(-2px) scale(1.06);
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(56, 189, 248, 0.55);
+    box-shadow: 0 8px 20px rgba(14, 165, 233, 0.4), 0 0 12px rgba(56, 189, 248, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.45);
 }
 
 .sidebar-brand-icon img {
     width: 100%;
     height: 100%;
     object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+    transition: transform 0.3s ease;
+}
+
+.sidebar-brand-icon:hover img,
+.sidebar-brand:hover .sidebar-brand-icon img {
+    transform: scale(1.05);
 }
 
 .sidebar-brand-text {
@@ -285,10 +344,53 @@
 
 @media (max-width: 768px) {
     .sidebar {
+        width: 280px;
+        max-width: 85vw;
+        height: 100vh;
+        height: 100dvh;
+        max-height: 100vh;
+        max-height: 100dvh;
+        top: 0;
+        bottom: 0;
         transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 50;
+        box-shadow: none;
+        overflow-x: hidden;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-y: contain;
+        touch-action: pan-y;
+        padding-bottom: 5rem;
     }
     .sidebar.mobile-open {
         transform: translateX(0);
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5);
+    }
+    /* Di layar mobile, abaikan efek collapse desktop agar drawer selalu terbuka penuh */
+    .sidebar.collapsed {
+        width: 280px;
+        max-width: 85vw;
+    }
+    .sidebar.collapsed .sidebar-brand-text,
+    .sidebar.collapsed .sidebar-section-title,
+    .sidebar.collapsed .sidebar-link-text,
+    .sidebar.collapsed .sidebar-badge {
+        opacity: 1 !important;
+        width: auto !important;
+        height: auto !important;
+        overflow: visible !important;
+        display: block !important;
+    }
+    .sidebar.collapsed .sidebar-section-title {
+        padding: 0.6rem 0.85rem 0.25rem !important;
+    }
+    .sidebar.collapsed .sidebar-link {
+        justify-content: flex-start !important;
+        padding: 0.55rem 0.85rem !important;
+    }
+    .sidebar.collapsed .sidebar-badge {
+        display: inline-block !important;
     }
     .main-content,
     .main-content.sidebar-collapsed {
@@ -297,13 +399,63 @@
     .sidebar-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 35;
-        display: none;
+        background: rgba(10, 25, 47, 0.65);
+        -webkit-backdrop-filter: blur(4px);
+        backdrop-filter: blur(4px);
+        z-index: 45;
     }
-    .sidebar-overlay.active {
+
+    /* Tabel responsive horizontal scroll di mobile */
+    .overflow-x-auto {
         display: block;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-x pan-y;
     }
+
+    .overflow-x-auto > table,
+    .table-responsive > table {
+        min-width: 720px;
+    }
+
+    .overflow-x-auto th,
+    .table-responsive th {
+        white-space: nowrap;
+    }
+}
+
+/* ========================================
+   RESPONSIVE TABLES (GLOBAL HORIZONTAL SCROLLBAR)
+   ======================================== */
+
+.overflow-x-auto {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+    max-width: 100%;
+}
+
+.overflow-x-auto::-webkit-scrollbar {
+    height: 6px;
+}
+.overflow-x-auto::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.04);
+    border-radius: 9999px;
+}
+.overflow-x-auto::-webkit-scrollbar-thumb {
+    background: rgba(14, 165, 233, 0.35);
+    border-radius: 9999px;
+}
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+    background: rgba(14, 165, 233, 0.65);
+}
+.dark .overflow-x-auto::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+}
+.dark .overflow-x-auto::-webkit-scrollbar-thumb {
+    background: rgba(56, 189, 248, 0.35);
 }
 
 /* ========================================

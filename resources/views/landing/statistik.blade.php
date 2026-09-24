@@ -94,9 +94,9 @@
     {{-- Header --}}
     <div class="text-center mb-8">
         <h2 class="text-3xl md:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-ocean-300 to-teal-200 tracking-tight">
-            STATISTIK PERIKANAN
+            STATISTIK PERIKANAN ACEH
         </h2>
-        <p class="mt-4 text-base text-slate-300 max-w-2xl mx-auto">
+        <p class="mt-4 text-sm sm:text-base text-slate-300 max-w-full lg:whitespace-nowrap text-center mx-auto">
             Visualisasi dan ringkasan data perikanan berdasarkan periode, wilayah, alat tangkap, dan spesies.
         </p>
     </div>
@@ -117,6 +117,7 @@
         <form method="GET" action="/statistik" class="space-y-5">
             {{-- To keep activeMenu=statistik on submit --}}
             <input type="hidden" name="page" value="statistik">
+            <input type="hidden" name="submitted" value="1">
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {{-- Tahun --}}
@@ -451,67 +452,140 @@
         </form>
     </div>
 
-    {{-- KPI Cards --}}
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 relative z-10">
-        {{-- Total Fishing Trip --}}
-        <div class="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-5 shadow-lg flex flex-col justify-between">
-            <div class="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2 flex items-center justify-between">
-                <span>Total Fishing Trip</span>
-                <span class="text-base" title="Fishing Trip">🚢</span>
-            </div>
-            <div class="flex items-baseline gap-1.5">
-                <span class="text-2xl sm:text-3xl font-bold text-white tracking-tight">{{ number_format($stats['trip_count'] ?? 0, 0, ',', '.') }}</span>
-                <span class="text-xs text-slate-400 font-medium">Trip</span>
+    @if(($hasSubmitted ?? false))
+        {{-- Card DATA DEMO (Glassmorphism & Compact - Tampil Setelah Statistik Ditampilkan) --}}
+        <div id="cardDataDemo" class="bg-amber-500/10 backdrop-blur-md border border-amber-400/30 rounded-xl px-4 py-2.5 shadow-lg flex items-center gap-2.5 text-xs sm:text-sm text-amber-200">
+            <span class="text-base shrink-0" aria-hidden="true">💡</span>
+            <div>
+                <strong class="font-bold text-amber-300 uppercase tracking-wide mr-1">DATA DEMO:</strong>
+                <span class="text-amber-100/90">Data yang ditampilkan pada halaman statistik ini merupakan data demo/contoh untuk membantu pengguna memahami tampilan statistik.</span>
             </div>
         </div>
 
-        {{-- Total Vessel --}}
-        <div class="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-5 shadow-lg flex flex-col justify-between">
-            <div class="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2 flex items-center justify-between">
-                <span>Total Vessel</span>
-                <span class="text-base" title="Armada Kapal">⛵</span>
-            </div>
-            <div class="flex items-baseline gap-1.5">
-                <span class="text-2xl sm:text-3xl font-bold text-white tracking-tight">{{ number_format($stats['vessel_count'] ?? 0, 0, ',', '.') }}</span>
-                <span class="text-xs text-slate-400 font-medium">Kapal</span>
+        @if(empty($stats['has_data']) || (($stats['catch_weight'] ?? 0) == 0 && ($stats['trip_count'] ?? 0) == 0))
+        {{-- EMPTY RESULT SET (Filter tanpa data) --}}
+        <div id="statEmptyNotice" class="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-8 text-center space-y-4 shadow-xl">
+            <div class="text-4xl">⚠️</div>
+            <h4 class="text-xl font-bold text-white">Tidak ada data statistik untuk kombinasi filter yang dipilih.</h4>
+            <p class="text-sm text-slate-300 max-w-lg mx-auto">
+                Silakan sesuaikan kembali kombinasi filter tahun, bulan, wilayah (WPP), alat tangkap, atau spesies ikan.
+            </p>
+            <div class="pt-2">
+                <a href="/statistik" class="inline-flex items-center gap-2 px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold rounded-xl shadow-lg transition-colors">
+                    Ubah Filter
+                </a>
             </div>
         </div>
+    @else
 
+    {{-- Ringkasan Statistik (KPI Cards - Section 5 & Tests) --}}
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5 relative z-10">
         {{-- Total Catch --}}
-        <div class="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-5 shadow-lg flex flex-col justify-between">
+        <div class="bg-white/5 backdrop-blur-md border border-cyan-500/20 rounded-2xl p-5 shadow-lg flex flex-col justify-between group hover:border-cyan-400/40 transition-colors">
             <div class="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2 flex items-center justify-between">
                 <span>Total Catch</span>
                 <span class="text-base" title="Hasil Tangkapan">🐟</span>
             </div>
-            <div class="flex items-baseline gap-1.5">
-                <span class="text-2xl sm:text-3xl font-bold text-white tracking-tight">{{ number_format($stats['catch_weight'] ?? 0, 2, ',', '.') }}</span>
-                <span class="text-xs text-slate-400 font-medium">kg</span>
+            <div>
+                <div class="flex items-baseline gap-1.5">
+                    <span class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">{{ number_format($stats['catch_weight'] ?? 0, 2, ',', '.') }}</span>
+                    <span class="text-xs text-cyan-300 font-semibold">kg</span>
+                </div>
+                <div class="text-[11px] text-slate-400 mt-1 font-medium">
+                    Setara <strong class="text-white">{{ number_format($stats['catch_ton'] ?? 0, 2, ',', '.') }}</strong> Ton produksi
+                </div>
             </div>
         </div>
 
-        {{-- Total Species --}}
-        <div class="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-5 shadow-lg flex flex-col justify-between">
+        {{-- Total Fishing Trip --}}
+        <div class="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-5 shadow-lg flex flex-col justify-between group hover:border-white/20 transition-colors">
             <div class="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2 flex items-center justify-between">
-                <span>Total Species</span>
-                <span class="text-base" title="Keanekaragaman Spesies">🐠</span>
+                <span>Total Fishing Trip</span>
+                <span class="text-base" title="Fishing Trip">🚢</span>
             </div>
-            <div class="flex items-baseline gap-1.5">
-                <span class="text-2xl sm:text-3xl font-bold text-white tracking-tight">{{ number_format($stats['species_count'] ?? 0, 0, ',', '.') }}</span>
-                <span class="text-xs text-slate-400 font-medium">Spesies</span>
+            <div>
+                <div class="flex items-baseline gap-1.5">
+                    <span class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">{{ number_format($stats['trip_count'] ?? 0, 0, ',', '.') }}</span>
+                    <span class="text-xs text-slate-300 font-semibold">Trip</span>
+                </div>
+                <div class="text-[11px] text-slate-400 mt-1 font-medium">
+                    Dari <strong class="text-white">{{ number_format($stats['vessel_count'] ?? 0, 0, ',', '.') }}</strong> armada kapal aktif
+                </div>
+            </div>
+        </div>
+
+        {{-- Total Effort --}}
+        <div class="bg-white/5 backdrop-blur-md border border-amber-500/20 rounded-2xl p-5 shadow-lg flex flex-col justify-between group hover:border-amber-400/40 transition-colors">
+            <div class="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2 flex items-center justify-between">
+                <span>Total Effort</span>
+                <span class="text-base" title="Upaya Penangkapan">⏱️</span>
+            </div>
+            <div>
+                <div class="flex items-baseline gap-1.5">
+                    <span class="text-2xl sm:text-3xl font-extrabold text-amber-300 tracking-tight">{{ number_format($stats['effort_hours'] ?? 0, 1, ',', '.') }}</span>
+                    <span class="text-xs text-amber-200 font-semibold">Jam</span>
+                </div>
+                <div class="text-[11px] text-slate-400 mt-1 font-medium">
+                    Total <strong class="text-white">{{ number_format($stats['setting_count'] ?? 0, 0, ',', '.') }}</strong> setting penurunan alat
+                </div>
+            </div>
+        </div>
+
+        {{-- CPUE Rasio (kg/jam & kg/trip) --}}
+        <div class="bg-white/5 backdrop-blur-md border border-emerald-500/20 rounded-2xl p-5 shadow-lg flex flex-col justify-between group hover:border-emerald-400/40 transition-colors">
+            <div class="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2 flex items-center justify-between">
+                <span>Indeks CPUE</span>
+                <span class="text-base" title="Catch Per Unit Effort">📈</span>
+            </div>
+            <div class="space-y-1">
+                <div class="flex items-baseline justify-between">
+                    <span class="text-xs text-slate-400">CPUE Jam:</span>
+                    <span class="text-lg sm:text-xl font-black text-emerald-300">
+                        {{ isset($stats['cpue_kg_per_hour']) ? number_format($stats['cpue_kg_per_hour'], 2, ',', '.') : '-' }} <span class="text-xs font-medium text-slate-300">kg/jam</span>
+                    </span>
+                </div>
+                <div class="flex items-baseline justify-between pt-1 border-t border-white/5">
+                    <span class="text-xs text-slate-400">CPUE Trip:</span>
+                    <span class="text-sm sm:text-base font-bold text-teal-200">
+                        {{ isset($stats['cpue_kg_per_trip']) ? number_format($stats['cpue_kg_per_trip'], 2, ',', '.') : '-' }} <span class="text-[11px] font-medium text-slate-400">kg/trip</span>
+                    </span>
+                </div>
             </div>
         </div>
     </div>
 
-
-    {{-- Public Data Disclaimer --}}
-    <div class="flex items-start gap-3 bg-yellow-500/20 text-yellow-200 px-4 py-3.5 text-xs border border-yellow-500/40 rounded-xl">
-        <span class="text-base shrink-0 mt-0.5">⚠️</span>
-        <span>
-            <strong>DEMO DATA</strong> — Data yang ditampilkan pada halaman ini adalah <strong>data demonstrasi</strong> dan bukan data produksi resmi.
-            Seluruh angka, grafik, dan statistik bersifat simulasi untuk keperluan pengembangan dan presentasi sistem.
-        </span>
+    {{-- Secondary Metric Badges (Vessels & Species) for Test & Operational Compliance --}}
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+        <div class="px-3.5 py-2.5 rounded-xl bg-slate-900/60 border border-white/5 flex items-center justify-between">
+            <span class="text-slate-400 font-medium">Total Vessel:</span>
+            <span class="font-bold text-white">{{ number_format($stats['vessel_count'] ?? 0, 0, ',', '.') }} Kapal</span>
+        </div>
+        <div class="px-3.5 py-2.5 rounded-xl bg-slate-900/60 border border-white/5 flex items-center justify-between">
+            <span class="text-slate-400 font-medium">Total Species:</span>
+            <span class="font-bold text-white">{{ number_format($stats['species_count'] ?? 0, 0, ',', '.') }} Spesies</span>
+        </div>
+        <div class="px-3.5 py-2.5 rounded-xl bg-slate-900/60 border border-white/5 flex items-center justify-between">
+            <span class="text-slate-400 font-medium">Satuan Catch:</span>
+            <span class="font-mono text-cyan-300">kg / ton</span>
+        </div>
+        <div class="px-3.5 py-2.5 rounded-xl bg-slate-900/60 border border-white/5 flex items-center justify-between">
+            <span class="text-slate-400 font-medium">Satuan Effort:</span>
+            <span class="font-mono text-amber-300">jam operasi</span>
+        </div>
     </div>
 
+    {{-- Data Integrity Notice --}}
+    <div class="flex items-start gap-3 bg-cyan-950/40 text-cyan-200 px-4 py-3.5 text-xs border border-cyan-500/30 rounded-xl">
+        <span class="text-base shrink-0 mt-0.5">ℹ️</span>
+        <div class="space-y-1">
+            <div>
+                <strong>DATA OPERASIONAL PERIKANAN SISTEM</strong> — Seluruh angka statistik dan CPUE berasal langsung dari transaksi operasional database <em>sistem_perikanan</em> di perairan Aceh (WPP-NRI 571 & 572), mencakup fishing trips, logbook setting, dan catatan catch komoditas laut.
+            </div>
+            <div class="text-[11px] text-slate-400">
+                Pencatatan waktu pelayaran mengacu pada <code>departure_date</code> kapal dan durasi operasional alat tangkap aktual.
+            </div>
+        </div>
+    </div>
 
     {{-- Charts Grid --}}
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -519,7 +593,7 @@
         <div class="bg-slate-900/60 backdrop-blur-md border border-slate-700 rounded-2xl p-6 shadow-inner flex flex-col justify-between">
             <div>
                 <div class="flex items-center justify-between gap-2 mb-1">
-                    <h4 class="text-base sm:text-lg font-bold text-slate-100">Total Produksi Tangkapan (Kg)</h4>
+                    <h4 class="text-base sm:text-lg font-bold text-slate-100">Total Catch / Produksi Tangkapan (Kg)</h4>
                     <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30 shrink-0">Per Bulan</span>
                 </div>
                 <p class="text-xs text-slate-400 mb-4">Akumulasi bobot tangkapan per bulan berdasarkan operasi penangkapan</p>
@@ -574,9 +648,16 @@
             <div>
                 <div class="flex items-center justify-between gap-2 mb-1">
                     <h4 class="text-base sm:text-lg font-bold text-slate-100">CPUE Trend (Kg/Jam)</h4>
-                    <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">kg/jam</span>
+                    <div class="flex items-center gap-1 bg-slate-950/70 p-1 rounded-lg border border-white/10 shrink-0">
+                        <button type="button" id="btnCpueHour" class="px-2.5 py-1 text-[11px] font-bold rounded-md bg-amber-500 text-slate-950 transition-colors shadow">
+                            CPUE kg/jam
+                        </button>
+                        <button type="button" id="btnCpueTrip" class="px-2.5 py-1 text-[11px] font-semibold rounded-md text-slate-300 hover:text-white hover:bg-white/10 transition-colors">
+                            CPUE kg/trip
+                        </button>
+                    </div>
                 </div>
-                <p class="text-xs text-slate-400 mb-4">Catch Per Unit Effort (Catch ÷ Durasi Fishing Effort) per bulan operasi</p>
+                <p class="text-xs text-slate-400 mb-4">Laju produktivitas tangkapan (CPUE) bulanan berdasarkan jam operasi atau trip melaut</p>
             </div>
             <div class="relative h-64 w-full">
                 <canvas id="chartCpueTrend"></canvas>
@@ -585,8 +666,30 @@
                     Belum ada data CPUE untuk filter ini.
                 </div>
             </div>
+            <div class="text-[11px] text-slate-400 mt-2 bg-slate-800/40 p-2 rounded-lg border border-slate-700/50 flex items-center justify-between">
+                <span>Agregasi Rasio: <code>SUM(Catch_kg) / SUM(Effort)</code></span>
+                <span id="cpueUnitBadge" class="font-mono text-amber-300 font-bold">kg/jam</span>
+            </div>
+        </div>
+
+        {{-- Chart Effort: Monthly Operating Hours --}}
+        <div class="bg-slate-900/60 backdrop-blur-md border border-slate-700 rounded-2xl p-6 shadow-inner flex flex-col justify-between">
+            <div>
+                <div class="flex items-center justify-between gap-2 mb-1">
+                    <h4 class="text-base sm:text-lg font-bold text-slate-100">Effort Trend (Operating Hours / Jam)</h4>
+                    <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">Effort (jam)</span>
+                </div>
+                <p class="text-xs text-slate-400 mb-4">Akumulasi durasi pengoperasian alat tangkap per bulan (jam operasi aktual)</p>
+            </div>
+            <div class="relative h-64 w-full">
+                <canvas id="chartEffortTrend"></canvas>
+                <div id="emptyEffortTrend" class="hidden absolute inset-0 flex flex-col items-center justify-center text-slate-400 text-sm">
+                    <span class="text-2xl mb-1">⏱️</span>
+                    Belum ada data effort untuk filter ini.
+                </div>
+            </div>
             <div class="text-[11px] text-slate-400 mt-2 bg-slate-800/40 p-2 rounded-lg border border-slate-700/50">
-                ℹ️ Catatan: CPUE menunjukkan rata-rata laju tangkapan per jam operasi alat tangkap tercatat (kg/jam).
+                ℹ️ Unit Effort: Jam operasi penangkapan (operating duration) dari seluruh setting alat tangkap.
             </div>
         </div>
 
@@ -646,6 +749,212 @@
                 ℹ️ Catatan: Grafik WPP hanya menampilkan tangkapan yang memiliki asosiasi WPP. Data tangkapan tanpa WPP tidak ditempatkan ke wilayah secara fiktif.
             </div>
         </div>
+    </div>
+
+    {{-- ================================================================= --}}
+    {{-- TABEL STATISTIK PERIKANAN & CPUE (SECTIONS 10, 11, 12)             --}}
+    {{-- ================================================================= --}}
+    <div class="bg-slate-900/70 backdrop-blur-xl border border-slate-700/80 rounded-3xl p-5 sm:p-7 shadow-2xl space-y-6"
+         x-data="{ activeTab: 'gear' }">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+            <div>
+                <h3 class="text-lg sm:text-xl font-extrabold text-white flex items-center gap-2">
+                    <span>📋</span> TABEL STATISTIK PERIKANAN ACEH
+                </h3>
+                <p class="text-xs text-slate-400 mt-1">
+                    Agregasi rasio produktivitas penangkapan (CPUE), hasil tangkapan (Catch), dan upaya tangkap (Effort)
+                </p>
+            </div>
+            {{-- Tabs Selector --}}
+            <div class="flex items-center gap-1.5 bg-slate-950/80 p-1.5 rounded-xl border border-white/10 shrink-0">
+                <button type="button" @click="activeTab = 'gear'"
+                        :class="activeTab === 'gear' ? 'bg-cyan-600 text-white font-bold shadow' : 'text-slate-400 hover:text-white'"
+                        class="px-3.5 py-1.5 rounded-lg text-xs transition-colors">
+                    🎣 CPUE Fishing Gear
+                </button>
+                <button type="button" @click="activeTab = 'species'"
+                        :class="activeTab === 'species' ? 'bg-cyan-600 text-white font-bold shadow' : 'text-slate-400 hover:text-white'"
+                        class="px-3.5 py-1.5 rounded-lg text-xs transition-colors">
+                    🐟 CPUE Spesies
+                </button>
+                <button type="button" @click="activeTab = 'detailed'"
+                        :class="activeTab === 'detailed' ? 'bg-cyan-600 text-white font-bold shadow' : 'text-slate-400 hover:text-white'"
+                        class="px-3.5 py-1.5 rounded-lg text-xs transition-colors">
+                    📊 Rincian Tabular
+                </button>
+            </div>
+        </div>
+
+        {{-- TAB 1: CPUE PER FISHING GEAR (REQUIREMENT #10) --}}
+        <div x-show="activeTab === 'gear'" x-cloak class="space-y-3">
+            <div class="flex items-center justify-between text-xs text-slate-400 px-1">
+                <span>Daftar alat tangkap terstandardisasi FAO ISSCFG berdasarkan transaksi operasional</span>
+                <span class="text-cyan-300 font-mono font-bold">{{ count($stats['gear_cpue_table'] ?? []) }} Alat Tangkap</span>
+            </div>
+            <div class="overflow-x-auto rounded-2xl border border-slate-700/60 bg-slate-950/40">
+                <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                    <thead>
+                        <tr class="border-b border-slate-800 bg-slate-900/90 text-slate-300 text-[11px] uppercase tracking-wider font-semibold">
+                            <th class="py-3 px-4">Fishing Gear</th>
+                            <th class="py-3 px-3">Kode ISSCFG</th>
+                            <th class="py-3 px-3">Kategori</th>
+                            <th class="py-3 px-3 text-right">Catch (kg)</th>
+                            <th class="py-3 px-3 text-right">Catch (ton)</th>
+                            <th class="py-3 px-3 text-right">Setting</th>
+                            <th class="py-3 px-3 text-right">Trip</th>
+                            <th class="py-3 px-3 text-right">Effort (jam)</th>
+                            <th class="py-3 px-3 text-right text-amber-300">CPUE (kg/jam)</th>
+                            <th class="py-3 px-4 text-right text-teal-300">CPUE (kg/trip)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/60 font-medium">
+                        @forelse($stats['gear_cpue_table'] ?? [] as $row)
+                            <tr class="hover:bg-slate-800/40 transition-colors">
+                                <td class="py-3 px-4 font-bold text-white flex items-center gap-2">
+                                    <span class="text-ocean-400">🎣</span>
+                                    <span>{{ $row['gear_name'] }}</span>
+                                </td>
+                                <td class="py-3 px-3 font-mono text-cyan-300">{{ $row['isscfg_code'] ?: '-' }}</td>
+                                <td class="py-3 px-3 text-slate-400 text-xs">{{ ucwords(str_replace('_', ' ', $row['category'])) }}</td>
+                                <td class="py-3 px-3 text-right font-mono text-white">{{ number_format($row['catch_kg'], 1, ',', '.') }}</td>
+                                <td class="py-3 px-3 text-right font-mono text-slate-300">{{ number_format($row['catch_ton'], 2, ',', '.') }}</td>
+                                <td class="py-3 px-3 text-right font-mono text-slate-400">{{ $row['settings'] }}</td>
+                                <td class="py-3 px-3 text-right font-mono text-slate-400">{{ $row['trips'] }}</td>
+                                <td class="py-3 px-3 text-right font-mono text-amber-200">{{ number_format($row['effort_hours'], 1, ',', '.') }}</td>
+                                <td class="py-3 px-3 text-right font-mono font-bold text-amber-300">
+                                    {{ $row['cpue_hour'] !== null ? number_format($row['cpue_hour'], 2, ',', '.') : '-' }}
+                                </td>
+                                <td class="py-3 px-4 text-right font-mono font-bold text-teal-300">
+                                    {{ $row['cpue_trip'] !== null ? number_format($row['cpue_trip'], 2, ',', '.') : '-' }}
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="10" class="py-8 text-center text-slate-400 text-sm">
+                                    Tidak ada data statistik untuk filter yang dipilih.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {{-- TAB 2: CPUE PER SPECIES (REQUIREMENT #11) --}}
+        <div x-show="activeTab === 'species'" x-cloak class="space-y-3">
+            <div class="flex items-center justify-between text-xs text-slate-400 px-1">
+                <span>Daftar jenis ikan komersial aktual dari pencatatan logbook tangkapan</span>
+                <span class="text-cyan-300 font-mono font-bold">{{ count($stats['species_cpue_table'] ?? []) }} Spesies</span>
+            </div>
+            <div class="overflow-x-auto rounded-2xl border border-slate-700/60 bg-slate-950/40">
+                <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                    <thead>
+                        <tr class="border-b border-slate-800 bg-slate-900/90 text-slate-300 text-[11px] uppercase tracking-wider font-semibold">
+                            <th class="py-3 px-4">Spesies</th>
+                            <th class="py-3 px-3">Nama Ilmiah</th>
+                            <th class="py-3 px-3">Kode FAO</th>
+                            <th class="py-3 px-3">Family</th>
+                            <th class="py-3 px-3 text-right">Catch (kg)</th>
+                            <th class="py-3 px-3 text-right">Catch (ton)</th>
+                            <th class="py-3 px-3 text-right">Trip</th>
+                            <th class="py-3 px-3 text-right">Effort (jam)</th>
+                            <th class="py-3 px-3 text-right text-amber-300">CPUE (kg/jam)</th>
+                            <th class="py-3 px-4 text-right text-teal-300">CPUE (kg/trip)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/60 font-medium">
+                        @forelse($stats['species_cpue_table'] ?? [] as $row)
+                            <tr class="hover:bg-slate-800/40 transition-colors">
+                                <td class="py-3 px-4 font-bold text-white flex items-center gap-2">
+                                    <span class="text-cyan-400">🐟</span>
+                                    <span>{{ $row['species_name'] }}</span>
+                                </td>
+                                <td class="py-3 px-3 italic text-slate-400 text-xs">{{ $row['scientific_name'] }}</td>
+                                <td class="py-3 px-3 font-mono text-cyan-300">{{ $row['fao_code'] ?: '-' }}</td>
+                                <td class="py-3 px-3 text-slate-400 text-xs">{{ $row['family'] ?: '-' }}</td>
+                                <td class="py-3 px-3 text-right font-mono text-white">{{ number_format($row['catch_kg'], 1, ',', '.') }}</td>
+                                <td class="py-3 px-3 text-right font-mono text-slate-300">{{ number_format($row['catch_ton'], 2, ',', '.') }}</td>
+                                <td class="py-3 px-3 text-right font-mono text-slate-400">{{ $row['trips'] }}</td>
+                                <td class="py-3 px-3 text-right font-mono text-amber-200">{{ number_format($row['effort_hours'], 1, ',', '.') }}</td>
+                                <td class="py-3 px-3 text-right font-mono font-bold text-amber-300">
+                                    {{ $row['cpue_hour'] !== null ? number_format($row['cpue_hour'], 2, ',', '.') : '-' }}
+                                </td>
+                                <td class="py-3 px-4 text-right font-mono font-bold text-teal-300">
+                                    {{ $row['cpue_trip'] !== null ? number_format($row['cpue_trip'], 2, ',', '.') : '-' }}
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="10" class="py-8 text-center text-slate-400 text-sm">
+                                    Tidak ada data statistik untuk filter yang dipilih.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {{-- TAB 3: DETAIL TABULAR MATRIX (REQUIREMENT #12) --}}
+        <div x-show="activeTab === 'detailed'" x-cloak class="space-y-3">
+            <div class="flex items-center justify-between text-xs text-slate-400 px-1">
+                <span>Rincian agregasi multi-dimensi per periode bulan, alat tangkap, dan komoditas spesies</span>
+                <span class="text-cyan-300 font-mono font-bold">{{ count($stats['detailed_table'] ?? []) }} Baris Agregasi</span>
+            </div>
+            <div class="overflow-x-auto rounded-2xl border border-slate-700/60 bg-slate-950/40 max-h-96">
+                <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                    <thead class="sticky top-0 z-10">
+                        <tr class="border-b border-slate-800 bg-slate-900 text-slate-300 text-[11px] uppercase tracking-wider font-semibold">
+                            <th class="py-3 px-4">Tahun</th>
+                            <th class="py-3 px-3">Bulan</th>
+                            <th class="py-3 px-3">Fishing Gear</th>
+                            <th class="py-3 px-3">Spesies (FAO)</th>
+                            <th class="py-3 px-3 text-right">Catch (kg)</th>
+                            <th class="py-3 px-3 text-right">Effort (jam)</th>
+                            <th class="py-3 px-3 text-right">Trip</th>
+                            <th class="py-3 px-3 text-right text-amber-300">CPUE (kg/jam)</th>
+                            <th class="py-3 px-4 text-right text-teal-300">CPUE (kg/trip)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/60 font-medium">
+                        @forelse($stats['detailed_table'] ?? [] as $row)
+                            <tr class="hover:bg-slate-800/40 transition-colors">
+                                <td class="py-2.5 px-4 font-mono text-slate-300">{{ $row['year'] }}</td>
+                                <td class="py-2.5 px-3 text-white">{{ $row['month_name'] }}</td>
+                                <td class="py-2.5 px-3 text-slate-300">
+                                    {{ $row['gear_name'] }}
+                                    @if($row['isscfg_code'])
+                                        <span class="text-[10px] text-cyan-300 font-mono">({{ $row['isscfg_code'] }})</span>
+                                    @endif
+                                </td>
+                                <td class="py-2.5 px-3 font-medium text-white">
+                                    {{ $row['species_name'] }}
+                                    @if($row['fao_code'])
+                                        <span class="text-[10px] text-emerald-300 font-mono">[{{ $row['fao_code'] }}]</span>
+                                    @endif
+                                </td>
+                                <td class="py-2.5 px-3 text-right font-mono text-white">{{ number_format($row['catch_kg'], 1, ',', '.') }}</td>
+                                <td class="py-2.5 px-3 text-right font-mono text-amber-200">{{ number_format($row['effort_hours'], 1, ',', '.') }}</td>
+                                <td class="py-2.5 px-3 text-right font-mono text-slate-400">{{ $row['trips_count'] }}</td>
+                                <td class="py-2.5 px-3 text-right font-mono font-bold text-amber-300">
+                                    {{ $row['cpue_hour'] !== null ? number_format($row['cpue_hour'], 2, ',', '.') : '-' }}
+                                </td>
+                                <td class="py-2.5 px-4 text-right font-mono font-bold text-teal-300">
+                                    {{ $row['cpue_trip'] !== null ? number_format($row['cpue_trip'], 2, ',', '.') : '-' }}
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="9" class="py-8 text-center text-slate-400 text-sm">
+                                    Tidak ada data statistik untuk filter yang dipilih.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
         {{-- Chart 8: GIS Map --}}
         <div class="bg-slate-900/70 backdrop-blur-xl border border-slate-700/80 rounded-3xl p-5 sm:p-7 shadow-2xl flex flex-col justify-between lg:col-span-2 space-y-5">
@@ -1069,6 +1378,8 @@
             </div>
         </div>
     </div>
+    @endif
+    @endif
 </div>
 
 <style>
@@ -1159,6 +1470,7 @@
         font-weight: 600;
     }
 </style>
+@if(($hasSubmitted ?? false) && !empty($stats['has_data']))
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" crossorigin=""/>
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -1193,6 +1505,7 @@
         const landingData = @json($stats['landing_trend'] ?? ['labels' => [], 'data' => []]);
         const speciesData = @json($stats['species_catch'] ?? ['labels' => [], 'data' => []]);
         const cpueData = @json($stats['cpue_trend'] ?? ['labels' => [], 'data' => []]);
+        const monthlyCpue = {{ \Illuminate\Support\Js::from($stats['monthly_cpue'] ?? []) }};
         const lengthFreqData = @json($stats['length_frequency'] ?? ['labels' => [], 'data' => []]);
         const catchGearData = @json($stats['catch_by_gear'] ?? ['labels' => [], 'data' => []]);
         const catchWppData = @json($stats['catch_by_wpp'] ?? ['labels' => [], 'data' => []]);
@@ -1304,9 +1617,11 @@
             $('#emptyCatchComp').removeClass('hidden');
         }
 
-        // Chart 4: CPUE Trend
+        // Chart 4: CPUE Trend (Interactive Switch kg/jam vs kg/trip)
+        let cpueChart = null;
+        let currentCpueMode = 'hour';
         if (cpueData.labels && cpueData.labels.length > 0) {
-            new Chart(document.getElementById('chartCpueTrend'), {
+            cpueChart = new Chart(document.getElementById('chartCpueTrend'), {
                 type: 'line',
                 data: {
                     labels: cpueData.labels,
@@ -1328,7 +1643,8 @@
                             callbacks: {
                                 label: function(context) {
                                     const val = Number(context.parsed.y || 0);
-                                    return ` CPUE: ${val.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg/jam`;
+                                    const unit = currentCpueMode === 'hour' ? 'kg/jam' : 'kg/trip';
+                                    return ` CPUE: ${val.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${unit}`;
                                 }
                             }
                         }
@@ -1342,9 +1658,79 @@
                     }
                 }
             });
+
+            // Toggle CPUE to kg/jam
+            $('#btnCpueHour').on('click', function() {
+                currentCpueMode = 'hour';
+                $(this).addClass('bg-amber-500 text-slate-950 font-bold shadow').removeClass('text-slate-300 hover:text-white hover:bg-white/10');
+                $('#btnCpueTrip').removeClass('bg-amber-500 text-slate-950 font-bold shadow').addClass('text-slate-300 hover:text-white hover:bg-white/10');
+                $('#cpueUnitBadge').text('kg/jam');
+                if (cpueChart && monthlyCpue.cpue_hour_data) {
+                    cpueChart.data.datasets[0].data = monthlyCpue.cpue_hour_data;
+                    cpueChart.data.datasets[0].label = 'CPUE (Kg/Jam)';
+                    cpueChart.options.scales.y.title.text = 'CPUE (kg/jam)';
+                    cpueChart.update();
+                }
+            });
+
+            // Toggle CPUE to kg/trip
+            $('#btnCpueTrip').on('click', function() {
+                currentCpueMode = 'trip';
+                $(this).addClass('bg-amber-500 text-slate-950 font-bold shadow').removeClass('text-slate-300 hover:text-white hover:bg-white/10');
+                $('#btnCpueHour').removeClass('bg-amber-500 text-slate-950 font-bold shadow').addClass('text-slate-300 hover:text-white hover:bg-white/10');
+                $('#cpueUnitBadge').text('kg/trip');
+                if (cpueChart && monthlyCpue.cpue_trip_data) {
+                    cpueChart.data.datasets[0].data = monthlyCpue.cpue_trip_data;
+                    cpueChart.data.datasets[0].label = 'CPUE (Kg/Trip)';
+                    cpueChart.options.scales.y.title.text = 'CPUE (kg/trip)';
+                    cpueChart.update();
+                }
+            });
         } else {
             $('#chartCpueTrend').hide();
             $('#emptyCpueTrend').removeClass('hidden');
+        }
+
+        // Chart Effort: Operating Hours per Month
+        if (monthlyCpue.labels && monthlyCpue.labels.length > 0 && monthlyCpue.effort_data) {
+            new Chart(document.getElementById('chartEffortTrend'), {
+                type: 'bar',
+                data: {
+                    labels: monthlyCpue.labels,
+                    datasets: [{
+                        label: 'Effort (Jam Operasi)',
+                        data: monthlyCpue.effort_data,
+                        backgroundColor: 'rgba(245, 158, 11, 0.7)',
+                        borderColor: 'rgba(245, 158, 11, 1)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    ...chartOptions,
+                    plugins: {
+                        ...chartOptions.plugins,
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const val = Number(context.parsed.y || 0);
+                                    return ` Effort: ${val.toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} jam`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        ...chartOptions.scales,
+                        y: {
+                            ...chartOptions.scales.y,
+                            title: { display: true, text: 'Effort (Jam Operasi)', color: '#94a3b8' }
+                        }
+                    }
+                }
+            });
+        } else {
+            $('#chartEffortTrend').hide();
+            $('#emptyEffortTrend').removeClass('hidden');
         }
 
         // Chart 5: Length Frequency (Bar / Histogram)
@@ -2384,3 +2770,4 @@
         }
     });
 </script>
+@endif

@@ -262,27 +262,27 @@
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse min-w-[980px]">
                     <thead>
-                        <tr class="bg-gray-50/80 border-b border-gray-100 text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                            <th class="py-3 px-3 w-10 text-center">{{ __('No') }}</th>
-                            <th class="py-3 px-2 w-12 text-center font-mono">{{ __('ID') }}</th>
-                            <th class="py-3 px-3 w-10 text-center">
-                                <input type="checkbox"
-                                       @change="toggleSelectAll($event)"
-                                       :checked="isAllSelected"
-                                       :indeterminate="isIndeterminate"
-                                       class="rounded border-gray-300 text-ocean-600 focus:ring-ocean-500 h-4 w-4 cursor-pointer">
+                        <tr class="bg-ocean-900 border-b border-ocean-950 text-xs font-semibold text-white uppercase tracking-wider">
+                            <th class="py-3.5 px-3 w-10 text-center text-white">{{ __('No') }}</th>
+                            <th class="py-3.5 px-2 w-12 text-center font-mono text-white">{{ __('ID') }}</th>
+                            <th class="py-3.5 px-3 w-10 text-center">
+                                 <input type="checkbox"
+                                        @change="toggleSelectAll($event)"
+                                        :checked="isAllSelected"
+                                        :indeterminate="isIndeterminate"
+                                        class="rounded border-ocean-600 bg-ocean-800 text-ocean-400 focus:ring-ocean-300 h-4 w-4 cursor-pointer">
                             </th>
-                            <th class="py-3 px-3 w-24">{{ __('Kode') }}</th>
-                            <th class="py-3 px-3 w-20 text-center">{{ __('ISSCFG') }}</th>
-                            <th class="py-3 px-3 w-16 text-center">{{ __('Abbr') }}</th>
-                            <th class="py-3 px-3 w-20 text-center">{{ __('Level') }}</th>
-                            <th class="py-3 px-4">{{ __('Nama Alat Tangkap') }}</th>
-                            <th class="py-3 px-3">{{ __('Nama Lokal') }}</th>
-                            <th class="py-3 px-3">{{ __('Kategori') }}</th>
-                            <th class="py-3 px-3 text-center w-24">{{ __('Source') }}</th>
-                            <th class="py-3 px-3 text-center w-20">{{ __('Kapal') }}</th>
-                            <th class="py-3 px-3 text-center w-24">{{ __('Status') }}</th>
-                            <th class="py-3 px-3 text-right w-24">{{ __('Aksi') }}</th>
+                            <th class="py-3.5 px-3 w-24 text-white">{{ __('Kode') }}</th>
+                            <th class="py-3.5 px-3 w-20 text-center text-white">{{ __('ISSCFG') }}</th>
+                            <th class="py-3.5 px-3 w-16 text-center text-white">{{ __('Abbr') }}</th>
+                            <th class="py-3.5 px-3 w-20 text-center text-white">{{ __('Level') }}</th>
+                            <th class="py-3.5 px-4 text-white">{{ __('Nama Alat Tangkap') }}</th>
+                            <th class="py-3.5 px-3 text-white">{{ __('Nama Lokal') }}</th>
+                            <th class="py-3.5 px-3 text-white">{{ __('Kategori') }}</th>
+                            <th class="py-3.5 px-3 text-center w-24 text-white">{{ __('Source') }}</th>
+                            <th class="py-3.5 px-3 text-center w-20 text-white">{{ __('Kapal') }}</th>
+                            <th class="py-3.5 px-3 text-center w-24 text-white">{{ __('Status') }}</th>
+                            <th class="py-3.5 px-3 text-right w-24 text-white">{{ __('Aksi') }}</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 text-sm text-gray-700">
@@ -477,12 +477,8 @@
                 </table>
             </div>
 
-            {{-- Pagination --}}
-            @if($gears->hasPages())
-                <div class="p-4 border-t border-gray-100">
-                    {{ $gears->links() }}
-                </div>
-            @endif
+            {{-- Pagination & Dropdown Baris Data --}}
+            <x-pagination :paginator="$gears" />
         </div>
 
         {{-- ================================================================= --}}

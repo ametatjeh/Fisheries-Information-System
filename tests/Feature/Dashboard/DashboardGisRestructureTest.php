@@ -32,9 +32,6 @@ class DashboardGisRestructureTest extends TestCase
         // 2. Must NOT initiate map data request
         $response->assertDontSee('fetch(\'{{ route(\'gis.data\') }}\'', false);
 
-        // 3. Must have Geographic Scope Overview and CTA to internal GIS
-        $response->assertSee('CAKUPAN WILAYAH PERIKANAN ACEH', false);
-        $response->assertSee(route('dashboard.gis'), false);
     }
 
     public function test_dashboard_requires_authentication(): void

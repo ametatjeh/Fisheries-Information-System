@@ -75,7 +75,7 @@ class LandingController extends Controller
             })
             ->orderByDesc('landing_date')
             ->orderByDesc('id')
-            ->paginate(15)
+            ->paginate($this->getPerPage($request))
             ->withQueryString();
 
         // Data pendukung form & filter

@@ -55,7 +55,7 @@ class LandingSiteController extends Controller
             })
             ->orderByRaw("CASE site_type WHEN 'PPS' THEN 1 WHEN 'PPN' THEN 2 WHEN 'PPP' THEN 3 WHEN 'PPI' THEN 4 WHEN 'TPI' THEN 5 WHEN 'pangkalan_pendaratan_tradisional' THEN 6 ELSE 7 END")
             ->orderBy('code')
-            ->paginate(15)
+            ->paginate($this->getPerPage($request))
             ->withQueryString();
 
         // Opsi label tipe pelabuhan perikanan sesuai Permen KP

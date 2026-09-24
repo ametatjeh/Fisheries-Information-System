@@ -61,7 +61,7 @@ class FishermanController extends Controller
             })
             ->orderByRaw("CASE fisher_type WHEN 'pemilik' THEN 1 WHEN 'nahkoda_jurumudi' THEN 2 WHEN 'abk' THEN 3 WHEN 'nelayan_tanpa_perahu' THEN 4 ELSE 5 END")
             ->orderBy('name')
-            ->paginate(15)
+            ->paginate($this->getPerPage($request))
             ->withQueryString();
 
         // Opsi label dan badge peran nelayan

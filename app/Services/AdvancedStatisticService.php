@@ -1326,4 +1326,646 @@ class AdvancedStatisticService
             'top_species' => $topSpecies,
         ];
     }
+
+    /**
+     * Engine komprehensif untuk Portal Publik Statistik & Analisis CPUE (/statistik).
+     *
+     * Menghitung rasio baku CPUE (kg/jam & kg/trip), agregasi bulanan,
+     * matriks per alat tangkap (ISSCFG), per spesies, dan tabel tabular terinci.
+     *
+     * @param  array<string, mixed>  $rawFilters
+     * @return array<string, mixed>
+     */
+    public function getPublicCpueDashboardData(array $rawFilters = []): array
+    {
+        $year = isset($rawFilters['tahun']) && $rawFilters['tahun'] !== '' ? (int) $rawFilters['tahun'] : (isset($rawFilters['year']) && $rawFilters['year'] !== '' ? (int) $rawFilters['year'] : null);
+        $month = isset($rawFilters['bulan']) && $rawFilters['bulan'] !== '' ? (int) $rawFilters['bulan'] : (isset($rawFilters['month']) && $rawFilters['month'] !== '' ? (int) $rawFilters['month'] : null);
+
+        $wppnriId = null;
+        $wppInput = $rawFilters['wppnri_id'] ?? ($rawFilters['wilayah'] ?? null);
+        if (! empty($wppInput)) {
+            if (is_numeric($wppInput)) {
+                $wppnriId = (int) $wppInput;
+            } else {
+                $wppnriId = DB::table('wppnri')->where('code', $wppInput)->value('id');
+            }
+        }
+
+        $landingSiteId = ! empty($rawFilters['landing_site_id']) ? (int) $rawFilters['landing_site_id'] : (! empty($rawFilters['site']) ? (int) $rawFilters['site'] : null);
+        $gearId = ! empty($rawFilters['fishing_gear_id']) ? (int) $rawFilters['fishing_gear_id'] : (! empty($rawFilters['gear_id']) ? (int) $rawFilters['gear_id'] : (! empty($rawFilters['gear']) ? (int) $rawFilters['gear'] : null));
+        $family = ! empty($rawFilters['family']) ? trim((string) $rawFilters['family']) : null;
+
+        $speciesId = null;
+        $speciesInput = $rawFilters['species_id'] ?? ($rawFilters['species'] ?? null);
+        if (! empty($speciesInput)) {
+            if (is_numeric($speciesInput)) {
+                $speciesId = (int) $speciesInput;
+            } else {
+                $speciesId = DB::table('species')
+                    ->where('fao_code', $speciesInput)
+                    ->orWhere('scientific_name', $speciesInput)
+                    ->orWhere('local_name_id', $speciesInput)
+                    ->value('id');
+            }
+        }
+
+        $normalizedFilters = [
+            'year' => $year,
+            'month' => $month,
+            'wppnri_id' => $wppnriId,
+            'landing_site_id' => $landingSiteId,
+            'gear_id' => $gearId,
+            'fishing_gear_id' => $gearId,
+            'family' => $family,
+            'species_id' => $speciesId,
+        ];
+
+        // 1. Base Query for Trips
+        $tripQuery = DB::table('fishing_trips')
+            ->leftJoin('landings', 'fishing_trips.id', '=', 'landings.fishing_trip_id');
+
+        if ($year) {
+            $tripQuery->whereYear('fishing_trips.departure_date', $year);
+        }
+        if ($month) {
+            $tripQuery->whereMonth('fishing_trips.departure_date', $month);
+        }
+        if ($wppnriId) {
+            $tripQuery->where('fishing_trips.wppnri_id', $wppnriId);
+        }
+        if ($landingSiteId) {
+            $tripQuery->where(function ($q) use ($landingSiteId) {
+                $q->where('fishing_trips.landing_site_id', $landingSiteId)
+                    ->orWhere('landings.landing_site_id', $landingSiteId);
+            });
+        }
+        if ($gearId) {
+            $tripQuery->where(function ($q) use ($gearId) {
+                $q->where('fishing_trips.primary_gear_id', $gearId)
+                    ->orWhereExists(function ($sub) use ($gearId) {
+                        $sub->select(DB::raw(1))->from('fishing_efforts')
+                            ->whereColumn('fishing_efforts.fishing_trip_id', 'fishing_trips.id')
+                            ->where('fishing_efforts.fishing_gear_id', $gearId);
+                    });
+            });
+        }
+        if ($speciesId) {
+            $tripQuery->whereExists(function ($sub) use ($speciesId) {
+                $sub->select(DB::raw(1))->from('catches')
+                    ->whereColumn('catches.fishing_trip_id', 'fishing_trips.id')
+                    ->where('catches.fish_species_id', $speciesId);
+            });
+        }
+        if ($family) {
+            $tripQuery->whereExists(function ($sub) use ($family) {
+                $sub->select(DB::raw(1))->from('catches')
+                    ->join('species', 'catches.fish_species_id', '=', 'species.id')
+                    ->whereColumn('catches.fishing_trip_id', 'fishing_trips.id')
+                    ->where('species.family', $family);
+            });
+        }
+
+        $totalTrips = (int) (clone $tripQuery)->distinct('fishing_trips.id')->count('fishing_trips.id');
+        $totalVessels = (int) (clone $tripQuery)->whereNotNull('fishing_trips.vessel_id')->distinct('fishing_trips.vessel_id')->count('fishing_trips.vessel_id');
+
+        // 2. Base Query for Catches (All catches tied to trips)
+        $catchQuery = DB::table('catches')
+            ->join('fishing_trips', 'catches.fishing_trip_id', '=', 'fishing_trips.id')
+            ->leftJoin('fishing_efforts', 'catches.fishing_effort_id', '=', 'fishing_efforts.id')
+            ->leftJoin('landings', 'fishing_trips.id', '=', 'landings.fishing_trip_id')
+            ->join('species', 'catches.fish_species_id', '=', 'species.id');
+
+        if ($year) {
+            $catchQuery->whereYear('fishing_trips.departure_date', $year);
+        }
+        if ($month) {
+            $catchQuery->whereMonth('fishing_trips.departure_date', $month);
+        }
+        if ($wppnriId) {
+            $catchQuery->where('fishing_trips.wppnri_id', $wppnriId);
+        }
+        if ($landingSiteId) {
+            $catchQuery->where(function ($q) use ($landingSiteId) {
+                $q->where('fishing_trips.landing_site_id', $landingSiteId)
+                    ->orWhere('landings.landing_site_id', $landingSiteId);
+            });
+        }
+        if ($gearId) {
+            $catchQuery->where(function ($q) use ($gearId) {
+                $q->where('fishing_efforts.fishing_gear_id', $gearId)
+                    ->orWhere(function ($sub) use ($gearId) {
+                        $sub->whereNull('catches.fishing_effort_id')
+                            ->where('fishing_trips.primary_gear_id', $gearId);
+                    });
+            });
+        }
+        if ($speciesId) {
+            $catchQuery->where('catches.fish_species_id', $speciesId);
+        }
+        if ($family) {
+            $catchQuery->where('species.family', $family);
+        }
+
+        $totalCatchKg = (float) (clone $catchQuery)->sum('catches.weight_kg');
+        $totalSpeciesCount = (int) (clone $catchQuery)->distinct('catches.fish_species_id')->count('catches.fish_species_id');
+
+        // 3. Base Query for Unduplicated Efforts
+        $effortQuery = DB::table('fishing_efforts')
+            ->join('fishing_trips', 'fishing_efforts.fishing_trip_id', '=', 'fishing_trips.id')
+            ->leftJoin('landings', 'fishing_trips.id', '=', 'landings.fishing_trip_id');
+
+        if ($year) {
+            $effortQuery->whereYear('fishing_trips.departure_date', $year);
+        }
+        if ($month) {
+            $effortQuery->whereMonth('fishing_trips.departure_date', $month);
+        }
+        if ($wppnriId) {
+            $effortQuery->where('fishing_trips.wppnri_id', $wppnriId);
+        }
+        if ($landingSiteId) {
+            $effortQuery->where(function ($q) use ($landingSiteId) {
+                $q->where('fishing_trips.landing_site_id', $landingSiteId)
+                    ->orWhere('landings.landing_site_id', $landingSiteId);
+            });
+        }
+        if ($gearId) {
+            $effortQuery->where('fishing_efforts.fishing_gear_id', $gearId);
+        }
+        if ($speciesId) {
+            $effortQuery->whereExists(function ($sub) use ($speciesId) {
+                $sub->select(DB::raw(1))->from('catches')
+                    ->whereColumn('catches.fishing_effort_id', 'fishing_efforts.id')
+                    ->where('catches.fish_species_id', $speciesId);
+            });
+        }
+        if ($family) {
+            $effortQuery->whereExists(function ($sub) use ($family) {
+                $sub->select(DB::raw(1))->from('catches')
+                    ->join('species', 'catches.fish_species_id', '=', 'species.id')
+                    ->whereColumn('catches.fishing_effort_id', 'fishing_efforts.id')
+                    ->where('species.family', $family);
+            });
+        }
+
+        $totalEffortHours = (float) (clone $effortQuery)->sum('fishing_efforts.duration_hours');
+        $totalSettings = (int) (clone $effortQuery)->count('fishing_efforts.id');
+
+        // Global CPUE
+        $cpueKgPerHour = $totalEffortHours > 0 ? round($totalCatchKg / $totalEffortHours, 2) : null;
+        $cpueKgPerTrip = $totalTrips > 0 ? round($totalCatchKg / $totalTrips, 2) : null;
+        $hasData = ($totalCatchKg > 0 || $totalTrips > 0);
+
+        // 4. Monthly Trend Data (Only for months that have data)
+        $monthSql = $this->getMonthSql('fishing_trips.departure_date');
+
+        $monthlyCatchMap = (clone $catchQuery)
+            ->select(DB::raw("{$monthSql} as m"), DB::raw('SUM(catches.weight_kg) as total_kg'))
+            ->groupBy('m')
+            ->pluck('total_kg', 'm')
+            ->map(fn ($v) => (float) $v)
+            ->all();
+
+        $monthlyEffortRows = (clone $effortQuery)
+            ->select(
+                DB::raw("{$monthSql} as m"),
+                DB::raw('SUM(fishing_efforts.duration_hours) as total_hours'),
+                DB::raw('COUNT(DISTINCT fishing_trips.id) as trips_count')
+            )
+            ->groupBy('m')
+            ->get()
+            ->keyBy('m');
+
+        $activeMonths = array_unique(array_merge(array_keys($monthlyCatchMap), array_keys($monthlyEffortRows->all())));
+        sort($activeMonths);
+
+        $monthNames = [
+            1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr',
+            5 => 'Mei', 6 => 'Jun', 7 => 'Jul', 8 => 'Agu',
+            9 => 'Sep', 10 => 'Okt', 11 => 'Nov', 12 => 'Des',
+        ];
+
+        $monthlyLabels = [];
+        $monthlyCatchData = [];
+        $monthlyEffortData = [];
+        $monthlyTripData = [];
+        $monthlyCpueHourData = [];
+        $monthlyCpueTripData = [];
+
+        foreach ($activeMonths as $m) {
+            $mInt = (int) $m;
+            if ($mInt < 1 || $mInt > 12) {
+                continue;
+            }
+            $label = $monthNames[$mInt] ?? 'Bln '.$mInt;
+            $kg = (float) ($monthlyCatchMap[$mInt] ?? 0.0);
+            $effortRow = $monthlyEffortRows[$mInt] ?? null;
+            $hrs = (float) ($effortRow?->total_hours ?? 0.0);
+            $trips = (int) ($effortRow?->trips_count ?? 0);
+
+            $cpueH = $hrs > 0 ? round($kg / $hrs, 2) : 0.0;
+            $cpueT = $trips > 0 ? round($kg / $trips, 2) : 0.0;
+
+            $monthlyLabels[] = $label;
+            $monthlyCatchData[] = $kg;
+            $monthlyEffortData[] = $hrs;
+            $monthlyTripData[] = $trips;
+            $monthlyCpueHourData[] = $cpueH;
+            $monthlyCpueTripData[] = $cpueT;
+        }
+
+        // Backward compatibility structures for existing views
+        $landingTrend = [
+            'labels' => $monthlyLabels,
+            'data' => $monthlyCatchData,
+        ];
+        $cpueTrend = [
+            'labels' => $monthlyLabels,
+            'data' => $monthlyCpueHourData,
+        ];
+        $monthlyCpue = [
+            'labels' => $monthlyLabels,
+            'catch_data' => $monthlyCatchData,
+            'effort_data' => $monthlyEffortData,
+            'trip_data' => $monthlyTripData,
+            'cpue_hour_data' => $monthlyCpueHourData,
+            'cpue_trip_data' => $monthlyCpueTripData,
+            'has_data' => count($monthlyLabels) > 0,
+        ];
+
+        // 5. CPUE per Fishing Gear Table
+        $gearsQuery = FishingGear::where('is_active', true);
+        if ($gearId) {
+            $gearsQuery->where('id', $gearId);
+        }
+        $availableGears = $gearsQuery->orderBy('name_id')->get();
+
+        $gearCpueTable = [];
+        $gearChartLabels = [];
+        $gearChartData = [];
+        $gearChartItems = [];
+
+        foreach ($availableGears as $g) {
+            $gearCatchQuery = clone $catchQuery;
+            $gearCatchQuery->where(function ($q) use ($g) {
+                $q->where('fishing_efforts.fishing_gear_id', $g->id)
+                    ->orWhere(function ($sub) use ($g) {
+                        $sub->whereNull('catches.fishing_effort_id')
+                            ->where('fishing_trips.primary_gear_id', $g->id);
+                    });
+            });
+            $cKg = (float) $gearCatchQuery->sum('catches.weight_kg');
+
+            $gearEffortQuery = clone $effortQuery;
+            $gearEffortQuery->where('fishing_efforts.fishing_gear_id', $g->id);
+            $eHrs = (float) $gearEffortQuery->sum('fishing_efforts.duration_hours');
+            $eSettings = (int) $gearEffortQuery->count('fishing_efforts.id');
+
+            $gearTrips = (int) (clone $tripQuery)->where(function ($q) use ($g) {
+                $q->where('fishing_trips.primary_gear_id', $g->id)
+                    ->orWhereExists(function ($sub) use ($g) {
+                        $sub->select(DB::raw(1))->from('fishing_efforts')
+                            ->whereColumn('fishing_efforts.fishing_trip_id', 'fishing_trips.id')
+                            ->where('fishing_efforts.fishing_gear_id', $g->id);
+                    });
+            })->distinct('fishing_trips.id')->count('fishing_trips.id');
+
+            // Skip if no catch and no effort
+            if ($cKg <= 0 && $eHrs <= 0 && $gearTrips <= 0) {
+                continue;
+            }
+
+            $cpueH = $eHrs > 0 ? round($cKg / $eHrs, 2) : 0.0;
+            $cpueT = $gearTrips > 0 ? round($cKg / $gearTrips, 2) : 0.0;
+            $pct = $totalCatchKg > 0 ? round(($cKg / $totalCatchKg) * 100, 1) : 0.0;
+
+            $item = [
+                'gear_id' => $g->id,
+                'gear_name' => $g->name_id ?: $g->name,
+                'isscfg_code' => $g->isscfg_code ?: '-',
+                'category' => $g->category,
+                'catch_kg' => $cKg,
+                'catch_ton' => round($cKg / 1000, 2),
+                'percent' => $pct,
+                'effort_hours' => $eHrs,
+                'settings' => $eSettings,
+                'trips' => $gearTrips,
+                'cpue_hour' => $cpueH,
+                'cpue_trip' => $cpueT,
+            ];
+
+            $gearCpueTable[] = $item;
+            $gearChartLabels[] = $item['gear_name'];
+            $gearChartData[] = $cKg;
+            $gearChartItems[] = [
+                'gear_id' => $g->id,
+                'gear_name' => $item['gear_name'],
+                'catch_kg' => $cKg,
+            ];
+        }
+
+        usort($gearCpueTable, fn ($a, $b) => $b['catch_kg'] <=> $a['catch_kg']);
+
+        $catchByGear = [
+            'labels' => $gearChartLabels,
+            'data' => $gearChartData,
+            'items' => $gearChartItems,
+            'unit' => 'kg',
+        ];
+
+        // 6. CPUE per Species Table & Catch Composition
+        $speciesQuery = clone $catchQuery;
+        $speciesRows = $speciesQuery->select(
+            'species.id as species_id',
+            'species.local_name_id',
+            'species.scientific_name',
+            'species.fao_code',
+            'species.family',
+            DB::raw('SUM(catches.weight_kg) as total_weight_kg'),
+            DB::raw('COUNT(catches.id) as catch_records')
+        )
+            ->groupBy('species.id', 'species.local_name_id', 'species.scientific_name', 'species.fao_code', 'species.family')
+            ->orderByDesc('total_weight_kg')
+            ->limit(20)
+            ->get();
+
+        $speciesCpueTable = [];
+        $speciesChartLabels = [];
+        $speciesChartData = [];
+
+        foreach ($speciesRows as $sp) {
+            $w = (float) $sp->total_weight_kg;
+            $name = ! empty($sp->local_name_id) ? $sp->local_name_id : $sp->scientific_name;
+            $pct = $totalCatchKg > 0 ? round(($w / $totalCatchKg) * 100, 1) : 0.0;
+
+            // Effort associated with this species
+            $spEffortHrs = (float) (clone $effortQuery)->whereExists(function ($sub) use ($sp) {
+                $sub->select(DB::raw(1))->from('catches')
+                    ->whereColumn('catches.fishing_effort_id', 'fishing_efforts.id')
+                    ->where('catches.fish_species_id', $sp->species_id);
+            })->sum('fishing_efforts.duration_hours');
+
+            $spTrips = (int) (clone $tripQuery)->whereExists(function ($sub) use ($sp) {
+                $sub->select(DB::raw(1))->from('catches')
+                    ->whereColumn('catches.fishing_trip_id', 'fishing_trips.id')
+                    ->where('catches.fish_species_id', $sp->species_id);
+            })->distinct('fishing_trips.id')->count('fishing_trips.id');
+
+            $cpueH = $spEffortHrs > 0 ? round($w / $spEffortHrs, 2) : 0.0;
+            $cpueT = $spTrips > 0 ? round($w / $spTrips, 2) : 0.0;
+
+            $speciesCpueTable[] = [
+                'species_id' => $sp->species_id,
+                'species_name' => $name,
+                'scientific_name' => $sp->scientific_name,
+                'fao_code' => $sp->fao_code,
+                'family' => $sp->family ?: '-',
+                'catch_kg' => $w,
+                'catch_ton' => round($w / 1000, 2),
+                'percent' => $pct,
+                'effort_hours' => $spEffortHrs,
+                'trips' => $spTrips,
+                'cpue_hour' => $cpueH,
+                'cpue_trip' => $cpueT,
+                'records' => $sp->catch_records,
+            ];
+
+            if (count($speciesChartLabels) < 10) {
+                $speciesChartLabels[] = $name;
+                $speciesChartData[] = $w;
+            }
+        }
+
+        $speciesCatch = [
+            'labels' => $speciesChartLabels,
+            'data' => $speciesChartData,
+        ];
+
+        // 7. Detailed Statistics Matrix (Tahun, Bulan, Gear, Species, Catch, Effort, CPUE)
+        $detailQuery = DB::table('catches')
+            ->join('fishing_trips', 'catches.fishing_trip_id', '=', 'fishing_trips.id')
+            ->leftJoin('fishing_efforts', 'catches.fishing_effort_id', '=', 'fishing_efforts.id')
+            ->leftJoin('fishing_gears', function ($join) {
+                $join->on('fishing_efforts.fishing_gear_id', '=', 'fishing_gears.id')
+                    ->orWhere(function ($sub) {
+                        $sub->whereNull('catches.fishing_effort_id')
+                            ->whereColumn('fishing_trips.primary_gear_id', 'fishing_gears.id');
+                    });
+            })
+            ->join('species', 'catches.fish_species_id', '=', 'species.id')
+            ->leftJoin('landings', 'fishing_trips.id', '=', 'landings.fishing_trip_id');
+
+        if ($year) {
+            $detailQuery->whereYear('fishing_trips.departure_date', $year);
+        }
+        if ($month) {
+            $detailQuery->whereMonth('fishing_trips.departure_date', $month);
+        }
+        if ($wppnriId) {
+            $detailQuery->where('fishing_trips.wppnri_id', $wppnriId);
+        }
+        if ($landingSiteId) {
+            $detailQuery->where(function ($q) use ($landingSiteId) {
+                $q->where('fishing_trips.landing_site_id', $landingSiteId)
+                    ->orWhere('landings.landing_site_id', $landingSiteId);
+            });
+        }
+        if ($gearId) {
+            $detailQuery->where(function ($q) use ($gearId) {
+                $q->where('fishing_efforts.fishing_gear_id', $gearId)
+                    ->orWhere(function ($sub) use ($gearId) {
+                        $sub->whereNull('catches.fishing_effort_id')
+                            ->where('fishing_trips.primary_gear_id', $gearId);
+                    });
+            });
+        }
+        if ($speciesId) {
+            $detailQuery->where('catches.fish_species_id', $speciesId);
+        }
+        if ($family) {
+            $detailQuery->where('species.family', $family);
+        }
+
+        $yearSql = DB::connection()->getDriverName() === 'sqlite' ? "CAST(strftime('%Y', fishing_trips.departure_date) AS INTEGER)" : 'YEAR(fishing_trips.departure_date)';
+        $detailedRows = $detailQuery->select(
+            DB::raw("{$yearSql} as year"),
+            DB::raw("{$monthSql} as month"),
+            'fishing_gears.name_id as gear_name',
+            'fishing_gears.isscfg_code',
+            'species.local_name_id as species_name',
+            'species.scientific_name',
+            'species.fao_code',
+            DB::raw('SUM(catches.weight_kg) as catch_kg'),
+            DB::raw('COUNT(DISTINCT fishing_trips.id) as trips_count'),
+            DB::raw('COALESCE(SUM(DISTINCT fishing_efforts.duration_hours), 0) as effort_hours')
+        )
+            ->groupBy(
+                'year', 'month',
+                'fishing_gears.name_id', 'fishing_gears.isscfg_code',
+                'species.local_name_id', 'species.scientific_name', 'species.fao_code'
+            )
+            ->orderByDesc('year')
+            ->orderBy('month')
+            ->orderBy('gear_name')
+            ->orderByDesc('catch_kg')
+            ->limit(150)
+            ->get();
+
+        $monthLongNames = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
+        ];
+
+        $detailedTable = [];
+        foreach ($detailedRows as $row) {
+            $cKg = (float) $row->catch_kg;
+            $eHrs = (float) $row->effort_hours;
+            $tCount = (int) $row->trips_count;
+            $cpueH = $eHrs > 0 ? round($cKg / $eHrs, 2) : 0.0;
+            $cpueT = $tCount > 0 ? round($cKg / $tCount, 2) : 0.0;
+
+            $detailedTable[] = [
+                'year' => (int) $row->year,
+                'month' => (int) $row->month,
+                'month_name' => $monthLongNames[(int) $row->month] ?? 'Bulan '.(int) $row->month,
+                'gear_name' => $row->gear_name ?: 'Alat Tangkap Umum',
+                'isscfg_code' => $row->isscfg_code ?: '-',
+                'species_name' => $row->species_name ?: $row->scientific_name,
+                'scientific_name' => $row->scientific_name,
+                'fao_code' => $row->fao_code ?: '-',
+                'catch_kg' => $cKg,
+                'effort_hours' => $eHrs,
+                'trips_count' => $tCount,
+                'cpue_hour' => $cpueH,
+                'cpue_trip' => $cpueT,
+            ];
+        }
+
+        // 8. Length Frequency & Catch by WPP
+        $lengthFrequency = $this->getLengthFrequency($normalizedFilters);
+        $catchByWpp = $this->getCatchByWpp($normalizedFilters);
+
+        // 9. GIS Fishing Ground & Locations
+        $mapQuery = DB::table('fishing_efforts')
+            ->join('fishing_trips', 'fishing_efforts.fishing_trip_id', '=', 'fishing_trips.id')
+            ->leftJoin('fishing_gears', 'fishing_efforts.fishing_gear_id', '=', 'fishing_gears.id')
+            ->leftJoin('wppnri', 'fishing_trips.wppnri_id', '=', 'wppnri.id')
+            ->leftJoin('landings', 'fishing_trips.id', '=', 'landings.fishing_trip_id')
+            ->whereNotNull('fishing_efforts.latitude_setting')
+            ->whereNotNull('fishing_efforts.longitude_setting')
+            ->whereBetween('fishing_efforts.latitude_setting', [-90, 90])
+            ->whereBetween('fishing_efforts.longitude_setting', [-180, 180])
+            ->where('fishing_efforts.latitude_setting', '!=', 0)
+            ->where('fishing_efforts.longitude_setting', '!=', 0);
+
+        if ($year) {
+            $mapQuery->whereYear('fishing_trips.departure_date', $year);
+        }
+        if ($month) {
+            $mapQuery->whereMonth('fishing_trips.departure_date', $month);
+        }
+        if ($wppnriId) {
+            $mapQuery->where('fishing_trips.wppnri_id', $wppnriId);
+        }
+        if ($landingSiteId) {
+            $mapQuery->where(function ($q) use ($landingSiteId) {
+                $q->where('fishing_trips.landing_site_id', $landingSiteId)
+                    ->orWhere('landings.landing_site_id', $landingSiteId);
+            });
+        }
+        if ($gearId) {
+            $mapQuery->where('fishing_efforts.fishing_gear_id', $gearId);
+        }
+        if ($speciesId) {
+            $mapQuery->whereExists(function ($sub) use ($speciesId) {
+                $sub->select(DB::raw(1))->from('catches')
+                    ->whereColumn('catches.fishing_effort_id', 'fishing_efforts.id')
+                    ->where('catches.fish_species_id', $speciesId);
+            });
+        }
+        if ($family) {
+            $mapQuery->whereExists(function ($sub) use ($family) {
+                $sub->select(DB::raw(1))->from('catches')
+                    ->join('species', 'catches.fish_species_id', '=', 'species.id')
+                    ->whereColumn('catches.fishing_effort_id', 'fishing_efforts.id')
+                    ->where('species.family', $family);
+            });
+        }
+
+        $catchSubquery = 'SELECT COALESCE(SUM(c.weight_kg), 0) FROM catches c WHERE c.fishing_effort_id = fishing_efforts.id';
+        if ($speciesId) {
+            $catchSubquery .= ' AND c.fish_species_id = '.(int) $speciesId;
+        }
+
+        $mapData = $mapQuery->select(
+            'fishing_efforts.id as effort_id',
+            'fishing_efforts.latitude_setting as latitude',
+            'fishing_efforts.longitude_setting as longitude',
+            'fishing_trips.id as trip_id',
+            'fishing_trips.trip_number',
+            'fishing_gears.name_id as gear_name',
+            'wppnri.code as wpp_code',
+            'wppnri.name as wpp_name',
+            DB::raw('('.$catchSubquery.') as total_catch')
+        )
+            ->orderBy('fishing_efforts.id')
+            ->get();
+
+        $fishingGround = ['points' => []];
+        $fishingLocations = [];
+        foreach ($mapData as $data) {
+            $point = [
+                'effort_id' => $data->effort_id,
+                'latitude' => (float) $data->latitude,
+                'longitude' => (float) $data->longitude,
+                'lat' => (float) $data->latitude,
+                'lng' => (float) $data->longitude,
+                'trip_id' => $data->trip_id,
+                'trip_number' => $data->trip_number,
+                'gear_name' => $data->gear_name ?? '-',
+                'wpp_code' => ! empty($data->wpp_code) ? ('WPP-'.$data->wpp_code) : '-',
+                'wpp_name' => $data->wpp_name ?? '-',
+                'catch_kg' => (float) $data->total_catch,
+                'catch' => (float) $data->total_catch,
+                'name' => 'Lokasi Fishing Effort',
+            ];
+            $fishingGround['points'][] = $point;
+            $fishingLocations[] = $point;
+        }
+
+        return [
+            'trip_count' => $totalTrips,
+            'vessel_count' => $totalVessels,
+            'catch_weight' => $totalCatchKg,
+            'catch_ton' => round($totalCatchKg / 1000, 2),
+            'species_count' => $totalSpeciesCount,
+            'effort_hours' => $totalEffortHours,
+            'setting_count' => $totalSettings,
+            'cpue_kg_per_hour' => $cpueKgPerHour,
+            'cpue_kg_per_trip' => $cpueKgPerTrip,
+            'has_data' => $hasData,
+            'filters' => [
+                'tahun' => $year,
+                'bulan' => $month,
+                'wppnri_id' => $wppnriId,
+                'landing_site_id' => $landingSiteId,
+                'fishing_gear_id' => $gearId,
+                'family' => $family,
+                'species_id' => $speciesId,
+            ],
+            'landing_trend' => $landingTrend,
+            'cpue_trend' => $cpueTrend,
+            'monthly_cpue' => $monthlyCpue,
+            'species_catch' => $speciesCatch,
+            'length_frequency' => $lengthFrequency,
+            'catch_by_gear' => $catchByGear,
+            'catch_by_wpp' => $catchByWpp,
+            'gear_cpue_table' => $gearCpueTable,
+            'species_cpue_table' => $speciesCpueTable,
+            'detailed_table' => $detailedTable,
+            'fishing_ground' => $fishingGround,
+            'fishing_locations' => $fishingLocations,
+        ];
+    }
 }

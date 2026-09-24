@@ -19,19 +19,35 @@
 {{-- Alpine.js digunakan untuk toggle collapse --}}
 <aside
     x-data
-    :class="$store.sidebar.collapsed ? 'collapsed' : ''"
+    :class="{
+        'collapsed': $store.sidebar.collapsed,
+        'mobile-open': $store.sidebar.mobileOpen
+    }"
     class="sidebar"
     id="main-sidebar"
 >
-    {{-- Brand / Logo --}}
-    <div class="sidebar-brand">
-        <div class="sidebar-brand-icon">
-            <img src="{{ asset('Logo.png') }}" alt="Logo">
-        </div>
-        <div class="sidebar-brand-text">
-            <div>Sistem Perikanan</div>
-            <div class="text-xs font-normal text-ocean-400">Data & Statistik</div>
-        </div>
+    {{-- Brand / Logo & Mobile Close Button --}}
+    <div class="sidebar-header-wrapper">
+        <a href="{{ route('dashboard') }}" class="sidebar-brand group block no-underline">
+            <div class="sidebar-brand-icon">
+                <img src="{{ $currentOrganization?->logo_url ?? asset('Logo.png') }}" alt="Logo">
+            </div>
+            <div class="sidebar-brand-text">
+                <div>Sistem Perikanan</div>
+                <div class="text-xs font-normal text-ocean-400">Data & Statistik</div>
+            </div>
+        </a>
+
+        {{-- Tombol Tutup Sidebar di Mobile (X) --}}
+        <button type="button"
+                @click="$store.sidebar.mobileOpen = false"
+                class="sidebar-close-btn md:hidden"
+                title="{{ __('Tutup Menu') }}"
+                aria-label="{{ __('Tutup Menu') }}">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
     </div>
 
     {{-- Menu Utama: Dashboard --}}
@@ -208,24 +224,39 @@
                 <span class="sidebar-link-text">{{ __('Manajemen Pengguna') }}</span>
             </a>
         </div>
+
+        {{-- Pengaturan Sistem --}}
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">{{ __('Pengaturan') }}</div>
+            <a href="{{ route('settings.organization.edit') }}" class="sidebar-link {{ request()->routeIs('settings.organization.*') ? 'active' : '' }}">
+                <span class="sidebar-link-icon">🏢</span>
+                <span class="sidebar-link-text">{{ __('Identitas Organisasi') }}</span>
+            </a>
+        </div>
     @endif
 
-    {{-- Pengaturan --}}
-    <div class="sidebar-section" style="margin-top: auto; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 0.5rem;">
+    {{-- Profil Akun --}}
+    <div class="sidebar-section" style="margin-top: auto; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 0.5rem; padding-bottom: 2rem;">
         <a href="{{ route('profile.edit') }}"
            class="sidebar-link {{ request()->routeIs('profile.*') ? 'active' : '' }}">
             <span class="sidebar-link-icon">⚙️</span>
-            <span class="sidebar-link-text">{{ __('Pengaturan') }}</span>
+            <span class="sidebar-link-text">{{ __('Profil Akun') }}</span>
         </a>
     </div>
 </aside>
 
 {{-- Mobile overlay --}}
 <div x-data
+     x-cloak
      x-show="$store.sidebar.mobileOpen"
-     x-transition.opacity
+     x-transition:enter="transition-opacity ease-out duration-300"
+     x-transition:enter-start="opacity-0"
+     x-transition:enter-end="opacity-100"
+     x-transition:leave="transition-opacity ease-in duration-200"
+     x-transition:leave-start="opacity-100"
+     x-transition:leave-end="opacity-0"
      @click="$store.sidebar.mobileOpen = false"
      class="sidebar-overlay"
      :class="$store.sidebar.mobileOpen ? 'active' : ''"
-     style="display: none;">
+     aria-hidden="true">
 </div>

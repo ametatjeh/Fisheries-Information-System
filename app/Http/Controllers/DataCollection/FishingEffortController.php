@@ -69,7 +69,7 @@ class FishingEffortController extends Controller
             })
             ->orderByDesc('setting_date')
             ->orderByDesc('id')
-            ->paginate(15)
+            ->paginate($this->getPerPage($request))
             ->withQueryString();
 
         // Data referensi untuk dropdown filter & modal

@@ -33,7 +33,7 @@ class CatchEstimationController extends Controller
             'status' => $request->query('status'),
         ];
 
-        $estimations = $this->estimationService->getPaginatedEstimations($filters, 15);
+        $estimations = $this->estimationService->getPaginatedEstimations($filters, $this->getPerPage($request));
 
         // Ringkasan metrik statistik hasil estimasi
         $allEstimations = CatchEstimation::all();

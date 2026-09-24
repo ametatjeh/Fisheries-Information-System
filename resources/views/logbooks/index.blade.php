@@ -367,12 +367,8 @@
                 </table>
             </div>
 
-            {{-- Pagination Links --}}
-            @if($logbooks->hasPages())
-                <div class="p-4 border-t border-slate-200 bg-slate-50">
-                    {{ $logbooks->links() }}
-                </div>
-            @endif
+            {{-- Pagination & Dropdown Baris Data --}}
+            <x-pagination :paginator="$logbooks" />
         </div>
 
         {{-- ======================================= --}}

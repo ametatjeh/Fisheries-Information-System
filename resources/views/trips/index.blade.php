@@ -379,12 +379,8 @@
                 </table>
             </div>
 
-            {{-- Pagination --}}
-            @if($trips->hasPages())
-                <div class="p-4 border-t border-gray-100">
-                    {{ $trips->links() }}
-                </div>
-            @endif
+            {{-- Pagination & Dropdown Baris Data --}}
+            <x-pagination :paginator="$trips" />
         </div>
 
         {{-- ================================================================= --}}

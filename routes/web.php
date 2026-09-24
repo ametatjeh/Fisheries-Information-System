@@ -34,6 +34,7 @@ use App\Http\Controllers\Master\WilayahController;
 use App\Http\Controllers\Output\GisController;
 use App\Http\Controllers\Output\ReportController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Settings\OrganizationSettingsController;
 use Illuminate\Support\Facades\Route;
 
 // Halaman Utama & Menu Landing Page Publik
@@ -320,6 +321,14 @@ Route::middleware('auth')->group(function () {
         Route::post('/', [UserController::class, 'store'])->name('store');
         Route::put('/{user}', [UserController::class, 'update'])->name('update');
         Route::delete('/{user}', [UserController::class, 'destroy'])->name('destroy');
+    });
+
+    // ==========================================
+    // 6. PENGATURAN SISTEM
+    // ==========================================
+    Route::middleware('role:super-admin|admin')->prefix('settings')->name('settings.')->group(function () {
+        Route::get('/organization', [OrganizationSettingsController::class, 'edit'])->name('organization.edit');
+        Route::put('/organization', [OrganizationSettingsController::class, 'update'])->name('organization.update');
     });
 });
 

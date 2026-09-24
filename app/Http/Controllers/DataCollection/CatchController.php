@@ -77,7 +77,7 @@ class CatchController extends Controller
                 $q->where('fish_species_id', $fsId);
             })
             ->orderByDesc('id')
-            ->paginate(15)
+            ->paginate($this->getPerPage($request))
             ->withQueryString();
 
         // Data master untuk filter & modal formulir

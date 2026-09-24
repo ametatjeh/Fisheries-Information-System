@@ -43,7 +43,7 @@ class FishingGroundController extends Controller
                 $q->where('is_active', $status === '1');
             })
             ->orderBy('name')
-            ->paginate(15)
+            ->paginate($this->getPerPage($request))
             ->withQueryString();
 
         $wppList = Wppnri::where('is_active', true)->orderBy('code')->get();

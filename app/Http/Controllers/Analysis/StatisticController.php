@@ -137,7 +137,7 @@ class StatisticController extends Controller
             ->orderByDesc('month')
             ->orderByDesc('total_volume_kg');
 
-        $monthlyStats = $statsQuery->paginate(10)->withQueryString();
+        $monthlyStats = $statsQuery->paginate($this->getPerPage($request))->withQueryString();
 
         $aggVolumeKg = MonthlyProductionStatistic::when($year, fn ($q) => $q->where('year', $year))->sum('total_volume_kg');
         $aggValueRp = MonthlyProductionStatistic::when($year, fn ($q) => $q->where('year', $year))->sum('total_value_rp');

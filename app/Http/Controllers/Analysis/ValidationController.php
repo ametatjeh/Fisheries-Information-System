@@ -80,7 +80,7 @@ class ValidationController extends Controller
             WHEN validation_status = 'validated' THEN 4 
             ELSE 5 END")
             ->orderByDesc('id')
-            ->paginate(15)
+            ->paginate($this->getPerPage($request))
             ->withQueryString();
 
         // 10 log audit terbaru untuk visualisasi cepat
@@ -174,7 +174,7 @@ class ValidationController extends Controller
                     });
             })
             ->orderByDesc('created_at')
-            ->paginate(25)
+            ->paginate($this->getPerPage($request))
             ->withQueryString();
 
         return view('analysis.validation.logs', compact('logs'));

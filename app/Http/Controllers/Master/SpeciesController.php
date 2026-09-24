@@ -27,10 +27,7 @@ class SpeciesController extends Controller
         $filterIsscaap = $request->query('isscaap');
 
         // Batasi nilai per_page
-        $perPage = $request->integer('per_page', 25);
-        if (! in_array($perPage, [10, 25, 50, 100, 250, 500])) {
-            $perPage = 25;
-        }
+        $perPage = $this->getPerPage($request);
 
         // Ambil list unik ISSCAAP
         $isscaapList = Species::query()
@@ -81,6 +78,8 @@ class SpeciesController extends Controller
             ->orderBy('id')
             ->paginate($perPage)
             ->withQueryString();
+
+        session()->put('species_index_url', $request->fullUrl());
 
         return view('master.species.index', compact(
             'species',

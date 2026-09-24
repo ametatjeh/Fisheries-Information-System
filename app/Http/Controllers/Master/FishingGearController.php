@@ -23,10 +23,7 @@ class FishingGearController extends Controller
         $level = $request->query('level');
 
         // Validasi dan batasi nilai per_page
-        $perPage = $request->integer('per_page', 25);
-        if (! in_array($perPage, [10, 25, 50, 100, 250, 500])) {
-            $perPage = 25;
-        }
+        $perPage = $this->getPerPage($request);
 
         // Ringkasan jumlah alat tangkap
         $counts = [

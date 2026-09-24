@@ -38,6 +38,7 @@ class RoleSeeder extends Seeder
             'access.statistics',  // Statistik Perikanan
             'access.reports',     // Laporan & Ekspor
             'access.gis',         // GIS / Peta Perikanan
+            'manage.settings',    // Pengaturan Identitas Organisasi & Sistem
         ];
 
         foreach ($permissions as $permName) {
@@ -52,7 +53,7 @@ class RoleSeeder extends Seeder
         $superAdmin = Role::firstOrCreate(['name' => 'super-admin']);
         $superAdmin->syncPermissions($permissions);
 
-        // 2. ADMIN: Master Data, Statistik, Laporan, GIS
+        // 2. ADMIN: Master Data, Statistik, Laporan, GIS, Pengaturan
         $admin = Role::firstOrCreate(['name' => 'admin']);
         $admin->syncPermissions([
             'access.dashboard',
@@ -62,6 +63,7 @@ class RoleSeeder extends Seeder
             'access.statistics',
             'access.reports',
             'access.gis',
+            'manage.settings',
         ]);
 
         // 3. VERIFIKATOR: Validasi Data

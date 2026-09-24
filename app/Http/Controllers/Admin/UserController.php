@@ -43,7 +43,7 @@ class UserController extends Controller
                 $query->role($role);
             })
             ->latest('id')
-            ->paginate(15)
+            ->paginate($this->getPerPage($request))
             ->withQueryString();
 
         // Daftar peran resmi sistem

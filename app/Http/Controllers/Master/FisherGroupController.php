@@ -49,7 +49,7 @@ class FisherGroupController extends Controller
                 $q->where('regency_id', $r);
             })
             ->orderBy('code')
-            ->paginate(15)
+            ->paginate($this->getPerPage($request))
             ->withQueryString();
 
         // Data wilayah untuk dropdown filter & modal form

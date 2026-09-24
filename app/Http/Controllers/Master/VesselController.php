@@ -70,7 +70,7 @@ class VesselController extends Controller
                 $q->where('is_active', $status === '1');
             })
             ->orderByDesc('gross_tonnage')
-            ->paginate(15)
+            ->paginate($this->getPerPage($request))
             ->withQueryString();
 
         // Opsi label tipe armada kapal

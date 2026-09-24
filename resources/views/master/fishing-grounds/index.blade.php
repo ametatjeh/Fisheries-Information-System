@@ -18,24 +18,7 @@
         }
     }" class="space-y-6">
 
-        {{-- Alerts --}}
-        @if(session('success'))
-            <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <span>✅</span>
-                    <span>{{ session('success') }}</span>
-                </div>
-            </div>
-        @endif
 
-        @if(session('error'))
-            <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <span>⚠️</span>
-                    <span>{{ session('error') }}</span>
-                </div>
-            </div>
-        @endif
 
         @if($errors->any())
             <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm">
@@ -127,15 +110,15 @@
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full text-xs text-left">
-                    <thead class="bg-slate-50 text-slate-700 uppercase font-semibold text-[11px] border-b border-slate-200">
+                    <thead class="bg-ocean-900 text-white uppercase font-semibold text-[11px] border-b border-ocean-950">
                         <tr>
-                            <th class="px-4 py-3.5">{{ __('Kode') }}</th>
-                            <th class="px-4 py-3.5">{{ __('Nama Daerah Penangkapan') }}</th>
-                            <th class="px-4 py-3.5">{{ __('WPP-NRI') }}</th>
-                            <th class="px-4 py-3.5">{{ __('Koordinat Titik') }}</th>
-                            <th class="px-4 py-3.5 text-center">{{ __('Trip Terkait') }}</th>
-                            <th class="px-4 py-3.5 text-center">{{ __('Status') }}</th>
-                            <th class="px-4 py-3.5 text-right">{{ __('Aksi') }}</th>
+                            <th class="px-4 py-3.5 text-white">{{ __('Kode') }}</th>
+                            <th class="px-4 py-3.5 text-white">{{ __('Nama Daerah Penangkapan') }}</th>
+                            <th class="px-4 py-3.5 text-white">{{ __('WPP-NRI') }}</th>
+                            <th class="px-4 py-3.5 text-white">{{ __('Koordinat Titik') }}</th>
+                            <th class="px-4 py-3.5 text-center text-white">{{ __('Trip Terkait') }}</th>
+                            <th class="px-4 py-3.5 text-center text-white">{{ __('Status') }}</th>
+                            <th class="px-4 py-3.5 text-right text-white">{{ __('Aksi') }}</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -211,11 +194,8 @@
                 </table>
             </div>
 
-            @if($grounds->hasPages())
-                <div class="p-4 border-t border-slate-100">
-                    {{ $grounds->links() }}
-                </div>
-            @endif
+            {{-- Pagination & Dropdown Baris Data --}}
+            <x-pagination :paginator="$grounds" />
         </div>
 
         {{-- Create Modal --}}

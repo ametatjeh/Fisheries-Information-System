@@ -55,7 +55,7 @@ class ReportController extends Controller
 
         $speciesList = Species::whereIn('id', $speciesIds)->orderBy('local_name_id')->get();
 
-        $reportData = $this->getReportData($type, $filters, paginate: true);
+        $reportData = $this->getReportData($type, $filters, paginate: true, limit: $this->getPerPage($request));
 
         return view('reports.index', array_merge([
             'type' => $type,

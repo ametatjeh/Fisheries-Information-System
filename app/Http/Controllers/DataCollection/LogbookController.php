@@ -65,7 +65,7 @@ class LogbookController extends Controller
             ->orderByDesc('log_date')
             ->orderByDesc('log_time')
             ->orderByDesc('id')
-            ->paginate(15)
+            ->paginate($this->getPerPage($request))
             ->withQueryString();
 
         // Data pendukung untuk filter & modal form

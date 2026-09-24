@@ -322,13 +322,13 @@
             </div>
         </div>
 
-        {{-- Kop Laporan Dinas --}}
+        {{-- Kop Laporan Organisasi --}}
         <div class="kop-header">
             <div class="kop-logo">
-                <img src="{{ asset('Logo.png') }}" alt="Logo" style="width: 48px; height: 48px; object-fit: contain;">
+                <img src="{{ $currentOrganization?->logo_url ?? asset('Logo.png') }}" alt="Logo" style="width: 48px; height: 48px; object-fit: contain;">
             </div>
             <div class="kop-text">
-                <div class="kop-subinstansi">Sistem Informasi & Statistik Perikanan Tangkap</div>
+                <div class="kop-subinstansi">{{ $currentOrganization?->organization_name ?? 'Sistem Informasi & Statistik Perikanan Tangkap' }}</div>
                 <div class="kop-app">Pangkalan Data Terintegrasi Hasil Tangkapan, Upaya, Pendaratan, & Biologi Ikan</div>
             </div>
         </div>

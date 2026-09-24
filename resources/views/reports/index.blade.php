@@ -1055,11 +1055,9 @@
                 @endif
             </div>
 
-            {{-- Pagination Links --}}
-            @if($records instanceof \Illuminate\Pagination\LengthAwarePaginator && $records->hasPages())
-                <div class="p-4 border-t border-slate-100 bg-slate-50/50">
-                    {{ $records->links() }}
-                </div>
+            {{-- Pagination & Dropdown Baris Data --}}
+            @if($records instanceof \Illuminate\Pagination\LengthAwarePaginator)
+                <x-pagination :paginator="$records" />
             @endif
         </div>
     </div>

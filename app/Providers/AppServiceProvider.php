@@ -2,10 +2,12 @@
 
 namespace App\Providers;
 
+use App\Models\OrganizationSetting;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -40,6 +42,17 @@ class AppServiceProvider extends ServiceProvider
                     'status' => 429,
                 ], 429);
             });
+        });
+
+        // Bagikan identitas organisasi ke seluruh views Blade secara global
+        view()->composer('*', function ($view) {
+            try {
+                if (Schema::hasTable('application_settings')) {
+                    $view->with('currentOrganization', OrganizationSetting::getSettings());
+                }
+            } catch (\Throwable) {
+                // Jangan gagalkan bootstrap jika database belum siap
+            }
         });
     }
 }

@@ -76,6 +76,18 @@
                 100% { transform: scale(1.15) translate(15px, 15px); opacity: 1; }
             }
 
+            /* Disable background 3D canvas and glow animation on mobile (< 768px) */
+            @media (max-width: 767.98px) {
+                #vanta-background {
+                    display: none !important;
+                }
+                .ambient-glow-1,
+                .ambient-glow-2 {
+                    display: none !important;
+                    animation: none !important;
+                }
+            }
+
             /* Viewport Layout */
             .login-wrapper {
                 position: relative;
@@ -152,7 +164,7 @@
                 justify-content: center;
                 width: 78px;
                 height: 78px;
-                border-radius: 22px;
+                border-radius: 5px;
                 background: rgba(255, 255, 255, 0.08);
                 border: 1px solid rgba(255, 255, 255, 0.2);
                 -webkit-backdrop-filter: blur(12px);
@@ -195,15 +207,17 @@
             }
 
             /* Submit Button with Shimmer */
+            /* Glasses Glassmorphism Submit Button with dynamic hover glow */
             .btn-submit {
                 position: relative;
                 width: 100%;
                 height: 48px;
-                background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 50%, #06b6d4 100%);
-                background-size: 200% auto;
+                background: linear-gradient(135deg, rgba(2, 132, 199, 0.5) 0%, rgba(14, 165, 233, 0.35) 50%, rgba(6, 182, 212, 0.5) 100%);
+                -webkit-backdrop-filter: blur(20px);
+                backdrop-filter: blur(20px);
                 color: #ffffff;
-                border: 1px solid rgba(255, 255, 255, 0.2);
-                border-radius: 12px;
+                border: 1px solid rgba(255, 255, 255, 0.35);
+                border-radius: 14px;
                 font-size: 14.5px;
                 font-weight: 700;
                 letter-spacing: -0.01em;
@@ -212,8 +226,8 @@
                 align-items: center;
                 justify-content: center;
                 gap: 8px;
-                box-shadow: 0 8px 24px var(--primary-glow);
-                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: 0 10px 25px -5px rgba(2, 132, 199, 0.45), inset 0 1px 1px 0 rgba(255, 255, 255, 0.5);
+                transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
                 overflow: hidden;
             }
 
@@ -221,24 +235,72 @@
                 content: '';
                 position: absolute;
                 top: 0;
-                left: -100%;
+                left: -120%;
                 width: 100%;
                 height: 100%;
-                background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-                transition: 0.5s;
+                background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+                transition: 0.6s ease;
             }
 
             .btn-submit:hover {
-                background-position: right center;
-                transform: translateY(-2px);
-                box-shadow: 0 12px 30px rgba(14, 165, 233, 0.55);
+                transform: translateY(-2.5px) scale(1.015);
+                background: linear-gradient(135deg, rgba(2, 132, 199, 0.72) 0%, rgba(14, 165, 233, 0.55) 50%, rgba(6, 182, 212, 0.72) 100%);
+                border-color: rgba(255, 255, 255, 0.65);
+                box-shadow: 0 18px 36px -6px rgba(14, 165, 233, 0.65), 0 0 24px rgba(6, 182, 212, 0.45), inset 0 1px 2px 0 rgba(255, 255, 255, 0.75);
+                color: #ffffff;
             }
 
             .btn-submit:hover::before {
-                left: 100%;
+                left: 120%;
             }
 
             .btn-submit:active {
+                transform: translateY(0) scale(0.98);
+                box-shadow: 0 6px 18px rgba(14, 165, 233, 0.4), inset 0 1px 1px 0 rgba(255, 255, 255, 0.3);
+            }
+
+            /* Glasses Glassmorphism Back Button */
+            .btn-glass-back {
+                background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.05) 100%);
+                -webkit-backdrop-filter: blur(16px);
+                backdrop-filter: blur(16px);
+                border: 1px solid rgba(255, 255, 255, 0.22);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+                transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+
+            .btn-glass-back:hover {
+                transform: translateY(-2px) scale(1.05);
+                background: linear-gradient(135deg, rgba(255, 255, 255, 0.22) 0%, rgba(14, 165, 233, 0.25) 100%);
+                border-color: rgba(56, 189, 248, 0.6);
+                color: #ffffff !important;
+                box-shadow: 0 8px 20px -4px rgba(14, 165, 233, 0.45), 0 0 15px rgba(56, 189, 248, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.6);
+            }
+
+            .btn-glass-back:active {
+                transform: translateY(0) scale(0.96);
+            }
+
+            /* Glasses Glassmorphism Secondary Button (Google SSO) */
+            .btn-glass-secondary {
+                background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+                -webkit-backdrop-filter: blur(16px);
+                backdrop-filter: blur(16px);
+                border: 1px solid rgba(255, 255, 255, 0.18);
+                box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+                color: #e2e8f0;
+                transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+
+            .btn-glass-secondary:hover {
+                transform: translateY(-2px) scale(1.015);
+                background: linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.08) 100%);
+                border-color: rgba(255, 255, 255, 0.4);
+                color: #ffffff;
+                box-shadow: 0 12px 28px -5px rgba(0, 0, 0, 0.5), 0 0 18px rgba(255, 255, 255, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.45);
+            }
+
+            .btn-glass-secondary:active {
                 transform: translateY(0) scale(0.98);
             }
         </style>
@@ -253,6 +315,16 @@
 
         <div class="login-wrapper">
             <div class="glass-card">
+                {{-- Tombol Kembali (Sudut Kiri Atas Card) --}}
+                <a href="{{ route('home') }}" 
+                   class="btn-glass-back absolute top-4 left-4 z-20 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-slate-200 hover:text-white text-xs font-semibold backdrop-blur-md transition-all shadow-sm group"
+                   title="{{ __('Kembali ke Beranda') }}">
+                    <svg class="w-3.5 h-3.5 transition-transform duration-300 group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    <span>{{ __('Kembali') }}</span>
+                </a>
+
                 {{-- Header / Logo --}}
                 <div class="brand-header">
                     <a href="/" class="inline-block">
@@ -281,6 +353,21 @@
         <script>
             let vantaEffect = null;
             function initVanta() {
+                // Khusus tampilan mobile (< 768px), jangan render efek animasi 3D Vanta
+                if (window.innerWidth < 768) {
+                    if (vantaEffect) {
+                        try {
+                            vantaEffect.destroy();
+                        } catch (e) {}
+                        vantaEffect = null;
+                    }
+                    return;
+                }
+
+                if (vantaEffect) {
+                    return;
+                }
+
                 if (window.VANTA && window.VANTA.WAVES) {
                     try {
                         vantaEffect = window.VANTA.WAVES({
@@ -305,6 +392,10 @@
             }
 
             document.addEventListener('DOMContentLoaded', () => {
+                initVanta();
+            });
+
+            window.addEventListener('resize', () => {
                 initVanta();
             });
 

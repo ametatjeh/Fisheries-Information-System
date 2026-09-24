@@ -30,26 +30,9 @@
     }" class="py-6">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
-            @if (session('success'))
-                <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center gap-2 shadow-sm">
-                    <span>✅</span>
-                    <span>{{ session('success') }}</span>
-                </div>
-            @endif
 
-            @if (session('error'))
-                <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center gap-2 shadow-sm">
-                    <span>⚠️</span>
-                    <span>{{ session('error') }}</span>
-                </div>
-            @endif
 
-            @if (session('info'))
-                <div class="p-4 rounded-xl bg-sky-50 border border-sky-200 text-sky-800 text-sm flex items-center gap-2 shadow-sm">
-                    <span>ℹ️</span>
-                    <span>{{ session('info') }}</span>
-                </div>
-            @endif
+
 
             <!-- 1. KPI Cards Ringkasan Estimasi -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -251,11 +234,8 @@
                     </table>
                 </div>
 
-                @if ($estimations->hasPages())
-                    <div class="p-4 border-t border-gray-100 dark:border-gray-700">
-                        {{ $estimations->links() }}
-                    </div>
-                @endif
+                {{-- Pagination & Dropdown Baris Data --}}
+                <x-pagination :paginator="$estimations" />
             </div>
 
         </div>

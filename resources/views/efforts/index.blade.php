@@ -406,12 +406,8 @@
                 </table>
             </div>
 
-            {{-- Pagination Links --}}
-            @if($efforts->hasPages())
-                <div class="p-4 border-t border-slate-200 bg-slate-50">
-                    {{ $efforts->links() }}
-                </div>
-            @endif
+            {{-- Pagination & Dropdown Baris Data --}}
+            <x-pagination :paginator="$efforts" />
         </div>
 
         {{-- ======================================= --}}

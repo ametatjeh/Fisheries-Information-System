@@ -664,11 +664,8 @@
             </table>
         </div>
 
-        @if ($monthlyStats->hasPages())
-            <div class="p-4 border-t border-slate-100">
-                {{ $monthlyStats->links() }}
-            </div>
-        @endif
+        {{-- Pagination & Dropdown Baris Data --}}
+        <x-pagination :paginator="$monthlyStats" />
     </div>
 
     {{-- Data Lineage & Methodology Guide --}}

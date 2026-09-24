@@ -395,12 +395,8 @@
                 </table>
             </div>
 
-            {{-- Pagination Links --}}
-            @if($landings->hasPages())
-                <div class="p-4 border-t border-slate-200 bg-slate-50">
-                    {{ $landings->links() }}
-                </div>
-            @endif
+            {{-- Pagination & Dropdown Baris Data --}}
+            <x-pagination :paginator="$landings" />
         </div>
 
         {{-- ======================================= --}}

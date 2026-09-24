@@ -1,1 +1,1 @@
-{{-- Home page content cleared --}}
+{{-- Home page content cleared per user request --}}

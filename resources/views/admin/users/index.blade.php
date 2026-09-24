@@ -76,34 +76,7 @@
             </div>
         </div>
 
-        {{-- Flash Messages Alert --}}
-        @if (session('success'))
-        <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center justify-between shadow-sm">
-            <div class="flex items-center gap-3">
-                <span class="text-xl">✅</span>
-                <span class="text-sm font-medium">{{ session('success') }}</span>
-            </div>
-            <button type="button" @click="$el.parentElement.remove()" class="text-emerald-500 hover:text-emerald-700 transition-colors">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-        </div>
-        @endif
 
-        @if (session('error'))
-        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 flex items-center justify-between shadow-sm">
-            <div class="flex items-center gap-3">
-                <span class="text-xl">⚠️</span>
-                <span class="text-sm font-medium">{{ session('error') }}</span>
-            </div>
-            <button type="button" @click="$el.parentElement.remove()" class="text-rose-500 hover:text-rose-700 transition-colors">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-        </div>
-        @endif
 
         @if ($errors->any())
         <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 shadow-sm">
@@ -354,12 +327,8 @@
                 </table>
             </div>
 
-            {{-- Pagination --}}
-            @if ($users->hasPages())
-            <div class="p-4 border-t border-gray-100 bg-white">
-                {{ $users->links() }}
-            </div>
-            @endif
+            {{-- Pagination & Dropdown Baris Data --}}
+            <x-pagination :paginator="$users" />
         </div>
 
         {{-- ============================================================== --}}

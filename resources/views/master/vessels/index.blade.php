@@ -211,16 +211,16 @@
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
-                        <tr class="bg-gray-50/80 border-b border-gray-100 text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                            <th class="py-3 px-4 w-12 text-center">#</th>
-                            <th class="py-3 px-4 w-40">{{ __('Tanda Selar / Registrasi') }}</th>
-                            <th class="py-3 px-4">{{ __('Nama Kapal & Klasifikasi') }}</th>
-                            <th class="py-3 px-4">{{ __('Pemilik Kapal') }}</th>
-                            <th class="py-3 px-4 text-center">{{ __('Tonase & Dimensi') }}</th>
-                            <th class="py-3 px-4">{{ __('Mesin Utama') }}</th>
-                            <th class="py-3 px-4">{{ __('Pangkalan & Alat Tangkap') }}</th>
-                            <th class="py-3 px-4 text-center w-24">{{ __('Status') }}</th>
-                            <th class="py-3 px-4 text-right w-24">{{ __('Aksi') }}</th>
+                        <tr class="bg-ocean-900 border-b border-ocean-950 text-xs font-semibold text-white uppercase tracking-wider">
+                            <th class="py-3.5 px-4 w-12 text-center text-white">#</th>
+                            <th class="py-3.5 px-4 w-40 text-white">{{ __('Tanda Selar / Registrasi') }}</th>
+                            <th class="py-3.5 px-4 text-white">{{ __('Nama Kapal & Klasifikasi') }}</th>
+                            <th class="py-3.5 px-4 text-white">{{ __('Pemilik Kapal') }}</th>
+                            <th class="py-3.5 px-4 text-center text-white">{{ __('Tonase & Dimensi') }}</th>
+                            <th class="py-3.5 px-4 text-white">{{ __('Mesin Utama') }}</th>
+                            <th class="py-3.5 px-4 text-white">{{ __('Pangkalan & Alat Tangkap') }}</th>
+                            <th class="py-3.5 px-4 text-center w-24 text-white">{{ __('Status') }}</th>
+                            <th class="py-3.5 px-4 text-right w-24 text-white">{{ __('Aksi') }}</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 text-sm text-gray-700">
@@ -358,12 +358,8 @@
                 </table>
             </div>
 
-            {{-- Pagination --}}
-            @if($vessels->hasPages())
-                <div class="p-4 border-t border-gray-100">
-                    {{ $vessels->links() }}
-                </div>
-            @endif
+            {{-- Pagination & Dropdown Baris Data --}}
+            <x-pagination :paginator="$vessels" />
         </div>
 
         {{-- ================================================================= --}}

@@ -82,7 +82,7 @@ class FishingTripController extends Controller
                 });
             })
             ->orderByDesc('departure_date')
-            ->paginate(15)
+            ->paginate($this->getPerPage($request))
             ->withQueryString();
 
         // Opsi Wilayah Pengelolaan Perikanan (WPPNRI)

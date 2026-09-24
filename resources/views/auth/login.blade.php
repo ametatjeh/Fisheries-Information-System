@@ -66,16 +66,16 @@
                     {{-- Toggle Password Button --}}
                     <button type="button"
                         @click="showPassword = !showPassword"
-                        class="absolute right-3.5 z-20 text-slate-400 hover:text-white transition-colors focus:outline-none"
+                        class="absolute right-3.5 z-20 p-1.5 rounded-lg text-slate-400 hover:text-cyan-300 hover:bg-white/10 hover:shadow-[0_0_12px_rgba(6,182,212,0.35)] hover:scale-110 active:scale-95 transition-all duration-200 focus:outline-none"
                         :title="showPassword ? 'Sembunyikan Kata Sandi' : 'Tampilkan Kata Sandi'">
                         <template x-if="!showPassword">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-5 h-5 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                             </svg>
                         </template>
                         <template x-if="showPassword">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-5 h-5 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
                             </svg>
                         </template>
@@ -85,7 +85,7 @@
 
             <!-- Remember Me & Forgot Password -->
             <div class="flex items-center justify-between text-xs pt-1">
-                <label for="remember_me" class="inline-flex items-center gap-2 cursor-pointer select-none text-slate-300">
+                <label for="remember_me" class="inline-flex items-center gap-2 cursor-pointer select-none text-slate-300 hover:text-white transition-colors">
                     <input id="remember_me"
                         type="checkbox"
                         class="w-4 h-4 rounded bg-slate-800 border-white/20 text-ocean-500 focus:ring-ocean-400 focus:ring-offset-0 focus:ring-1 cursor-pointer"
@@ -94,7 +94,7 @@
                 </label>
 
                 @if (Route::has('password.request'))
-                <a class="text-ocean-400 hover:text-ocean-300 hover:underline transition-colors" href="{{ route('password.request') }}">
+                <a class="text-ocean-400 hover:text-cyan-300 hover:underline hover:drop-shadow-[0_0_8px_rgba(6,182,212,0.6)] transition-all duration-200" href="{{ route('password.request') }}">
                     {{ __('Lupa kata sandi?') }}
                 </a>
                 @endif
@@ -102,23 +102,23 @@
 
             <!-- Submit Button -->
             <div class="pt-2">
-                <button type="submit" class="btn-submit">
+                <button type="submit" class="btn-submit group">
                     <span>{{ __('Masuk ke Sistem') }}</span>
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                     </svg>
                 </button>
             </div>
 
             <div class="relative my-4 flex items-center">
-                <div class="flex-grow border-t border-slate-700"></div>
+                <div class="flex-grow border-t border-slate-700/60"></div>
                 <span class="flex-shrink-0 mx-4 text-xs text-slate-400">Atau masuk dengan</span>
-                <div class="flex-grow border-t border-slate-700"></div>
+                <div class="flex-grow border-t border-slate-700/60"></div>
             </div>
 
             <div class="pt-2">
-                <a href="{{ route('auth.google.redirect') }}" class="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-slate-300 bg-slate-800/50 border border-slate-600 rounded-xl hover:bg-slate-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors">
-                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                <a href="{{ route('auth.google.redirect') }}" class="btn-glass-secondary w-full flex items-center justify-center gap-2.5 px-4 py-2.5 text-sm font-semibold rounded-xl group focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500/50">
+                    <svg class="w-5 h-5 transition-transform duration-300 group-hover:scale-110" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
                         <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
                         <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />

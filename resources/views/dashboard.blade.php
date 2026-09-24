@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between flex-wrap gap-2">
-            <div class="flex items-center gap-2">
+            <div class="hidden md:flex items-center gap-2">
                 <span class="text-xl">📊</span>
                 <span class="font-bold text-gray-800">{{ __('Dashboard Eksekutif & Analisis Terpadu') }}</span>
             </div>
@@ -23,7 +23,7 @@
                     <div class="max-w-2xl">
                         <div class="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm rounded-lg px-3 py-1 text-xs font-semibold text-ocean-100 mb-2">
                             <span>🏛️</span>
-                            <span>{{ __('Dinas Kelautan dan Perikanan Aceh') }}</span>
+                            <span>{{ $currentOrganization?->organization_name ?? __('Dinas Kelautan dan Perikanan Aceh') }}</span>
                         </div>
                         <h2 class="text-2xl font-bold tracking-tight">{{ __('Selamat Datang') }}, {{ Auth::user()->name }}! 👋</h2>
                         <p class="mt-1 text-ocean-100 text-sm leading-relaxed">

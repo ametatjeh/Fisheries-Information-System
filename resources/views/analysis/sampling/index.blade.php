@@ -434,11 +434,8 @@
                 </table>
             </div>
 
-            @if ($samples->hasPages())
-                <div class="p-4 border-t border-slate-100">
-                    {{ $samples->links() }}
-                </div>
-            @endif
+            {{-- Pagination & Dropdown Baris Data --}}
+            <x-pagination :paginator="$samples" />
         </div>
     @endif
 
@@ -565,11 +562,8 @@
                 </table>
             </div>
 
-            @if ($plans->hasPages())
-                <div class="p-4 border-t border-slate-100">
-                    {{ $plans->links() }}
-                </div>
-            @endif
+            {{-- Pagination & Dropdown Baris Data --}}
+            <x-pagination :paginator="$plans" />
         </div>
     @endif
 </div>
