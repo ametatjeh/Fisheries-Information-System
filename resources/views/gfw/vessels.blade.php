@@ -272,21 +272,21 @@
                 </div>
 
                 {{-- Flag Filter --}}
-                <div class="w-full sm:w-[75px] shrink-0">
+                <div class="w-full sm:w-[130px] shrink-0">
                     <label for="filter-flag" class="block text-[11px] font-semibold text-slate-600 mb-1 truncate">
                         {{ __('Flag') }}
                     </label>
-                    <select id="filter-flag" class="w-full h-9 text-xs px-1.5 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
-                        <option value="">Semua</option>
-                        <option value="IDN">IDN</option>
-                        <option value="MYS">MYS</option>
-                        <option value="THA">THA</option>
-                        <option value="VNM">VNM</option>
-                        <option value="CHN">CHN</option>
-                        <option value="TWN">TWN</option>
-                        <option value="PAN">PAN</option>
-                        <option value="LBR">LBR</option>
-                        <option value="SGP">SGP</option>
+                    <select id="filter-flag" class="w-full h-9 text-xs px-2 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
+                        <option value="">Semua Bendera</option>
+                        <option value="IDN">🇮🇩 IDN (Indonesia)</option>
+                        <option value="MYS">🇲🇾 MYS (Malaysia)</option>
+                        <option value="THA">🇹🇭 THA (Thailand)</option>
+                        <option value="VNM">🇻🇳 VNM (Vietnam)</option>
+                        <option value="CHN">🇨🇳 CHN (China)</option>
+                        <option value="TWN">🇹🇼 TWN (Taiwan)</option>
+                        <option value="PAN">🇵🇦 PAN (Panama)</option>
+                        <option value="LBR">🇱🇷 LBR (Liberia)</option>
+                        <option value="SGP">🇸🇬 SGP (Singapura)</option>
                     </select>
                 </div>
 
@@ -413,7 +413,7 @@
                                     <h4 id="detail-name" class="font-extrabold text-sm text-slate-800 break-words">-</h4>
                                     <p id="detail-activity" class="text-xs font-semibold text-indigo-600 mt-0.5">-</p>
                                 </div>
-                                <span id="detail-flag-badge" class="px-2 py-0.5 rounded text-xs font-mono font-bold bg-white border border-slate-200 text-slate-700 shrink-0">
+                                <span id="detail-flag-badge" class="shrink-0">
                                     -
                                 </span>
                             </div>
@@ -1035,7 +1035,14 @@
 
                     const uniqueFlags = [...new Set(vesselsList.map(v => v.flag).filter(Boolean))];
                     statFlags.textContent = uniqueFlags.length;
-                    statFlagsPreview.textContent = uniqueFlags.length ? uniqueFlags.slice(0, 4).join(', ') : 'Negara bendera';
+                    if (statFlagsPreview) {
+                        statFlagsPreview.innerHTML = uniqueFlags.length 
+                            ? uniqueFlags.slice(0, 4).map(f => {
+                                const info = getCountryFlagInfo(f);
+                                return `<span title="${escapeHtml(info.name)}">${info.emoji} ${escapeHtml(f)}</span>`;
+                            }).join(' ') + (uniqueFlags.length > 4 ? ` <span class="text-slate-400 font-mono">+${uniqueFlags.length - 4}</span>` : '')
+                            : 'Negara bendera';
+                    }
 
                     // Apply status filter locally if selected
                     let displayVessels = vesselsList;
@@ -1357,7 +1364,7 @@
                                 <div class="text-xs p-1.5 space-y-2 font-sans min-w-[220px]">
                                     <div class="font-bold text-slate-800 text-sm border-b border-slate-200 pb-1 flex items-center justify-between gap-2">
                                         <span class="truncate">${escapeHtml(vName)}</span>
-                                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-mono shrink-0">${escapeHtml(vFlag)}</span>
+                                        ${renderVesselFlag(vFlag)}
                                     </div>
                                     <div class="text-[11px] space-y-1">
                                         <div class="flex justify-between"><span class="text-slate-400">GFW ID:</span> <span class="font-mono text-slate-700 truncate max-w-[130px]">${escapeHtml(vId)}</span></div>
@@ -1424,7 +1431,7 @@
                         <td class="py-2.5 px-3 font-bold text-slate-800">${escapeHtml(vName)}</td>
                         <td class="py-2.5 px-3 font-mono text-slate-600">${escapeHtml(vMmsi)}</td>
                         <td class="py-2.5 px-3 font-mono text-slate-500">${escapeHtml(vImo)}</td>
-                        <td class="py-2.5 px-3 font-semibold text-slate-700">${escapeHtml(vFlag)}</td>
+                        <td class="py-2.5 px-3">${renderVesselFlag(vFlag)}</td>
                         <td class="py-2.5 px-3">
                             <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-700">
                                 ${escapeHtml(vType)}
@@ -1506,13 +1513,22 @@
                 detailBadgeType.textContent = v.vessel_type || 'Unknown';
                 detailName.textContent = v.name || 'Unnamed Vessel';
                 detailActivity.textContent = v.activity || 'Vessel Presence';
-                detailFlagBadge.textContent = v.flag || 'N/A';
+                if (detailFlagBadge) {
+                    detailFlagBadge.innerHTML = renderVesselFlag(v.flag);
+                }
 
                 if (detailGfwId) detailGfwId.textContent = ': ' + (v.id || 'Not available');
                 if (detailSsvid) detailSsvid.textContent = ': ' + (v.ssvid || 'Not available');
                 detailMmsi.textContent = ': ' + (v.mmsi || 'Not available');
                 detailImo.textContent = ': ' + (v.imo || 'Not available');
-                detailFlag.textContent = ': ' + (v.flag || 'Not available');
+                if (detailFlag) {
+                    if (v.flag && v.flag !== 'Not available' && v.flag !== '-' && v.flag !== 'Unknown') {
+                        const info = getCountryFlagInfo(v.flag);
+                        detailFlag.innerHTML = `: <span class="inline-flex items-center gap-1.5 align-middle">${renderVesselFlag(v.flag)} <span class="text-xs text-slate-500 font-normal">(${escapeHtml(info.name || v.flag)})</span></span>`;
+                    } else {
+                        detailFlag.textContent = ': Not available';
+                    }
+                }
                 detailVesselType.textContent = ': ' + (v.vessel_type || 'Not available');
                 detailLength.textContent = ': ' + (v.length !== null ? `${v.length} m` : 'Not available');
                 detailTonnage.textContent = ': ' + (v.tonnage !== null ? `${v.tonnage} GT` : 'Not available');
@@ -1951,6 +1967,148 @@
                     .replace(/'/g, '&#039;');
             }
 
+            // Country flag dictionary: ISO-3 alpha3 -> { alpha2, name, emoji }
+            const COUNTRY_FLAG_MAP = {
+                // Southeast Asia & East Asia
+                'IDN': { alpha2: 'id', name: 'Indonesia', emoji: '🇮🇩' },
+                'MYS': { alpha2: 'my', name: 'Malaysia', emoji: '🇲🇾' },
+                'THA': { alpha2: 'th', name: 'Thailand', emoji: '🇹🇭' },
+                'VNM': { alpha2: 'vn', name: 'Vietnam', emoji: '🇻🇳' },
+                'SGP': { alpha2: 'sg', name: 'Singapura', emoji: '🇸🇬' },
+                'PHL': { alpha2: 'ph', name: 'Filipina', emoji: '🇵🇭' },
+                'BRN': { alpha2: 'bn', name: 'Brunei Darussalam', emoji: '🇧🇳' },
+                'KHM': { alpha2: 'kh', name: 'Kamboja', emoji: '🇰🇭' },
+                'MMR': { alpha2: 'mm', name: 'Myanmar', emoji: '🇲🇲' },
+                'LAO': { alpha2: 'la', name: 'Laos', emoji: '🇱🇦' },
+                'TLS': { alpha2: 'tl', name: 'Timor-Leste', emoji: '🇹🇱' },
+                'CHN': { alpha2: 'cn', name: 'Tiongkok / China', emoji: '🇨🇳' },
+                'TWN': { alpha2: 'tw', name: 'Taiwan', emoji: '🇹🇼' },
+                'JPN': { alpha2: 'jp', name: 'Jepang', emoji: '🇯🇵' },
+                'KOR': { alpha2: 'kr', name: 'Korea Selatan', emoji: '🇰🇷' },
+                'PRK': { alpha2: 'kp', name: 'Korea Utara', emoji: '🇰🇵' },
+                'HKG': { alpha2: 'hk', name: 'Hong Kong', emoji: '🇭🇰' },
+
+                // South Asia & Indian Ocean
+                'IND': { alpha2: 'in', name: 'India', emoji: '🇮🇳' },
+                'BGD': { alpha2: 'bd', name: 'Bangladesh', emoji: '🇧🇩' },
+                'LKA': { alpha2: 'lk', name: 'Sri Lanka', emoji: '🇱🇰' },
+                'MDV': { alpha2: 'mv', name: 'Maldives', emoji: '🇲🇻' },
+                'PAK': { alpha2: 'pk', name: 'Pakistan', emoji: '🇵🇰' },
+                'SYC': { alpha2: 'sc', name: 'Seychelles', emoji: '🇸🇨' },
+                'MUS': { alpha2: 'mu', name: 'Mauritius', emoji: '🇲🇺' },
+                'MDG': { alpha2: 'mg', name: 'Madagaskar', emoji: '🇲🇬' },
+
+                // Common Maritime Flags of Convenience (FoC) & Shipping
+                'PAN': { alpha2: 'pa', name: 'Panama', emoji: '🇵🇦' },
+                'LBR': { alpha2: 'lr', name: 'Liberia', emoji: '🇱🇷' },
+                'MHL': { alpha2: 'mh', name: 'Kepulauan Marshall', emoji: '🇲🇭' },
+                'BHS': { alpha2: 'bs', name: 'Bahamas', emoji: '🇧🇸' },
+                'MLT': { alpha2: 'mt', name: 'Malta', emoji: '🇲🇹' },
+                'CYP': { alpha2: 'cy', name: 'Siprus', emoji: '🇨🇾' },
+                'VUT': { alpha2: 'vu', name: 'Vanuatu', emoji: '🇻🇺' },
+                'BLZ': { alpha2: 'bz', name: 'Belize', emoji: '🇧🇿' },
+                'HND': { alpha2: 'hn', name: 'Honduras', emoji: '🇭🇳' },
+                'VCT': { alpha2: 'vc', name: 'St. Vincent & Grenadines', emoji: '🇻🇨' },
+                'KNA': { alpha2: 'kn', name: 'St. Kitts & Nevis', emoji: '🇰🇳' },
+                'ATG': { alpha2: 'ag', name: 'Antigua & Barbuda', emoji: '🇦🇬' },
+                'CYM': { alpha2: 'ky', name: 'Kepulauan Cayman', emoji: '🇰🇾' },
+                'BMU': { alpha2: 'bm', name: 'Bermuda', emoji: '🇧🇲' },
+                'GIB': { alpha2: 'gi', name: 'Gibraltar', emoji: '🇬🇮' },
+                'COK': { alpha2: 'ck', name: 'Kepulauan Cook', emoji: '🇨🇰' },
+                'TUV': { alpha2: 'tv', name: 'Tuvalu', emoji: '🇹🇻' },
+                'KIR': { alpha2: 'ki', name: 'Kiribati', emoji: '🇰🇮' },
+                'TGO': { alpha2: 'tg', name: 'Togo', emoji: '🇹🇬' },
+                'SLE': { alpha2: 'sl', name: 'Sierra Leone', emoji: '🇸🇱' },
+                'COM': { alpha2: 'km', name: 'Komoro', emoji: '🇰🇲' },
+                'PLW': { alpha2: 'pw', name: 'Palau', emoji: '🇵🇼' },
+                'WSM': { alpha2: 'ws', name: 'Samoa', emoji: '🇼🇸' },
+                'TON': { alpha2: 'to', name: 'Tonga', emoji: '🇹🇴' },
+                'FJI': { alpha2: 'fj', name: 'Fiji', emoji: '🇫🇯' },
+                'PNG': { alpha2: 'pg', name: 'Papua Nugini', emoji: '🇵🇬' },
+                'SLB': { alpha2: 'sb', name: 'Kepulauan Solomon', emoji: '🇸🇧' },
+                'FSM': { alpha2: 'fm', name: 'Mikronesia', emoji: '🇫🇲' },
+                'NRU': { alpha2: 'nr', name: 'Nauru', emoji: '🇳🇷' },
+
+                // Americas & Europe & Oceania
+                'USA': { alpha2: 'us', name: 'Amerika Serikat', emoji: '🇺🇸' },
+                'GBR': { alpha2: 'gb', name: 'Inggris Raya', emoji: '🇬🇧' },
+                'RUS': { alpha2: 'ru', name: 'Rusia', emoji: '🇷🇺' },
+                'AUS': { alpha2: 'au', name: 'Australia', emoji: '🇦🇺' },
+                'NZL': { alpha2: 'nz', name: 'Selandia Baru', emoji: '🇳🇿' },
+                'ESP': { alpha2: 'es', name: 'Spanyol', emoji: '🇪🇸' },
+                'FRA': { alpha2: 'fr', name: 'Prancis', emoji: '🇫🇷' },
+                'DEU': { alpha2: 'de', name: 'Jerman', emoji: '🇩🇪' },
+                'NLD': { alpha2: 'nl', name: 'Belanda', emoji: '🇳🇱' },
+                'ITA': { alpha2: 'it', name: 'Italia', emoji: '🇮🇹' },
+                'PRT': { alpha2: 'pt', name: 'Portugal', emoji: '🇵🇹' },
+                'GRC': { alpha2: 'gr', name: 'Yunani', emoji: '🇬🇷' },
+                'NOR': { alpha2: 'no', name: 'Norwegia', emoji: '🇳🇴' },
+                'DNK': { alpha2: 'dk', name: 'Denmark', emoji: '🇩🇰' },
+                'SWE': { alpha2: 'se', name: 'Swedia', emoji: '🇸🇪' },
+                'FIN': { alpha2: 'fi', name: 'Finlandia', emoji: '🇫🇮' },
+                'TUR': { alpha2: 'tr', name: 'Turki', emoji: '🇹🇷' },
+                'EGY': { alpha2: 'eg', name: 'Mesir', emoji: '🇪🇬' },
+                'ZAF': { alpha2: 'za', name: 'Afrika Selatan', emoji: '🇿🇦' },
+                'IRN': { alpha2: 'ir', name: 'Iran', emoji: '🇮🇷' },
+                'SAU': { alpha2: 'sa', name: 'Arab Saudi', emoji: '🇸🇦' },
+                'ARE': { alpha2: 'ae', name: 'Uni Emirat Arab', emoji: '🇦🇪' },
+                'OMN': { alpha2: 'om', name: 'Oman', emoji: '🇴🇲' },
+                'YEM': { alpha2: 'ye', name: 'Yaman', emoji: '🇾🇪' },
+                'QAT': { alpha2: 'qa', name: 'Qatar', emoji: '🇶🇦' },
+                'KWT': { alpha2: 'kw', name: 'Kuwait', emoji: '🇰🇼' },
+                'BHR': { alpha2: 'bh', name: 'Bahrain', emoji: '🇧🇭' },
+                'BRA': { alpha2: 'br', name: 'Brasil', emoji: '🇧🇷' },
+                'ARG': { alpha2: 'ar', name: 'Argentina', emoji: '🇦🇷' },
+                'CHL': { alpha2: 'cl', name: 'Chili', emoji: '🇨🇱' },
+                'PER': { alpha2: 'pe', name: 'Peru', emoji: '🇵🇪' },
+                'ECU': { alpha2: 'ec', name: 'Ekuador', emoji: '🇪🇨' },
+                'COL': { alpha2: 'co', name: 'Kolombia', emoji: '🇨🇴' },
+                'MEX': { alpha2: 'mx', name: 'Meksiko', emoji: '🇲🇽' },
+                'CAN': { alpha2: 'ca', name: 'Kanada', emoji: '🇨🇦' },
+            };
+
+            function getCountryFlagInfo(rawFlag) {
+                if (!rawFlag || typeof rawFlag !== 'string') {
+                    return { alpha2: '', name: 'Tidak diketahui', emoji: '🌐' };
+                }
+                const code = rawFlag.trim().toUpperCase();
+                if (COUNTRY_FLAG_MAP[code]) {
+                    return COUNTRY_FLAG_MAP[code];
+                }
+                if (code.length === 2) {
+                    const matchEntry = Object.entries(COUNTRY_FLAG_MAP).find(([k, v]) => v.alpha2.toUpperCase() === code);
+                    if (matchEntry) return matchEntry[1];
+                    try {
+                        const codePoints = [...code].map(c => 127397 + c.charCodeAt(0));
+                        return {
+                            alpha2: code.toLowerCase(),
+                            name: code,
+                            emoji: String.fromCodePoint(...codePoints)
+                        };
+                    } catch (e) {
+                        return { alpha2: code.toLowerCase(), name: code, emoji: '🌐' };
+                    }
+                }
+                return { alpha2: '', name: code, emoji: '🌐' };
+            }
+
+            function renderVesselFlag(flagCode) {
+                if (!flagCode || flagCode === '-' || flagCode === 'Not available' || flagCode === 'Unknown' || flagCode === 'N/A') {
+                    return `<span class="inline-flex items-center gap-1 text-slate-400 font-mono text-[11px]">—</span>`;
+                }
+                const info = getCountryFlagInfo(flagCode);
+                const alpha2 = info.alpha2 ? info.alpha2.toLowerCase() : '';
+                const name = info.name || flagCode;
+                const flagImg = alpha2 ? `<img src="https://flagcdn.com/20x15/${alpha2}.png" srcset="https://flagcdn.com/40x30/${alpha2}.png 2x" width="18" height="13" alt="${escapeHtml(flagCode)}" class="rounded-[2px] object-cover shadow-2xs shrink-0" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.classList.remove('hidden');" loading="lazy">` : '';
+                const flagEmoji = `<span class="${alpha2 ? 'hidden ' : ''}text-xs leading-none shrink-0">${info.emoji}</span>`;
+
+                return `<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100/90 hover:bg-slate-200/80 text-slate-700 border border-slate-200/80 transition-colors cursor-default" title="${escapeHtml(name)} (${escapeHtml(flagCode)})">
+                    ${flagImg}
+                    ${flagEmoji}
+                    <span class="font-mono font-bold text-[11px] text-slate-800">${escapeHtml(flagCode)}</span>
+                </span>`;
+            }
+
             // Dynamically populate Flag options with actual detected flags from GFW
             function updateFlagOptions(availableFlags, selectedFlag) {
                 if (!filterFlag || !availableFlags || !Array.isArray(availableFlags) || availableFlags.length === 0) return;
@@ -1971,18 +2129,20 @@
                 }
 
                 if (needsUpdate) {
-                    filterFlag.innerHTML = '<option value="">Semua Negara</option>';
+                    filterFlag.innerHTML = '<option value="">Semua Bendera</option>';
                     Array.from(newFlagsSet).sort().forEach(f => {
                         const opt = document.createElement('option');
                         opt.value = f;
-                        opt.textContent = f;
+                        const info = getCountryFlagInfo(f);
+                        opt.textContent = `${info.emoji} ${f}${info.name ? ' (' + info.name + ')' : ''}`;
                         if (f === currentVal) opt.selected = true;
                         filterFlag.appendChild(opt);
                     });
                     if (currentVal && !newFlagsSet.has(currentVal)) {
                         const opt = document.createElement('option');
                         opt.value = currentVal;
-                        opt.textContent = currentVal;
+                        const info = getCountryFlagInfo(currentVal);
+                        opt.textContent = `${info.emoji} ${currentVal}${info.name ? ' (' + info.name + ')' : ''}`;
                         opt.selected = true;
                         filterFlag.appendChild(opt);
                     }
