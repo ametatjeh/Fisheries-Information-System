@@ -16,27 +16,27 @@ class AdminSeeder extends Seeder
     {
         $defaultUsers = [
             [
-                'email' => 'superadmin@perikanan.go.id',
+                'email' => 'superadmin@gmail.com',
                 'name' => 'Super Administrator',
                 'role' => 'super-admin',
             ],
             [
-                'email' => 'admin@perikanan.go.id',
+                'email' => 'admin@gmail.com',
                 'name' => 'Administrator Data',
                 'role' => 'admin',
             ],
             [
-                'email' => 'verifikator@perikanan.go.id',
+                'email' => 'verifikator@gmail.com',
                 'name' => 'Petugas Verifikator',
                 'role' => 'verifikator',
             ],
             [
-                'email' => 'petugas@perikanan.go.id',
+                'email' => 'petugas@gmail.com',
                 'name' => 'Petugas Lapangan',
                 'role' => 'petugas-lapangan',
             ],
             [
-                'email' => 'viewer@perikanan.go.id',
+                'email' => 'viewer@gmail.com',
                 'name' => 'Pengguna Viewer',
                 'role' => 'viewer',
             ],

@@ -37,7 +37,7 @@ class UserManagementTest extends TestCase
 
         $response = $this->actingAs($superAdmin)->post('/admin/users', [
             'name' => 'Petugas Verifikasi Baru',
-            'email' => 'verifikator.baru@perikanan.go.id',
+            'email' => 'verifikator.baru@gmail.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
             'role' => 'verifikator',
@@ -47,7 +47,7 @@ class UserManagementTest extends TestCase
         $response->assertRedirect('/admin/users');
         $response->assertSessionHas('success');
 
-        $newUser = User::where('email', 'verifikator.baru@perikanan.go.id')->first();
+        $newUser = User::where('email', 'verifikator.baru@gmail.com')->first();
         $this->assertNotNull($newUser);
         $this->assertEquals('Petugas Verifikasi Baru', $newUser->name);
         $this->assertTrue(Hash::check('password123', $newUser->password));
@@ -62,13 +62,13 @@ class UserManagementTest extends TestCase
 
         $user = User::factory()->create([
             'name' => 'Nama Lama',
-            'email' => 'lama@perikanan.go.id',
+            'email' => 'lama@gmail.com',
         ]);
         $user->assignRole('viewer');
 
         $response = $this->actingAs($superAdmin)->put("/admin/users/{$user->id}", [
             'name' => 'Nama Baru Diperbarui',
-            'email' => 'baru@perikanan.go.id',
+            'email' => 'baru@gmail.com',
             'role' => 'petugas-lapangan',
         ]);
 
@@ -77,7 +77,7 @@ class UserManagementTest extends TestCase
 
         $user->refresh();
         $this->assertEquals('Nama Baru Diperbarui', $user->name);
-        $this->assertEquals('baru@perikanan.go.id', $user->email);
+        $this->assertEquals('baru@gmail.com', $user->email);
         $this->assertTrue($user->hasRole('petugas-lapangan'));
         $this->assertFalse($user->hasRole('viewer'));
     }

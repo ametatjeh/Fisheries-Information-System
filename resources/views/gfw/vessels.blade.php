@@ -37,90 +37,63 @@
 
     <div class="space-y-6">
         {{-- Banner Header, AOI Attribution & Source Info --}}
-        <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-5 rounded-2xl shadow-sm relative overflow-hidden border border-indigo-900/50">
-            <div class="absolute right-4 -bottom-6 text-9xl opacity-5 pointer-events-none select-none">🚢</div>
-            <div class="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
-                <div class="max-w-3xl space-y-2">
-                    <div class="flex flex-wrap items-center gap-2">
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[11px] font-semibold tracking-wide uppercase">
+        {{-- Banner Header, AOI Attribution & Source Info (Compact) --}}
+        <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-3.5 sm:p-4 rounded-xl shadow-xs relative overflow-hidden border border-indigo-900/50">
+            <div class="absolute right-3 -bottom-5 text-7xl opacity-5 pointer-events-none select-none">🚢</div>
+            <div class="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                <div class="space-y-1.5 max-w-2xl">
+                    <div class="flex flex-wrap items-center gap-1.5">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-semibold uppercase tracking-wider">
                             <span>🛰️</span>
-                            <span>Global Fishing Watch v3</span>
+                            <span>GFW v3</span>
                         </span>
-                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-semibold">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-semibold">
                             <span>🏛️</span>
-                            <span>AOI Source: BIG</span>
+                            <span>AOI: BIG</span>
                         </span>
-                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30 text-[11px] font-semibold">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30 text-[10px] font-semibold">
                             <span>📡</span>
-                            <span>Vessel Data: Global Fishing Watch</span>
+                            <span>AIS/VMS Satelit</span>
                         </span>
+                        <span class="font-mono text-[9px] bg-indigo-900/50 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-700/40">EPSG:4326</span>
                     </div>
 
-                    <h2 class="text-xl sm:text-2xl font-extrabold tracking-tight text-white flex flex-wrap items-center gap-2">
-                        <span>GFW VESSEL OBSERVATORY</span>
-                        <span class="text-indigo-400 font-light text-lg">|</span>
-                        <span class="text-indigo-200 text-base font-medium">GFW Vessel Monitoring (ZEE Indonesia Kawasan Aceh)</span>
-                    </h2>
+                    <div class="flex flex-wrap items-baseline gap-2">
+                        <h2 class="text-base sm:text-lg font-extrabold tracking-tight text-white">
+                            GFW VESSEL OBSERVATORY
+                        </h2>
+                        <span class="text-indigo-400 font-light hidden sm:inline">|</span>
+                        <span class="text-indigo-200 text-xs sm:text-sm font-medium">ZEE Indonesia – Kawasan Aceh</span>
+                    </div>
 
-                    <p class="text-slate-300 text-xs sm:text-sm leading-relaxed max-w-2xl">
-                        Observatori pemantauan spasial terpadu seluruh armada kapal (fishing vessel & other commercial vessels) yang terdeteksi satelit AIS/VMS dalam Area of Interest (AOI) ZEE Aceh, dengan visualisasi posisi dan lintasan pergerakan (Observed Track) dalam batas poligon resmi <strong>ZEE Indonesia Kawasan Aceh (Badan Informasi Geospasial)</strong>.
-                    </p>
-                    <p class="text-[11px] text-indigo-300/80 leading-relaxed max-w-2xl">
-                        Observasi kapal Global Fishing Watch yang berada di dalam batas ZEE Aceh berdasarkan BIG.
+                    <p class="text-slate-300 text-xs leading-relaxed line-clamp-2 sm:line-clamp-none">
+                        Pemantauan spasial armada kapal terdeteksi satelit dalam Area of Interest batas resmi <strong>ZEE Indonesia Kawasan Aceh (Badan Informasi Geospasial)</strong>.
                     </p>
                 </div>
 
-                {{-- AOI & Provenance Summary Badge --}}
-                <div class="px-4 py-3.5 rounded-xl bg-slate-800/80 backdrop-blur-xs border border-indigo-500/30 text-xs max-w-md shrink-0 space-y-2 text-slate-200">
-                    <div class="flex items-center justify-between pb-1.5 border-b border-slate-700/60 font-semibold text-indigo-300">
-                        <span class="flex items-center gap-1.5">
-                            <span>🗺️</span>
-                            <span>{{ __('Pemberitahuan Latensi & AOI Spasial') }}</span>
-                        </span>
-                        <span class="font-mono text-[10px] bg-indigo-900/60 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-700/50">EPSG:4326</span>
-                    </div>
-                    <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
-                        <div>
-                            <span class="text-slate-400">ID Poligon:</span>
-                            <span class="font-mono text-slate-200 ml-1 font-semibold">zee-indonesia-aceh</span>
-                            <span class="text-slate-400 text-[10px] ml-1">(ZEE Aceh)</span>
+                {{-- AOI & Provenance Compact Control Badge --}}
+                <div class="p-2.5 sm:p-3 rounded-lg bg-slate-800/80 backdrop-blur-xs border border-indigo-500/30 text-xs w-full lg:w-auto lg:min-w-[340px] shrink-0 space-y-2 text-slate-200">
+                    <div class="flex items-center justify-between text-[11px] pb-1.5 border-b border-slate-700/60">
+                        <div class="flex items-center gap-2">
+                            <span id="vessels-live-pulse" class="w-2 h-2 rounded-full bg-slate-500 inline-block"></span>
+                            <span class="font-semibold text-slate-200">Live Monitor:</span>
+                            <button type="button" id="btn-toggle-live-vessels" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-700 text-slate-300 hover:bg-slate-600 transition">
+                                OFF
+                            </button>
                         </div>
-                        <div>
-                            <span class="text-slate-400">Sumber Batas:</span>
-                            <span class="text-emerald-400 ml-1 font-semibold">BIG</span>
-                        </div>
-                        <div>
-                            <span class="text-slate-400">Tipe Geometri:</span>
-                            <span class="text-slate-200 ml-1">Polygon (Batas Resmi)</span>
-                        </div>
-                        <div>
-                            <span class="text-slate-400">Maksimal Rentang:</span>
-                            <span class="text-amber-400 ml-1 font-semibold">7 Hari (API GFW)</span>
-                        </div>
-                    </div>
-                    <div class="flex flex-wrap items-center justify-between gap-1.5 pt-1 border-t border-slate-700/40 text-[10px]">
-                        <span class="text-indigo-300 font-medium">Batas Spasial Resmi ZEE Aceh (BIG)</span>
-                        <label class="inline-flex items-center gap-1 cursor-pointer text-slate-300">
+                        <label class="inline-flex items-center gap-1.5 cursor-pointer text-[10px] text-indigo-300 hover:text-indigo-200">
                             <input type="checkbox" id="toggle-big-zee-aceh" checked class="rounded border-slate-600 bg-slate-700 text-indigo-500 focus:ring-0 text-[10px]">
-                            <span>ZEE — Data Resmi BIG</span>
+                            <span>Batas ZEE (BIG)</span>
                         </label>
                     </div>
-                    <div class="text-[10px] text-slate-400 pt-1 border-t border-slate-700/40">
-                        <span class="text-amber-400">ℹ️ Catatan:</span> Membedakan kehadiran kapal (<em>Vessel Presence</em>) dengan indikasi penangkapan (<em>Fishing Activity</em>). Jika atribut belum terdata maka ditampilkan <em>Tidak tersedia</em>.
+
+                    <div class="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px] text-slate-400 font-mono">
+                        <div>Poligon: <span class="text-slate-200 font-semibold font-sans">zee-indonesia-aceh</span></div>
+                        <div class="text-right">Maks: <span class="text-amber-400 font-semibold font-sans">7 Hari</span></div>
+                        <div>Update: <span id="meta-last-updated" class="text-indigo-300 font-mono">-</span></div>
+                        <div class="text-right">Usia: <span id="meta-data-age" class="text-slate-300 font-mono">-</span></div>
                     </div>
-                    <div class="pt-2 border-t border-slate-700/40 flex items-center justify-between text-[11px]">
-                        <span class="text-slate-300 font-semibold flex items-center gap-1.5">
-                            <span id="vessels-live-pulse" class="w-2 h-2 rounded-full bg-slate-500 inline-block"></span>
-                            <span>Live Monitoring:</span>
-                        </span>
-                        <button type="button" id="btn-toggle-live-vessels" class="px-2.5 py-0.5 rounded text-[11px] font-bold bg-slate-700 text-slate-300 hover:bg-slate-600 transition">
-                            OFF
-                        </button>
-                    </div>
-                    <div class="text-[10px] text-slate-400 flex items-center justify-between pt-0.5">
-                        <span>Pembaruan: <span id="meta-last-updated" class="text-indigo-300 font-mono">-</span></span>
-                        <span>Usia Data: <span id="meta-data-age" class="text-slate-300 font-mono">-</span></span>
-                    </div>
+
                     <div id="meta-delta-container" class="hidden pt-1 border-t border-slate-700/40">
                         <span id="meta-delta-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-950 text-indigo-300 border border-indigo-700 block text-center">
                             Memeriksa perubahan data...
@@ -204,51 +177,56 @@
         </div>
 
         {{-- Filter Controls --}}
-        <div class="bg-white rounded-2xl p-5 shadow-2xs border border-slate-200/80 space-y-4">
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-3 items-end">
+        <div class="bg-white rounded-xl p-3.5 sm:p-4 shadow-2xs border border-slate-200/80">
+            <div class="flex flex-col sm:flex-row sm:flex-wrap lg:flex-nowrap items-end gap-2 lg:gap-2.5">
                 {{-- Search Vessel --}}
-                <div class="md:col-span-3">
-                    <label for="vessel-search-input" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                <div class="w-full sm:w-[190px] lg:w-[200px] shrink-0">
+                    <label for="vessel-search-input" class="block text-[11px] font-semibold text-slate-600 mb-1 truncate">
                         {{ __('Search Vessel') }}
                     </label>
-                    <div class="relative">
+                    <div class="relative flex items-center">
+                        <span class="absolute left-2.5 text-slate-400 text-xs pointer-events-none flex items-center">🔍</span>
                         <input type="text"
                                id="vessel-search-input"
-                               placeholder="Nama kapal, MMSI, IMO..."
-                               class="w-full text-xs pl-8 pr-8 py-2 rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 shadow-2xs">
-                        <span class="absolute left-2.5 top-2.5 text-slate-400 text-xs pointer-events-none">🔍</span>
-                        <button type="button" id="btn-clear-search" class="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 text-xs hidden font-bold">✕</button>
+                               placeholder="Nama kapal, MMSI..."
+                               class="w-full h-9 text-xs pl-8 pr-7 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 shadow-2xs">
+                        <button type="button" id="btn-clear-search" class="absolute right-2 text-slate-400 hover:text-slate-600 text-xs hidden font-bold">✕</button>
                     </div>
                 </div>
 
                 {{-- Start Date --}}
-                <div class="md:col-span-2">
-                    <label for="filter-start-date" class="block text-xs font-semibold text-slate-700 mb-1">
+                <div class="w-full sm:w-[125px] shrink-0">
+                    <label for="filter-start-date" class="block text-[11px] font-semibold text-slate-600 mb-1 truncate">
                         {{ __('Start Date') }}
                     </label>
                     <input type="date"
                            id="filter-start-date"
                            value="{{ $startDate }}"
-                           class="w-full text-xs py-2 rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
+                           class="w-full h-9 text-xs px-2 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
                 </div>
 
                 {{-- End Date --}}
-                <div class="md:col-span-2">
-                    <label for="filter-end-date" class="block text-xs font-semibold text-slate-700 mb-1">
-                        {{ __('End Date (Maks 7 Hari)') }}
-                    </label>
+                <div class="w-full sm:w-[125px] shrink-0">
+                    <div class="flex items-center justify-between mb-1">
+                        <label for="filter-end-date" class="block text-[11px] font-semibold text-slate-600 truncate">
+                            {{ __('End Date') }}
+                        </label>
+                        <button type="button" class="btn-preset-7d text-[10px] text-indigo-600 hover:text-indigo-800 font-bold" title="Rentang cepat 7 hari terakhir">
+                            7h
+                        </button>
+                    </div>
                     <input type="date"
                            id="filter-end-date"
                            value="{{ $endDate }}"
-                           class="w-full text-xs py-2 rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
+                           class="w-full h-9 text-xs px-2 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
                 </div>
 
                 {{-- Vessel Type Filter --}}
-                <div class="md:col-span-2">
-                    <label for="filter-vessel-type" class="block text-xs font-semibold text-slate-700 mb-1">
+                <div class="w-full sm:w-[125px] shrink-0">
+                    <label for="filter-vessel-type" class="block text-[11px] font-semibold text-slate-600 mb-1 truncate">
                         {{ __('Vessel Type') }}
                     </label>
-                    <select id="filter-vessel-type" class="w-full text-xs py-2 rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
+                    <select id="filter-vessel-type" class="w-full h-9 text-xs px-2 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
                         <option value="">{{ __('Semua Tipe') }}</option>
                         <option value="Fishing">Fishing</option>
                         <option value="Carrier">Carrier</option>
@@ -264,11 +242,11 @@
                 </div>
 
                 {{-- Flag Filter --}}
-                <div class="md:col-span-1">
-                    <label for="filter-flag" class="block text-xs font-semibold text-slate-700 mb-1">
+                <div class="w-full sm:w-[75px] shrink-0">
+                    <label for="filter-flag" class="block text-[11px] font-semibold text-slate-600 mb-1 truncate">
                         {{ __('Flag') }}
                     </label>
-                    <select id="filter-flag" class="w-full text-xs py-2 rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
+                    <select id="filter-flag" class="w-full h-9 text-xs px-1.5 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
                         <option value="">Semua</option>
                         <option value="IDN">IDN</option>
                         <option value="MYS">MYS</option>
@@ -283,11 +261,11 @@
                 </div>
 
                 {{-- Activity Filter --}}
-                <div class="md:col-span-2">
-                    <label for="filter-activity" class="block text-xs font-semibold text-slate-700 mb-1">
+                <div class="w-full sm:w-[130px] shrink-0">
+                    <label for="filter-activity" class="block text-[11px] font-semibold text-slate-600 mb-1 truncate">
                         {{ __('Activity') }}
                     </label>
-                    <select id="filter-activity" class="w-full text-xs py-2 rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
+                    <select id="filter-activity" class="w-full h-9 text-xs px-2 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
                         <option value="">{{ __('Semua Aktivitas') }}</option>
                         <option value="Vessel Presence">Vessel Presence</option>
                         <option value="Fishing">Fishing Activity</option>
@@ -298,39 +276,30 @@
                 </div>
 
                 {{-- Status Filter --}}
-                <div class="md:col-span-1">
-                    <label for="filter-status" class="block text-xs font-semibold text-slate-700 mb-1">
+                <div class="w-full sm:w-[90px] shrink-0">
+                    <label for="filter-status" class="block text-[11px] font-semibold text-slate-600 mb-1 truncate">
                         {{ __('Status') }}
                     </label>
-                    <select id="filter-status" class="w-full text-xs py-2 rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
+                    <select id="filter-status" class="w-full h-9 text-xs px-1.5 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
                         <option value="">Semua</option>
                         <option value="LIVE">LIVE (&lt;24h)</option>
                         <option value="RECENT">RECENT</option>
                         <option value="STALE">STALE</option>
                     </select>
                 </div>
-            </div>
 
-            {{-- Actions Bar --}}
-            <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
-                <div class="flex items-center gap-2 text-xs">
-                    <span class="text-slate-400 font-medium">Batas Periode:</span>
-                    <button type="button" class="btn-preset-7d px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-semibold transition">
-                        📅 7 Hari Terakhir
+                {{-- Action Buttons (Right-aligned) --}}
+                <div class="flex items-center gap-1.5 shrink-0 sm:ml-auto pt-2 sm:pt-0">
+                    <button type="button" id="btn-reset-filter" class="h-9 px-3 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-xs font-semibold transition" title="Reset semua filter">
+                        {{ __('Reset') }}
                     </button>
-                    <span id="active-filter-indicator" class="text-[11px] text-slate-500 hidden"></span>
-                </div>
-
-                <div class="flex items-center gap-2">
-                    <button type="button" id="btn-reset-filter" class="px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold transition">
-                        {{ __('Reset Filter') }}
-                    </button>
-                    <button type="button" id="btn-apply-filter" class="px-4 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5">
+                    <button type="button" id="btn-apply-filter" class="h-9 px-3.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5">
                         <span id="btn-apply-spinner" class="hidden">🔄</span>
-                        <span>{{ __('Terapkan Filter') }}</span>
+                        <span>{{ __('Terapkan') }}</span>
                     </button>
                 </div>
             </div>
+            <span id="active-filter-indicator" class="text-[11px] text-slate-500 hidden"></span>
         </div>
 
         {{-- Main Map and Vessel Detail Layout --}}
