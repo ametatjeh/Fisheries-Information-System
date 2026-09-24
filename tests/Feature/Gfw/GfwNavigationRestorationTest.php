@@ -23,8 +23,11 @@ class GfwNavigationRestorationTest extends TestCase
         $gisPermission = Permission::firstOrCreate(['name' => 'access.gis', 'guard_name' => 'web']);
         $masterPermission = Permission::firstOrCreate(['name' => 'access.master', 'guard_name' => 'web']);
 
+        $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $adminRole->givePermissionTo([$gisPermission, $masterPermission]);
+
         $this->userWithGis = User::factory()->create();
-        $this->userWithGis->givePermissionTo([$gisPermission, $masterPermission]);
+        $this->userWithGis->assignRole($adminRole);
 
         $viewerRole = Role::firstOrCreate(['name' => 'viewer', 'guard_name' => 'web']);
         $this->userWithoutGis = User::factory()->create();

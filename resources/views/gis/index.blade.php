@@ -10,10 +10,12 @@
                     <span>📊</span>
                     <span>{{ __('Dashboard') }}</span>
                 </a>
+                @if(auth()->user()?->hasRole(['super-admin', 'Super Admin', 'developer', 'admin', 'Administrator Data']) || auth()->user()?->can('access.gfw'))
                 <a href="{{ route('gfw.monitoring') }}" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition shadow-xs flex items-center gap-1.5">
                     <span>🛰️</span>
                     <span>{{ __('GFW Monitoring') }}</span>
                 </a>
+                @endif
             </div>
         </div>
     </x-slot>

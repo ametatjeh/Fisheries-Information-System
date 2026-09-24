@@ -9,6 +9,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class GfwVesselObservatoryEndpointTest extends TestCase
@@ -28,11 +29,13 @@ class GfwVesselObservatoryEndpointTest extends TestCase
         Config::set('services.gfw.token', 'test-secret-token-gfw-obs-01');
         Config::set('gfw.fishing_events_dataset', 'public-global-fishing-events:latest');
 
-        // Create permission and users
-        $gisPermission = Permission::firstOrCreate(['name' => 'access.gis', 'guard_name' => 'web']);
+        // Create permission, role and users
+        $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $gfwPermission = Permission::firstOrCreate(['name' => 'access.gfw', 'guard_name' => 'web']);
+        $adminRole->givePermissionTo($gfwPermission);
 
         $this->gisUser = User::factory()->create();
-        $this->gisUser->givePermissionTo($gisPermission);
+        $this->gisUser->assignRole($adminRole);
 
         $this->regularUser = User::factory()->create();
     }
@@ -49,6 +52,16 @@ class GfwVesselObservatoryEndpointTest extends TestCase
     public function test_user_without_gis_permission_is_forbidden_from_observatory(): void
     {
         $response = $this->actingAs($this->regularUser)->get('/gfw/vessels');
+        $response->assertStatus(403);
+    }
+
+    public function test_user_with_only_gis_permission_is_forbidden_from_observatory(): void
+    {
+        $gisPermission = Permission::firstOrCreate(['name' => 'access.gis', 'guard_name' => 'web']);
+        $gisOnlyUser = User::factory()->create();
+        $gisOnlyUser->givePermissionTo($gisPermission);
+
+        $response = $this->actingAs($gisOnlyUser)->get('/gfw/vessels');
         $response->assertStatus(403);
     }
 

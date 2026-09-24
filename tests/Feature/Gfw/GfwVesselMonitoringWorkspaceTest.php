@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class GfwVesselMonitoringWorkspaceTest extends TestCase
@@ -26,11 +27,13 @@ class GfwVesselMonitoringWorkspaceTest extends TestCase
         Config::set('gfw.api_key', 'test-secret-gfw-token-vessel-workspace');
         Config::set('gfw.base_url', 'https://gateway.api.globalfishingwatch.org/v3');
 
-        // Create permissions
-        $gisPermission = Permission::firstOrCreate(['name' => 'access.gis', 'guard_name' => 'web']);
+        // Create permissions and roles
+        $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $gfwPermission = Permission::firstOrCreate(['name' => 'access.gfw', 'guard_name' => 'web']);
+        $adminRole->givePermissionTo($gfwPermission);
 
         $this->gisUser = User::factory()->create();
-        $this->gisUser->givePermissionTo($gisPermission);
+        $this->gisUser->assignRole($adminRole);
 
         $this->regularUser = User::factory()->create();
     }
@@ -44,6 +47,16 @@ class GfwVesselMonitoringWorkspaceTest extends TestCase
     public function test_user_without_gis_permission_is_forbidden(): void
     {
         $response = $this->actingAs($this->regularUser)->get('/gfw/vessels');
+        $response->assertStatus(403);
+    }
+
+    public function test_user_with_only_gis_permission_is_forbidden(): void
+    {
+        $gisPermission = Permission::firstOrCreate(['name' => 'access.gis', 'guard_name' => 'web']);
+        $gisOnlyUser = User::factory()->create();
+        $gisOnlyUser->givePermissionTo($gisPermission);
+
+        $response = $this->actingAs($gisOnlyUser)->get('/gfw/vessels');
         $response->assertStatus(403);
     }
 

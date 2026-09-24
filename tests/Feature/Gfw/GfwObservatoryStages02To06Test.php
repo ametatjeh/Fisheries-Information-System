@@ -8,6 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class GfwObservatoryStages02To06Test extends TestCase
@@ -22,9 +23,13 @@ class GfwObservatoryStages02To06Test extends TestCase
         Config::set('gfw.api_key', 'test-key-stage-02-06');
         Config::set('gfw.base_url', 'https://gateway.api.globalfishingwatch.org/v3');
 
+        $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $gfwPermission = Permission::firstOrCreate(['name' => 'access.gfw', 'guard_name' => 'web']);
+        $adminRole->givePermissionTo($gfwPermission);
         $gisPermission = Permission::firstOrCreate(['name' => 'access.gis', 'guard_name' => 'web']);
         $this->user = User::factory()->create();
         $this->user->givePermissionTo($gisPermission);
+        $this->user->assignRole($adminRole);
 
         Http::fake([
             'https://gateway.api.globalfishingwatch.org/v3/events*' => Http::response([

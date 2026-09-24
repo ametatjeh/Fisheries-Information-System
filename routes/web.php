@@ -305,8 +305,10 @@ Route::middleware('auth')->group(function () {
         Route::prefix('gis')->name('gis.')->group(function () {
             Route::get('/', [GisController::class, 'index'])->name('index');
         });
+    });
 
-        // GFW Satellite Vessel Monitoring GIS
+    // GFW Satellite (Khusus Super Admin dan Administrator Data)
+    Route::middleware(['role_or_permission:super-admin|admin|access.gfw'])->group(function () {
         Route::get('/gfw/monitoring', [GfwMonitoringController::class, 'index'])->name('gfw.monitoring');
         Route::get('/gfw/vessels', [GfwVesselMonitoringController::class, 'index'])->name('gfw.vessels');
         Route::get('/gfw/dashboard', [GfwVesselMonitoringController::class, 'dashboard'])->name('gfw.dashboard');

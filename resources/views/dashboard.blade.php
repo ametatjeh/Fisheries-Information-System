@@ -499,6 +499,7 @@
                         <span>{{ __('Buka Peta Terpadu GIS') }}</span>
                         <span class="text-xs">→</span>
                     </a>
+                    @if(auth()->user()?->hasRole(['super-admin', 'Super Admin', 'developer', 'admin', 'Administrator Data']) || auth()->user()?->can('access.gfw'))
                     <a href="{{ route('gfw.monitoring') }}" class="px-5 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-indigo-200 hover:text-white font-bold text-xs sm:text-sm transition backdrop-blur-sm flex items-center gap-2">
                         <span>🛰️</span>
                         <span>{{ __('GFW Monitoring Workspace') }}</span>
@@ -509,6 +510,7 @@
                         <span>{{ __('GFW Vessel Observatory') }}</span>
                         <span class="text-xs">→</span>
                     </a>
+                    @endif
                 </div>
             </div>
         </div>

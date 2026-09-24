@@ -12,6 +12,7 @@
     $canStatistics = (bool) $authUser?->can('access.statistics');
     $canReports = (bool) $authUser?->can('access.reports');
     $canGis = (bool) $authUser?->can('access.gis');
+    $canGfw = (bool) ($authUser?->hasRole(['super-admin', 'Super Admin', 'developer', 'admin', 'Administrator Data']) || $authUser?->can('access.gfw'));
     $canAdmin = (bool) ($authUser?->hasRole(['super-admin', 'Super Admin', 'developer']) || $authUser?->can('admin.users.index'));
 @endphp
 
@@ -214,8 +215,8 @@
         </div>
     @endif
 
-    {{-- GFW Satellite Observatory --}}
-    @if($canGis)
+    {{-- GFW Satellite Observatory (Khusus Super Admin & Administrator Data) --}}
+    @if($canGfw)
         <div class="sidebar-section">
             <div class="sidebar-section-title">{{ __('GFW Satellite') }}</div>
 
