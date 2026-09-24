@@ -408,7 +408,7 @@
 
                                         {{-- Tombol Ubah --}}
                                         <button type="button"
-                                                onclick="openEditSampleModal({{ json_encode($sample) }})"
+                                                onclick='openEditSampleModal(@js($sample))'
                                                 class="p-1.5 rounded-lg text-slate-500 hover:text-ocean-600 hover:bg-slate-100 transition"
                                                 title="{{ __('Ubah Sampel') }}">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -418,7 +418,7 @@
 
                                         {{-- Tombol Hapus --}}
                                         <button type="button"
-                                                onclick="confirmDeleteSample({{ $sample->id }}, '{{ $sample->sample_code }}')"
+                                                onclick='confirmDeleteSample({{ $sample->id }}, @js($sample->sample_code))'
                                                 class="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition"
                                                 title="{{ __('Hapus Sampel') }}">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -505,7 +505,7 @@
                                         <span class="font-bold text-ocean-700">{{ $progressPercent }}%</span>
                                     </div>
                                     <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                                        <div class="bg-gradient-to-r from-ocean-500 to-emerald-500 h-2 rounded-full transition-all duration-500" style="width: {{ $progressPercent }}%"></div>
+                                        <div class="bg-gradient-to-r from-ocean-500 to-emerald-500 h-2 rounded-full transition-all duration-500" style="{{ 'width: ' . $progressPercent . '%;' }}"></div>
                                     </div>
                                     <div class="text-[10px] text-slate-400 mt-1">{{ $plan->samples_count }} {{ __('batch sampel tercatat') }}</div>
                                 </td>
@@ -540,7 +540,7 @@
                                 <td class="py-3.5 px-4 text-center">
                                     <div class="inline-flex items-center gap-1">
                                         <button type="button"
-                                                onclick="openEditPlanModal({{ json_encode($plan) }})"
+                                                onclick='openEditPlanModal(@js($plan))'
                                                 class="p-1.5 rounded-lg text-slate-500 hover:text-ocean-600 hover:bg-slate-100 transition"
                                                 title="{{ __('Ubah Rencana') }}">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -548,7 +548,7 @@
                                             </svg>
                                         </button>
                                         <button type="button"
-                                                onclick="confirmDeletePlan({{ $plan->id }}, '{{ $plan->code }}')"
+                                                onclick='confirmDeletePlan({{ $plan->id }}, @js($plan->code))'
                                                 class="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition"
                                                 title="{{ __('Hapus Rencana') }}">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

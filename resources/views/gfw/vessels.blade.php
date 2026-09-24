@@ -686,7 +686,7 @@
 
             // Provenance & Stale Data State Tracking
             const APP_TIMEZONE = "{{ config('app.timezone', 'Asia/Jakarta') }}";
-            const INITIAL_LAST_SUCCESSFUL_SYNC = @json($lastSuccessfulSync ?? null);
+            const INITIAL_LAST_SUCCESSFUL_SYNC = {{ Illuminate\Support\Js::from($lastSuccessfulSync ?? null) }};
             let lastSuccessfulTimestamp = INITIAL_LAST_SUCCESSFUL_SYNC || localStorage.getItem('gfw_vessels_last_success_ts') || null;
             let lastSuccessfulDataAge = localStorage.getItem('gfw_vessels_last_success_age') ? parseInt(localStorage.getItem('gfw_vessels_last_success_age'), 10) : null;
             let currentDatasetStatus = 'INIT'; // 'LIVE' | 'STALE' | 'NO_DATA'
