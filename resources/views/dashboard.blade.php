@@ -474,9 +474,9 @@
             </div>
         </div>
 
-        {{-- Section 5: Dedicated GIS & Satellite Workspace Access --}}
+        {{-- Section 5: Dedicated GIS & Satellite Workspace Access (Hidden per user request) --}}
         @can('access.gis')
-        <div class="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-950 rounded-2xl p-6 text-white border border-indigo-500/20 shadow-lg relative overflow-hidden">
+        <div class="hidden bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-950 rounded-2xl p-6 text-white border border-indigo-500/20 shadow-lg relative overflow-hidden">
             <div class="absolute right-4 -bottom-6 text-9xl opacity-5 pointer-events-none select-none">🗺️</div>
             <div class="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
                 <div class="max-w-2xl">
