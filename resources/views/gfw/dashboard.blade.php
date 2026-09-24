@@ -14,20 +14,6 @@
                     </p>
                 </div>
             </div>
-            <div class="flex items-center gap-2 shrink-0">
-                <a href="{{ route('gfw.vessels') }}" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs transition shadow-2xs flex items-center gap-1.5">
-                    <span>🚢</span>
-                    <span>{{ __('Vessel Observatory') }}</span>
-                </a>
-                <a href="{{ route('dashboard.gis') }}" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs transition shadow-2xs flex items-center gap-1.5">
-                    <span>🗺️</span>
-                    <span>{{ __('Peta GIS') }}</span>
-                </a>
-                <a href="{{ route('gfw.monitoring') }}" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition shadow-2xs flex items-center gap-1.5">
-                    <span>📡</span>
-                    <span>{{ __('Workspace Satelit') }}</span>
-                </a>
-            </div>
         </div>
     </x-slot>
 
