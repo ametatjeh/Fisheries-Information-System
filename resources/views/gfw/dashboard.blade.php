@@ -6,10 +6,10 @@
                     <span class="text-lg">🛰️</span>
                 </div>
                 <div>
-                    <h1 class="text-base font-bold text-slate-800 tracking-tight leading-tight">
+                    <h1 class="text-base font-bold text-white tracking-tight leading-tight">
                         {{ __('GFW Operational Dashboard') }}
                     </h1>
-                    <p class="text-xs text-slate-500 font-medium">
+                    <p class="text-xs text-white font-medium">
                         {{ __('ZEE Indonesia — Kawasan Aceh') }}
                     </p>
                 </div>
