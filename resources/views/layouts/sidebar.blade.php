@@ -28,9 +28,24 @@
 >
     {{-- Brand / Logo & Mobile Close Button --}}
     <div class="sidebar-header-wrapper">
-        <a href="{{ route('dashboard') }}" class="sidebar-brand group block no-underline">
-            <div class="sidebar-brand-icon">
-                <img src="{{ $currentOrganization?->logo_url ?? asset('Logo.png') }}" alt="Logo">
+        <a href="{{ route('dashboard') }}"
+           class="sidebar-brand group no-underline"
+           @click="if ($store.sidebar.collapsed) { $event.preventDefault(); $store.sidebar.toggle(); }"
+           :title="$store.sidebar.collapsed ? '{{ __('Perluas Menu') }}' : '{{ __('Dashboard') }}'">
+            <div class="sidebar-brand-icon"
+                 :title="$store.sidebar.collapsed ? '{{ __('Perluas Menu') }}' : '{{ __('Dashboard') }}'">
+                {{-- Logo saat menu terbuka normal --}}
+                <img class="sidebar-brand-logo"
+                     src="{{ $currentOrganization?->logo_url ?? asset('Logo.png') }}" 
+                     alt="Logo">
+
+                {{-- Ikon Toggle Sidebar saat menu di-minimize --}}
+                <svg class="sidebar-toggle-icon w-5 h-5 text-white" 
+                     fill="none" 
+                     stroke="currentColor" 
+                     viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
             </div>
             <div class="sidebar-brand-text">
                 <div>Sistem Perikanan</div>

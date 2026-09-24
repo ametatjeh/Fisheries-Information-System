@@ -141,6 +141,24 @@
     transform: scale(1.05);
 }
 
+.sidebar .sidebar-toggle-icon {
+    display: none;
+}
+
+.sidebar.collapsed .sidebar-brand {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.sidebar.collapsed .sidebar-brand-logo {
+    display: none;
+}
+
+.sidebar.collapsed .sidebar-toggle-icon {
+    display: block;
+}
+
 .sidebar-brand-text {
     color: white;
     font-weight: 700;
@@ -388,6 +406,16 @@
     .sidebar.collapsed {
         width: 280px;
         max-width: 85vw;
+    }
+    .sidebar.collapsed .sidebar-brand {
+        justify-content: flex-start !important;
+        padding: 0.85rem 1rem !important;
+    }
+    .sidebar.collapsed .sidebar-brand-logo {
+        display: block !important;
+    }
+    .sidebar.collapsed .sidebar-toggle-icon {
+        display: none !important;
     }
     .sidebar.collapsed .sidebar-brand-text,
     .sidebar.collapsed .sidebar-section-title,
