@@ -75,23 +75,7 @@
 }
 
 .sidebar-close-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    margin-right: 0.75rem;
-    border-radius: 8px;
-    color: var(--color-ocean-300);
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.sidebar-close-btn:hover {
-    color: white;
-    background: rgba(255, 255, 255, 0.1);
+    display: none !important;
 }
 
 .sidebar-brand {

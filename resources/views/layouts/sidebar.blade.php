@@ -53,10 +53,11 @@
             </div>
         </a>
 
-        {{-- Tombol Tutup Sidebar di Mobile (X) --}}
+        {{-- Tombol Tutup Sidebar di Mobile (X) - disembunyikan sesuai permintaan --}}
         <button type="button"
                 @click="$store.sidebar.mobileOpen = false"
-                class="sidebar-close-btn md:hidden"
+                class="sidebar-close-btn hidden"
+                style="display: none !important;"
                 title="{{ __('Tutup Menu') }}"
                 aria-label="{{ __('Tutup Menu') }}">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
