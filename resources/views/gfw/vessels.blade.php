@@ -86,7 +86,7 @@
                         </span>
                         <label class="inline-flex items-center gap-1.5 cursor-pointer text-[10px] text-indigo-300 hover:text-indigo-200">
                             <input type="checkbox" id="toggle-big-zee-aceh" checked class="rounded border-slate-600 bg-slate-700 text-indigo-500 focus:ring-0 text-[10px]">
-                            <span>Batas ZEE (BIG)</span>
+                            <span>ZEE — Data Resmi BIG</span>
                         </label>
                     </div>
 
