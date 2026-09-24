@@ -5,16 +5,6 @@
                 <span>🛰️</span>
                 <span>{{ __('GFW Vessel Monitoring (Peta Pemantauan Kapal Satelit AIS/VMS)') }}</span>
             </div>
-            <div class="flex items-center gap-2">
-                <a href="{{ route('dashboard') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs transition shadow-xs">
-                    <span>📊</span>
-                    <span>{{ __('Dashboard') }}</span>
-                </a>
-                <a href="{{ route('dashboard.gis') }}" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-ocean-600 hover:bg-ocean-500 border border-cyan-400/40 shadow-sm transition">
-                    <span>🗺️</span>
-                    <span>{{ __('Peta Terpadu GIS') }}</span>
-                </a>
-            </div>
         </div>
     </x-slot>
 
