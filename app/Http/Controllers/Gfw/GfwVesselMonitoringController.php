@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Gfw;
 
 use App\Http\Controllers\Controller;
+use App\Models\Gfw\GfwSyncRun;
 use App\Services\Gfw\AoiService;
 use App\Services\Gfw\GfwActivityService;
 use App\Services\Gfw\GfwRegionService;
@@ -52,12 +53,28 @@ class GfwVesselMonitoringController extends Controller
 
         $latencyNotice = GfwActivityService::LATENCY_NOTICE;
 
+        $lastSuccessfulSync = null;
+        try {
+            if (class_exists(GfwSyncRun::class)) {
+                $lastSuccessRun = GfwSyncRun::where('status', 'success')
+                    ->whereNotNull('finished_at')
+                    ->orderByDesc('finished_at')
+                    ->first();
+                if ($lastSuccessRun && $lastSuccessRun->finished_at) {
+                    $lastSuccessfulSync = $lastSuccessRun->finished_at->toIso8601String();
+                }
+            }
+        } catch (Throwable) {
+            // Gracefully ignore if database or model not accessible
+        }
+
         return view('gfw.vessels', compact(
             'startDate',
             'endDate',
             'aoiSummary',
             'bufferSummary',
-            'latencyNotice'
+            'latencyNotice',
+            'lastSuccessfulSync'
         ));
     }
 
@@ -88,11 +105,27 @@ class GfwVesselMonitoringController extends Controller
 
         $latencyNotice = GfwActivityService::LATENCY_NOTICE;
 
+        $lastSuccessfulSync = null;
+        try {
+            if (class_exists(GfwSyncRun::class)) {
+                $lastSuccessRun = GfwSyncRun::where('status', 'success')
+                    ->whereNotNull('finished_at')
+                    ->orderByDesc('finished_at')
+                    ->first();
+                if ($lastSuccessRun && $lastSuccessRun->finished_at) {
+                    $lastSuccessfulSync = $lastSuccessRun->finished_at->toIso8601String();
+                }
+            }
+        } catch (Throwable) {
+            // Gracefully ignore if database or model not accessible
+        }
+
         return view('gfw.dashboard', compact(
             'startDate',
             'endDate',
             'aoiSummary',
-            'latencyNotice'
+            'latencyNotice',
+            'lastSuccessfulSync'
         ));
     }
 }

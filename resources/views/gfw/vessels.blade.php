@@ -93,7 +93,13 @@
                     <div class="flex items-center justify-between text-[11px] pb-1 border-b border-slate-700/40">
                         <div class="flex items-center gap-2">
                             <span id="vessels-live-pulse" class="w-2 h-2 rounded-full bg-slate-500 inline-block"></span>
-                            <span class="font-semibold text-slate-200">Live Monitor:</span>
+                            <span class="font-semibold text-slate-200">Status Dataset:</span>
+                            <span id="vessels-dataset-pill" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-700 text-slate-300 font-mono">
+                                MEMUAT...
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-[10px] text-slate-400">Auto Live:</span>
                             <button type="button" id="btn-toggle-live-vessels" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-700 text-slate-300 hover:bg-slate-600 transition">
                                 OFF
                             </button>
@@ -131,17 +137,38 @@
         </div>
 
         {{-- Fallback / Error Resilience Notice --}}
-        <div id="vessels-refresh-error-notice" class="hidden p-3.5 rounded-2xl bg-amber-50 border border-amber-300/80 text-amber-900 text-xs flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
-            <div class="flex items-center gap-2.5">
-                <span class="text-lg shrink-0">⚠️</span>
-                <div>
-                    <span class="font-bold text-amber-950 text-sm">Gagal memperbarui data dari GFW API.</span>
-                    <span class="text-xs text-amber-900 font-medium ml-1">Menampilkan dataset berhasil terakhir. Data kapal tidak direset ke 0.</span>
+        <div id="vessels-refresh-error-notice" class="hidden p-4 rounded-2xl bg-amber-50/95 border border-amber-300 text-amber-950 text-xs shadow-xs space-y-2">
+            <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                <div class="flex items-start gap-3">
+                    <span class="text-2xl shrink-0 mt-0.5">⚠️</span>
+                    <div class="space-y-1.5">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="font-bold text-amber-950 text-sm">Gagal memperbarui data dari GFW API</span>
+                            <span id="vessels-notice-status-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-200/90 text-amber-950 border border-amber-300 font-mono">
+                                DATA TERAKHIR TERSEDIA
+                            </span>
+                        </div>
+                        <p class="text-xs text-amber-900 font-medium leading-relaxed">
+                            Menampilkan dataset berhasil terakhir. Data kapal tidak direset ke 0.
+                        </p>
+                        <div class="flex flex-wrap items-center gap-x-5 gap-y-1 pt-1 border-t border-amber-200/60 text-[11px] text-amber-950">
+                            <div>
+                                <span class="text-amber-800">Data terakhir berhasil diperbarui:</span>
+                                <strong id="vessels-notice-last-updated" class="font-mono ml-1 text-amber-950">-</strong>
+                                <span id="vessels-notice-data-age" class="text-amber-800 text-[10px] font-medium ml-1"></span>
+                            </div>
+                            <div>
+                                <span class="text-amber-800">Status:</span>
+                                <strong class="text-amber-900 ml-1 uppercase font-bold">DATA TERAKHIR TERSEDIA</strong>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+                <button type="button" id="btn-retry-vessels" class="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition shrink-0 shadow-xs flex items-center gap-1.5 self-end sm:self-center">
+                    <span>🔄</span>
+                    <span>Coba Lagi</span>
+                </button>
             </div>
-            <button type="button" id="btn-retry-vessels" class="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition shrink-0 shadow-xs">
-                🔄 Coba Lagi
-            </button>
         </div>
 
         {{-- KPI / Summary Cards --}}
@@ -156,7 +183,7 @@
                     <h3 id="stat-total-vessels" class="text-2xl font-black text-slate-800 mt-1">
                         <span class="animate-pulse">...</span>
                     </h3>
-                    <p class="text-[11px] text-slate-400 mt-0.5">Kapal unik lolos BIG ZEE PIP</p>
+                    <p id="stat-total-subtitle" class="text-[11px] text-slate-400 mt-0.5">Kapal unik lolos BIG ZEE PIP</p>
                 </div>
                 <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl shrink-0">
                     🚢
@@ -682,6 +709,13 @@
             let liveTimer = null;
             let previousVesselsMap = new Map();
 
+            // Provenance & Stale Data State Tracking
+            const APP_TIMEZONE = "{{ config('app.timezone', 'Asia/Jakarta') }}";
+            const INITIAL_LAST_SUCCESSFUL_SYNC = @json($lastSuccessfulSync ?? null);
+            let lastSuccessfulTimestamp = INITIAL_LAST_SUCCESSFUL_SYNC || localStorage.getItem('gfw_vessels_last_success_ts') || null;
+            let lastSuccessfulDataAge = localStorage.getItem('gfw_vessels_last_success_age') ? parseInt(localStorage.getItem('gfw_vessels_last_success_age'), 10) : null;
+            let currentDatasetStatus = 'INIT'; // 'LIVE' | 'STALE' | 'NO_DATA'
+
             // DOM elements
             const mapContainer = document.getElementById('gfw-vessels-map');
             const mapStatusOverlay = document.getElementById('map-status-overlay');
@@ -689,6 +723,7 @@
             const mapStatusText = document.getElementById('map-status-text');
 
             const statTotal = document.getElementById('stat-total-vessels');
+            const statTotalSubtitle = document.getElementById('stat-total-subtitle');
             const statFishing = document.getElementById('stat-fishing-vessels');
             const statOther = document.getElementById('stat-other-vessels');
             const statFlags = document.getElementById('stat-flags');
@@ -708,11 +743,15 @@
 
             const btnToggleLive = document.getElementById('btn-toggle-live-vessels');
             const livePulse = document.getElementById('vessels-live-pulse');
+            const datasetStatusPill = document.getElementById('vessels-dataset-pill');
             const metaLastUpdated = document.getElementById('meta-last-updated');
             const metaDataAge = document.getElementById('meta-data-age');
             const metaDeltaContainer = document.getElementById('meta-delta-container');
             const metaDeltaBadge = document.getElementById('meta-delta-badge');
             const refreshErrorNotice = document.getElementById('vessels-refresh-error-notice');
+            const noticeStatusBadge = document.getElementById('vessels-notice-status-badge');
+            const noticeLastUpdated = document.getElementById('vessels-notice-last-updated');
+            const noticeDataAge = document.getElementById('vessels-notice-data-age');
             const btnRetry = document.getElementById('btn-retry-vessels');
             const truncatedBanner = document.getElementById('vessels-truncated-banner');
             const statUpstreamEventsBadge = document.getElementById('stat-upstream-events-badge');
@@ -978,22 +1017,20 @@
                     isFetching = false;
 
                     if (!response.ok || !json.success) {
-                        let errTitle = 'GFW API unavailable';
-                        if (response.status === 404 || (json.message && json.message.includes('AOI'))) {
-                            errTitle = 'AOI unavailable';
-                        }
-                        // Resilience: if we already have vessels, don't wipe them!
-                        if (vesselsList.length > 0) {
-                            if (refreshErrorNotice) refreshErrorNotice.classList.remove('hidden');
+                        // Resilience: if we already have vessels or prior dataset, keep them!
+                        if (vesselsList.length > 0 || lastSuccessfulTimestamp) {
+                            updateDatasetStatus('STALE', { error: json.message });
                         } else {
-                            showError(json.message || 'Gagal memuat data observasi kapal dari GFW.', errTitle);
-                            renderEmptyTable('Terjadi kesalahan saat memuat data: ' + (json.message || 'API error'));
+                            updateDatasetStatus('NO_DATA', { error: json.message });
                         }
                         return;
                     }
 
-                    // Success: hide error notice
-                    if (refreshErrorNotice) refreshErrorNotice.classList.add('hidden');
+                    // Success: update status to LIVE with fresh dataset metadata
+                    updateDatasetStatus('LIVE', {
+                        last_updated: json.last_updated,
+                        data_age_seconds: json.data_age_seconds
+                    });
 
                     // Upstream Pagination Truncated Warning Banner
                     const isTruncated = json.pagination_truncated || json.pagination?.pagination_truncated || false;
@@ -1020,10 +1057,6 @@
                         statUpstreamEventsBadge.textContent = `${upstreamCount.toLocaleString()} events`;
                         statUpstreamEventsBadge.classList.remove('hidden');
                     }
-
-                    // Update live timing metadata
-                    if (metaLastUpdated) metaLastUpdated.textContent = formatDate(json.last_updated);
-                    if (metaDataAge) metaDataAge.textContent = formatAge(json.data_age_seconds);
 
                     // Dynamically update available flags from actual GFW response
                     const availableFlags = json.summary?.available_flags || Object.keys(json.summary?.flags || {});
@@ -1064,12 +1097,119 @@
                     btnApplySpinner.classList.add('hidden');
                     btnApply.disabled = false;
                     hideStatus();
-                    if (vesselsList.length > 0) {
-                        if (refreshErrorNotice) refreshErrorNotice.classList.remove('hidden');
+                    if (vesselsList.length > 0 || lastSuccessfulTimestamp) {
+                        updateDatasetStatus('STALE', { error: err.message });
                     } else {
-                        showError('Koneksi ke server gagal: ' + err.message, 'GFW API unavailable');
-                        renderEmptyTable('Koneksi terputus saat memuat data armada.');
+                        updateDatasetStatus('NO_DATA', { error: err.message });
                     }
+                }
+            }
+
+            // Clear 3-state dataset status indicator handler (LIVE, STALE, NO_DATA)
+            function updateDatasetStatus(status, meta = {}) {
+                currentDatasetStatus = status;
+
+                if (status === 'LIVE') {
+                    if (meta.last_updated) {
+                        lastSuccessfulTimestamp = meta.last_updated;
+                    } else if (!lastSuccessfulTimestamp) {
+                        lastSuccessfulTimestamp = new Date().toISOString();
+                    }
+                    if (meta.data_age_seconds !== undefined && meta.data_age_seconds !== null) {
+                        lastSuccessfulDataAge = meta.data_age_seconds;
+                    }
+
+                    try {
+                        if (lastSuccessfulTimestamp) {
+                            localStorage.setItem('gfw_vessels_last_success_ts', lastSuccessfulTimestamp);
+                        }
+                        if (lastSuccessfulDataAge !== null) {
+                            localStorage.setItem('gfw_vessels_last_success_age', String(lastSuccessfulDataAge));
+                        }
+                    } catch (e) {}
+
+                    if (refreshErrorNotice) refreshErrorNotice.classList.add('hidden');
+                    if (errorBox) errorBox.classList.add('hidden');
+
+                    if (datasetStatusPill) {
+                        datasetStatusPill.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-mono';
+                        datasetStatusPill.textContent = '✓ DATA TERBARU';
+                    }
+
+                    if (livePulse) {
+                        livePulse.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block';
+                    }
+
+                    if (statTotalSubtitle) {
+                        statTotalSubtitle.innerHTML = 'Kapal unik lolos BIG ZEE PIP &bull; <span class="text-emerald-600 font-semibold">Terkini</span>';
+                    }
+
+                    if (metaLastUpdated && lastSuccessfulTimestamp) {
+                        metaLastUpdated.textContent = formatDate(lastSuccessfulTimestamp);
+                    }
+                    if (metaDataAge && lastSuccessfulDataAge !== null) {
+                        metaDataAge.textContent = formatAge(lastSuccessfulDataAge);
+                    }
+
+                } else if (status === 'STALE') {
+                    if (refreshErrorNotice) {
+                        refreshErrorNotice.classList.remove('hidden');
+                    }
+                    if (errorBox) errorBox.classList.add('hidden');
+
+                    if (noticeLastUpdated) {
+                        noticeLastUpdated.textContent = lastSuccessfulTimestamp ? formatDate(lastSuccessfulTimestamp) : 'Dataset sebelumnya';
+                    }
+                    if (noticeDataAge) {
+                        const ageSec = lastSuccessfulDataAge !== null ? lastSuccessfulDataAge : calcAgeFromTimestamp(lastSuccessfulTimestamp);
+                        noticeDataAge.textContent = ageSec !== null ? `(Sekitar ${formatAge(ageSec)})` : '';
+                    }
+
+                    if (datasetStatusPill) {
+                        datasetStatusPill.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono';
+                        datasetStatusPill.textContent = '⚠ DATA TERAKHIR TERSEDIA';
+                    }
+
+                    if (livePulse) {
+                        livePulse.className = 'w-2 h-2 rounded-full bg-amber-400 inline-block';
+                    }
+
+                    if (statTotalSubtitle) {
+                        statTotalSubtitle.innerHTML = 'Kapal unik lolos BIG ZEE PIP &bull; <span class="text-amber-700 font-semibold">Dataset Terakhir</span>';
+                    }
+
+                    if (metaLastUpdated && lastSuccessfulTimestamp) {
+                        metaLastUpdated.textContent = formatDate(lastSuccessfulTimestamp);
+                    }
+                    if (metaDataAge && lastSuccessfulDataAge !== null) {
+                        metaDataAge.textContent = formatAge(lastSuccessfulDataAge);
+                    }
+
+                } else if (status === 'NO_DATA') {
+                    if (refreshErrorNotice) refreshErrorNotice.classList.add('hidden');
+
+                    showError('GFW API gagal diakses dan belum ada dataset berhasil sebelumnya untuk ditampilkan.', 'Data GFW belum tersedia');
+
+                    if (datasetStatusPill) {
+                        datasetStatusPill.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 font-mono';
+                        datasetStatusPill.textContent = '⚠ BELUM TERSEDIA';
+                    }
+
+                    if (livePulse) {
+                        livePulse.className = 'w-2 h-2 rounded-full bg-slate-500 inline-block';
+                    }
+
+                    if (statTotal) statTotal.textContent = '—';
+                    if (statFishing) statFishing.textContent = '—';
+                    if (statOther) statOther.textContent = '—';
+                    if (statFlags) statFlags.textContent = '—';
+                    if (statFlagsPreview) statFlagsPreview.textContent = 'Belum ada data';
+                    if (statTotalSubtitle) statTotalSubtitle.textContent = 'Data GFW belum tersedia';
+
+                    if (metaLastUpdated) metaLastUpdated.textContent = 'Belum ada data';
+                    if (metaDataAge) metaDataAge.textContent = '-';
+
+                    renderEmptyTable('GFW API gagal diakses dan belum ada dataset berhasil sebelumnya untuk ditampilkan.', true);
                 }
             }
 
@@ -1469,7 +1609,30 @@
                 }
             }
 
-            function renderEmptyTable(message) {
+            function renderEmptyTable(message, isErrorNoData = false) {
+                if (isErrorNoData) {
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="9" class="py-12 px-4 text-center space-y-3">
+                                <div class="text-4xl text-amber-500">⚠️</div>
+                                <div class="space-y-1">
+                                    <h4 class="font-bold text-slate-800 text-sm">Data GFW belum tersedia</h4>
+                                    <p class="text-xs text-slate-600 max-w-md mx-auto leading-relaxed">
+                                        ${escapeHtml(message || 'GFW API gagal diakses dan belum ada dataset berhasil sebelumnya untuk ditampilkan.')}
+                                    </p>
+                                </div>
+                                <div class="pt-2">
+                                    <button type="button" onclick="fetchVesselsData()" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition inline-flex items-center gap-1.5 shadow-xs">
+                                        <span>🔄</span>
+                                        <span>Muat Ulang Data GFW</span>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+
                 tableBody.innerHTML = `
                     <tr>
                         <td colspan="9" class="py-12 px-4 text-center space-y-3">
@@ -1917,6 +2080,12 @@
                 fetchVesselsData();
             });
 
+            if (btnRetry) {
+                btnRetry.addEventListener('click', () => {
+                    fetchVesselsData();
+                });
+            }
+
             // Preset 7 Hari button
             document.querySelectorAll('.btn-preset-7d').forEach(btn => {
                 btn.addEventListener('click', () => {
@@ -1942,10 +2111,21 @@
                         day: 'numeric',
                         hour: '2-digit',
                         minute: '2-digit',
-                        timeZone: 'Asia/Jakarta'
-                    }) + ' WIB';
+                        timeZone: APP_TIMEZONE,
+                        timeZoneName: 'short'
+                    });
                 } catch (e) {
                     return isoStr;
+                }
+            }
+
+            function calcAgeFromTimestamp(isoStr) {
+                if (!isoStr) return null;
+                try {
+                    const ms = Date.now() - new Date(isoStr).getTime();
+                    return Math.max(0, Math.floor(ms / 1000));
+                } catch (e) {
+                    return null;
                 }
             }
 

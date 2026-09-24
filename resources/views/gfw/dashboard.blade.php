@@ -105,17 +105,38 @@
         </div>
 
         {{-- Fallback / Warning Error Notice --}}
-        <div id="gfw-dashboard-error-notice" class="hidden p-4 rounded-2xl bg-amber-50 border border-amber-300/80 text-amber-900 text-xs flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
-            <div class="flex items-center gap-3">
-                <span class="text-2xl shrink-0">⚠️</span>
-                <div>
-                    <span class="font-bold text-amber-950 text-sm block" id="error-notice-title">Gagal mengambil data dari Global Fishing Watch.</span>
-                    <p class="text-xs text-amber-900 font-medium mt-0.5" id="error-notice-detail">Menampilkan dataset berhasil terakhir. Data operasional tetap aman dan tidak direset.</p>
+        <div id="gfw-dashboard-error-notice" class="hidden p-4 rounded-2xl bg-amber-50/95 border border-amber-300 text-amber-950 text-xs shadow-xs space-y-2">
+            <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                <div class="flex items-start gap-3">
+                    <span class="text-2xl shrink-0 mt-0.5">⚠️</span>
+                    <div class="space-y-1.5">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="font-bold text-amber-950 text-sm" id="error-notice-title">Gagal memperbarui data dari GFW API</span>
+                            <span id="dashboard-notice-status-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-200/90 text-amber-950 border border-amber-300 font-mono">
+                                DATA TERAKHIR TERSEDIA
+                            </span>
+                        </div>
+                        <p class="text-xs text-amber-900 font-medium leading-relaxed" id="error-notice-detail">
+                            Menampilkan dataset berhasil terakhir. Data operasional tetap aman dan tidak direset.
+                        </p>
+                        <div class="flex flex-wrap items-center gap-x-5 gap-y-1 pt-1 border-t border-amber-200/60 text-[11px] text-amber-950">
+                            <div>
+                                <span class="text-amber-800">Data terakhir berhasil diperbarui:</span>
+                                <strong id="dashboard-notice-last-updated" class="font-mono ml-1 text-amber-950">-</strong>
+                                <span id="dashboard-notice-data-age" class="text-amber-800 text-[10px] font-medium ml-1"></span>
+                            </div>
+                            <div>
+                                <span class="text-amber-800">Status:</span>
+                                <strong class="text-amber-900 ml-1 uppercase font-bold">DATA TERAKHIR TERSEDIA</strong>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+                <button type="button" id="btn-retry-fetch" class="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition shrink-0 shadow-xs flex items-center gap-1.5 self-end sm:self-center">
+                    <span>🔄</span>
+                    <span>Coba Lagi</span>
+                </button>
             </div>
-            <button type="button" id="btn-retry-fetch" class="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition shrink-0 shadow-xs">
-                🔄 Coba Lagi
-            </button>
         </div>
 
         {{-- KPI Row: 8 Summary Cards (Stage 5.1) --}}
@@ -618,6 +639,11 @@
             const filterSpinner = document.getElementById('filter-spinner');
             const btnRefresh = document.getElementById('btn-refresh-dashboard');
 
+            const APP_TIMEZONE = "{{ config('app.timezone', 'Asia/Jakarta') }}";
+            const INITIAL_LAST_SUCCESSFUL_SYNC = @json($lastSuccessfulSync ?? null);
+            let lastSuccessfulTimestamp = INITIAL_LAST_SUCCESSFUL_SYNC || localStorage.getItem('gfw_dashboard_last_success_ts') || null;
+            let lastSuccessfulDataAge = localStorage.getItem('gfw_dashboard_last_success_age') ? parseInt(localStorage.getItem('gfw_dashboard_last_success_age'), 10) : null;
+
             const liveStatusText = document.getElementById('live-status-text');
             const metaLastUpdated = document.getElementById('meta-last-updated');
             const metaDataAge = document.getElementById('meta-data-age');
@@ -625,6 +651,8 @@
             const errorNotice = document.getElementById('gfw-dashboard-error-notice');
             const errorTitle = document.getElementById('error-notice-title');
             const errorDetail = document.getElementById('error-notice-detail');
+            const noticeLastUpdated = document.getElementById('dashboard-notice-last-updated');
+            const noticeDataAge = document.getElementById('dashboard-notice-data-age');
             const btnRetry = document.getElementById('btn-retry-fetch');
 
             const tabBtnActivities = document.getElementById('tab-btn-activities');
@@ -818,6 +846,19 @@
                     alertsTabBadge.textContent = alertsList.length;
                     updateTabCount();
 
+                    // Track last successful timestamp
+                    if (json.last_updated) {
+                        lastSuccessfulTimestamp = json.last_updated;
+                        lastSuccessfulDataAge = json.data_age_seconds ?? 0;
+                        try {
+                            localStorage.setItem('gfw_dashboard_last_success_ts', lastSuccessfulTimestamp);
+                            localStorage.setItem('gfw_dashboard_last_success_age', String(lastSuccessfulDataAge));
+                        } catch (e) {}
+                    }
+                    errorNotice.classList.add('hidden');
+                    liveStatusText.textContent = 'DATA TERBARU';
+                    liveStatusText.className = 'font-semibold font-mono text-[10px] text-emerald-400';
+
                 } catch (err) {
                     filterSpinner.classList.add('hidden');
                     handleFetchFailure(err.message);
@@ -826,11 +867,24 @@
 
             // Error Resilience - Last Successful Data fallback
             function handleFetchFailure(msg) {
-                errorNotice.classList.remove('hidden');
-                errorTitle.textContent = 'Gagal mengambil data dari Global Fishing Watch.';
-                errorDetail.textContent = msg + ' Menampilkan dataset terakhir yang berhasil dimuat.';
-                liveStatusText.textContent = 'Gagal memperbarui (Data Tersimpan)';
-                liveStatusText.classList.add('text-amber-400');
+                if (vesselsList.length > 0 || eventsList.length > 0 || lastSuccessfulTimestamp) {
+                    errorNotice.classList.remove('hidden');
+                    errorTitle.textContent = 'Gagal memperbarui data dari GFW API';
+                    errorDetail.textContent = 'Menampilkan dataset berhasil terakhir. Data operasional tetap aman dan tidak direset.';
+                    if (noticeLastUpdated) {
+                        noticeLastUpdated.textContent = lastSuccessfulTimestamp ? formatDate(lastSuccessfulTimestamp) : 'Dataset sebelumnya';
+                    }
+                    if (noticeDataAge) {
+                        const ageSec = lastSuccessfulDataAge !== null ? lastSuccessfulDataAge : null;
+                        noticeDataAge.textContent = ageSec !== null ? `(Sekitar ${formatAge(ageSec)})` : '';
+                    }
+                    liveStatusText.textContent = 'DATA TERAKHIR TERSEDIA';
+                    liveStatusText.className = 'font-semibold font-mono text-[10px] text-amber-400';
+                } else {
+                    errorNotice.classList.add('hidden');
+                    liveStatusText.textContent = 'BELUM TERSEDIA';
+                    liveStatusText.className = 'font-semibold font-mono text-[10px] text-rose-400';
+                }
             }
 
             // MapLibre GeoJSON update with Clustering and Event Layers
@@ -1420,8 +1474,9 @@
                     return d.toLocaleString('id-ID', {
                         year: 'numeric', month: 'short', day: 'numeric',
                         hour: '2-digit', minute: '2-digit',
-                        timeZone: 'Asia/Jakarta'
-                    }) + ' WIB';
+                        timeZone: APP_TIMEZONE,
+                        timeZoneName: 'short'
+                    });
                 } catch { return str; }
             }
 
