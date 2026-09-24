@@ -157,7 +157,7 @@
 }
 
 .sidebar-section {
-    padding: 0.45rem 0.75rem 0.15rem;
+    padding: 0.35rem 0.65rem 0.1rem;
 }
 
 .sidebar-section-title {
@@ -167,7 +167,7 @@
     text-transform: uppercase;
     letter-spacing: 0.08em;
     padding: 0 0.5rem;
-    margin-bottom: 0.2rem;
+    margin-bottom: 0.15rem;
     white-space: nowrap;
     overflow: hidden;
     transition: opacity 0.2s;
@@ -180,22 +180,32 @@
 .sidebar-link {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.45rem 0.75rem;
-    margin-bottom: 1px;
-    border-radius: 8px;
+    gap: 0.6rem;
+    padding: 0.35rem 0.65rem;
+    margin-bottom: 1.5px;
+    border-radius: 7px;
     color: var(--color-ocean-200);
-    font-size: 0.85rem;
+    font-size: 0.825rem;
     font-weight: 500;
     text-decoration: none;
-    transition: all 0.15s ease;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     white-space: nowrap;
     position: relative;
 }
 
 .sidebar-link:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: white;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.03) 100%);
+    color: #ffffff;
+    box-shadow: inset 3px 0 0 rgba(56, 189, 248, 0.85);
+    transform: translateX(3px);
+}
+
+.sidebar-link:hover .sidebar-link-icon {
+    transform: scale(1.12);
+}
+
+.sidebar.collapsed .sidebar-link:hover {
+    transform: none;
 }
 
 .sidebar-link.active {
@@ -204,11 +214,18 @@
     box-shadow: inset 3px 0 0 var(--color-ocean-400);
 }
 
+.sidebar-link.active:hover {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.4), rgba(37, 99, 235, 0.3));
+    box-shadow: inset 3px 0 0 var(--color-ocean-300);
+    transform: translateX(2px);
+}
+
 .sidebar-link-icon {
-    width: 22px;
-    min-width: 22px;
+    width: 20px;
+    min-width: 20px;
     text-align: center;
-    font-size: 1rem;
+    font-size: 0.95rem;
+    transition: transform 0.2s ease;
 }
 
 .sidebar-link-text {

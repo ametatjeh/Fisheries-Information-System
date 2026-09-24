@@ -215,22 +215,17 @@
         </div>
     @endif
 
-    {{-- Administrasi Sistem (Khusus Super Admin / Admin) --}}
+    {{-- Pengaturan Sistem (Khusus Super Admin / Admin) --}}
     @if($canAdmin)
-        <div class="sidebar-section">
-            <div class="sidebar-section-title">{{ __('Administrasi') }}</div>
-            <a href="{{ route('admin.users.index') }}" class="sidebar-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
-                <span class="sidebar-link-icon">👥</span>
-                <span class="sidebar-link-text">{{ __('Manajemen Pengguna') }}</span>
-            </a>
-        </div>
-
-        {{-- Pengaturan Sistem --}}
         <div class="sidebar-section">
             <div class="sidebar-section-title">{{ __('Pengaturan') }}</div>
             <a href="{{ route('settings.organization.edit') }}" class="sidebar-link {{ request()->routeIs('settings.organization.*') ? 'active' : '' }}">
                 <span class="sidebar-link-icon">🏢</span>
                 <span class="sidebar-link-text">{{ __('Identitas Organisasi') }}</span>
+            </a>
+            <a href="{{ route('admin.users.index') }}" class="sidebar-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
+                <span class="sidebar-link-icon">👥</span>
+                <span class="sidebar-link-text">{{ __('Manajemen Pengguna') }}</span>
             </a>
         </div>
     @endif
