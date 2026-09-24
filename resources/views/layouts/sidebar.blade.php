@@ -219,6 +219,10 @@
         <div class="sidebar-section">
             <div class="sidebar-section-title">{{ __('GFW Satellite') }}</div>
 
+            <a href="{{ route('gfw.dashboard') }}" class="sidebar-link {{ request()->routeIs('gfw.dashboard') ? 'active' : '' }}" title="{{ __('GFW Dashboard') }}">
+                <span class="sidebar-link-icon">📊</span>
+                <span class="sidebar-link-text">{{ __('GFW Dashboard') }}</span>
+            </a>
             <a href="{{ route('gfw.monitoring') }}" class="sidebar-link {{ request()->routeIs('gfw.monitoring') ? 'active' : '' }}">
                 <span class="sidebar-link-icon">🛰️</span>
                 <span class="sidebar-link-text">{{ __('GFW Monitoring') }}</span>
