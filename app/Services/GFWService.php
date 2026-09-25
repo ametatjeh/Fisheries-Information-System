@@ -25,10 +25,16 @@ class GFWService
 
     protected ?string $token;
 
+    protected int $timeout;
+
+    protected int $connectTimeout;
+
     public function __construct()
     {
         $this->url = rtrim((string) (config('services.gfw.url') ?? config('gfw.url', 'https://gateway.api.globalfishingwatch.org')), '/');
         $this->token = config('services.gfw.token') ?: config('gfw.token') ?: config('services.gfw.api_token') ?: config('gfw.api_token') ?: config('gfw.api_key');
+        $this->timeout = (int) (config('gfw.timeout') ?? config('services.gfw.timeout') ?? 60);
+        $this->connectTimeout = (int) (config('gfw.connect_timeout') ?? config('services.gfw.connect_timeout') ?? 5);
     }
 
     /**
@@ -62,20 +68,22 @@ class GFWService
         $url = $this->getUrl();
 
         if (empty($token)) {
-            $this->logWarning('/v3/events', null, 'GFW API token is not configured.');
+            $this->logWarning('/v3/events', null, 'GFW token missing');
 
             return [
                 'success' => false,
-                'message' => 'GFW API token is not configured',
+                'message' => 'GFW token missing',
                 'status' => 401,
             ];
         }
 
+        $startTime = microtime(true);
+
         try {
             $response = Http::baseUrl($url)
                 ->withToken($token)
-                ->timeout(30)
-                ->connectTimeout(5)
+                ->timeout($this->timeout)
+                ->connectTimeout($this->connectTimeout)
                 ->acceptJson()
                 ->get('/v3/events', [
                     'datasets' => ['public-global-fishing-events:latest'],
@@ -83,68 +91,71 @@ class GFWService
                     'offset' => 0,
                 ]);
 
+            $durationMs = (int) round((microtime(true) - $startTime) * 1000);
             $status = $response->status();
 
             if ($response->successful()) {
+                Log::info('GFW API request completed', [
+                    'endpoint' => '/v3/events',
+                    'host' => parse_url($url, PHP_URL_HOST),
+                    'status' => 200,
+                    'duration_ms' => $durationMs,
+                ]);
+
                 return [
                     'success' => true,
                     'message' => 'GFW API connection successful',
                     'status' => 200,
+                    'duration_ms' => $durationMs,
                 ];
             }
 
-            if ($status === 401) {
-                $this->logWarning('/v3/events', 401, 'Authentication failed on upstream GFW.');
-
-                return [
-                    'success' => false,
-                    'message' => 'GFW API authentication failed',
-                    'status' => 401,
-                ];
-            }
-
-            if ($status === 403) {
-                $this->logWarning('/v3/events', 403, 'Access forbidden on upstream GFW.');
-
-                return [
-                    'success' => false,
-                    'message' => 'GFW API access forbidden',
-                    'status' => 403,
-                ];
-            }
-
-            if ($status === 429) {
-                $this->logWarning('/v3/events', 429, 'Rate limit reached on upstream GFW.');
-
-                return [
-                    'success' => false,
-                    'message' => 'GFW API rate limit reached',
-                    'status' => 429,
-                ];
-            }
-
-            $this->logWarning('/v3/events', $status, "Upstream GFW returned status {$status}");
+            $sanitizedBody = mb_substr(strip_tags((string) $response->body()), 0, 300);
+            $this->logWarning('/v3/events', $status, "Upstream GFW returned status {$status}", [
+                'duration_ms' => $durationMs,
+                'response_sample' => $sanitizedBody,
+            ]);
 
             return [
                 'success' => false,
-                'message' => 'GFW API server error',
-                'status' => 502,
+                'message' => match ($status) {
+                    401 => 'GFW API authentication failed',
+                    403 => 'GFW API access forbidden',
+                    429 => 'GFW API rate limit reached',
+                    default => 'GFW API server error',
+                },
+                'status' => $status,
+                'duration_ms' => $durationMs,
             ];
         } catch (ConnectionException $e) {
-            $this->logWarning('/v3/events', null, 'Connection or timeout exception reaching GFW API: '.$e->getMessage());
+            $durationMs = (int) round((microtime(true) - $startTime) * 1000);
+            $msg = $e->getMessage();
+            $isCurl28 = str_contains($msg, 'cURL error 28') || str_contains($msg, 'timed out');
+            $this->logWarning('/v3/events', 504, ($isCurl28 ? 'Upstream request timed out (cURL error 28)' : 'Connection failure reaching GFW API: '.$msg), [
+                'duration_ms' => $durationMs,
+                'timeout_config' => $this->timeout,
+                'connect_timeout_config' => $this->connectTimeout,
+                'exception_class' => get_class($e),
+            ]);
 
             return [
                 'success' => false,
                 'message' => 'Unable to connect to GFW API',
                 'status' => 503,
+                'duration_ms' => $durationMs,
             ];
         } catch (Throwable $e) {
-            $this->logWarning('/v3/events', null, 'Unexpected exception in GFWService: '.$e->getMessage());
+            $durationMs = (int) round((microtime(true) - $startTime) * 1000);
+            $this->logWarning('/v3/events', 500, 'Unexpected exception in GFWService: '.$e->getMessage(), [
+                'duration_ms' => $durationMs,
+                'exception_class' => get_class($e),
+            ]);
 
             return [
                 'success' => false,
                 'message' => 'GFW API connection error',
                 'status' => 500,
+                'duration_ms' => $durationMs,
             ];
         }
     }
@@ -205,8 +216,8 @@ class GFWService
         try {
             $response = Http::baseUrl($url)
                 ->withToken($token)
-                ->timeout(30)
-                ->connectTimeout(5)
+                ->timeout($this->timeout)
+                ->connectTimeout($this->connectTimeout)
                 ->acceptJson()
                 ->asJson()
                 ->withQueryParameters([
@@ -418,6 +429,11 @@ class GFWService
             ];
         }
 
+        // Relax execution time limit for long-running GFW multi-page spatial queries
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(180);
+        }
+
         // Canonical fallback to GFW Query Geometry if not provided
         if (empty($geometry)) {
             $geometry = app(GfwQueryGeometryService::class)->getAcehQueryPolygon();
@@ -477,9 +493,9 @@ class GFWService
             return Cache::get($cacheKey);
         }
 
-        $timeout = (int) config('gfw.timeout', 60);
-        $connectTimeout = (int) config('gfw.connect_timeout', 5);
-        $vesselCacheTtl = (int) config('gfw.vessel_cache_ttl', 3600);
+        $timeout = (int) (config('gfw.timeout') ?? config('services.gfw.timeout') ?? 60);
+        $connectTimeout = (int) (config('gfw.connect_timeout') ?? config('services.gfw.connect_timeout') ?? 5);
+        $vesselCacheTtl = (int) (config('gfw.vessel_cache_ttl') ?? config('services.gfw.vessel_cache_ttl') ?? 3600);
 
         $maxPages = self::MAX_UPSTREAM_PAGES;
         $maxUpstreamEvents = self::MAX_UPSTREAM_EVENTS;
@@ -489,9 +505,11 @@ class GFWService
         $allEntries = [];
         $paginationComplete = true;
         $paginationTruncated = false;
+        $queryStartTime = microtime(true);
 
         try {
             while (true) {
+                $reqStart = microtime(true);
                 try {
                     $response = Http::baseUrl($url)
                         ->withToken($token)
@@ -510,88 +528,66 @@ class GFWService
                             'geometry' => $cleanGeometry,
                         ]);
                 } catch (ConnectionException $e) {
+                    $durationMs = (int) round((microtime(true) - $reqStart) * 1000);
                     if ($page === 1) {
                         throw $e;
                     }
 
-                    $this->logWarning('/v3/events', null, "Connection or timeout on pagination page {$page}: ".$e->getMessage());
+                    $msg = $e->getMessage();
+                    $isCurl28 = str_contains($msg, 'cURL error 28') || str_contains($msg, 'timed out');
+                    $this->logWarning('/v3/events', 504, "Connection or timeout on pagination page {$page}: ".($isCurl28 ? 'Upstream request timed out (cURL error 28)' : $msg), [
+                        'duration_ms' => $durationMs,
+                        'page' => $page,
+                        'offset' => $currentOffset,
+                        'timeout_config' => $timeout,
+                    ]);
                     $paginationComplete = false;
                     break;
                 } catch (Throwable $e) {
+                    $durationMs = (int) round((microtime(true) - $reqStart) * 1000);
                     if ($page === 1) {
                         throw $e;
                     }
 
-                    $this->logWarning('/v3/events', null, "Unexpected error on pagination page {$page}: ".$e->getMessage());
+                    $this->logWarning('/v3/events', 500, "Unexpected error on pagination page {$page}: ".$e->getMessage(), [
+                        'duration_ms' => $durationMs,
+                        'page' => $page,
+                        'offset' => $currentOffset,
+                    ]);
                     $paginationComplete = false;
                     break;
                 }
 
+                $durationMs = (int) round((microtime(true) - $reqStart) * 1000);
                 $status = $response->status();
 
                 if (! $response->successful()) {
+                    $sanitizedBody = mb_substr(strip_tags((string) $response->body()), 0, 300);
                     if ($page === 1) {
-                        if ($status === 400) {
-                            $this->logWarning('/v3/events', 400, 'Bad request to GFW Events API.');
-
-                            return [
-                                'success' => false,
-                                'message' => 'Invalid request sent to GFW API',
-                                'status' => 400,
-                            ];
-                        }
-
-                        if ($status === 401) {
-                            $this->logWarning('/v3/events', 401, 'Authentication failed on GFW Events API.');
-
-                            return [
-                                'success' => false,
-                                'message' => 'GFW API authentication failed',
-                                'status' => 401,
-                            ];
-                        }
-
-                        if ($status === 403) {
-                            $this->logWarning('/v3/events', 403, 'Access forbidden on GFW Events API.');
-
-                            return [
-                                'success' => false,
-                                'message' => 'GFW API access forbidden',
-                                'status' => 403,
-                            ];
-                        }
-
-                        if ($status === 422) {
-                            $this->logWarning('/v3/events', 422, 'Unprocessable entity in GFW Events API request.');
-
-                            return [
-                                'success' => false,
-                                'message' => 'Unprocessable entity in GFW request',
-                                'status' => 422,
-                            ];
-                        }
-
-                        if ($status === 429) {
-                            $this->logWarning('/v3/events', 429, 'Rate limit reached on GFW Events API.');
-
-                            return [
-                                'success' => false,
-                                'message' => 'GFW API rate limit reached',
-                                'status' => 429,
-                            ];
-                        }
-
-                        $this->logWarning('/v3/events', $status, "Upstream GFW returned HTTP {$status}");
+                        $this->logWarning('/v3/events', $status, "Upstream GFW returned HTTP {$status}", [
+                            'duration_ms' => $durationMs,
+                            'response_sample' => $sanitizedBody,
+                        ]);
 
                         return [
                             'success' => false,
-                            'message' => 'GFW API server error',
-                            'status' => 502,
+                            'message' => match ($status) {
+                                400 => 'Invalid request sent to GFW API',
+                                401 => 'GFW API authentication failed',
+                                403 => 'GFW API access forbidden',
+                                422 => 'Unprocessable entity in GFW request',
+                                429 => 'GFW API rate limit reached',
+                                default => 'GFW API server error',
+                            },
+                            'status' => $status,
+                            'duration_ms' => $durationMs,
                         ];
                     }
 
-                    // If page > 1 fails, gracefully preserve entries from previous pages
-                    $this->logWarning('/v3/events', $status, "Upstream GFW returned HTTP {$status} on pagination page {$page}. Processing previously collected pages.");
+                    $this->logWarning('/v3/events', $status, "Upstream GFW returned HTTP {$status} on pagination page {$page}. Processing previously collected pages.", [
+                        'duration_ms' => $durationMs,
+                        'response_sample' => $sanitizedBody,
+                    ]);
                     $paginationComplete = false;
                     break;
                 }
@@ -600,12 +596,16 @@ class GFWService
                 $rawEntries = $payload['entries'] ?? [];
                 $entriesCount = count($rawEntries);
 
-                Log::info('GFW upstream pagination progress', [
+                Log::info('GFW API request completed', [
+                    'endpoint' => '/v3/events',
+                    'host' => parse_url($url, PHP_URL_HOST),
                     'boundary_source' => 'GFW_QUERY_AOI',
                     'dataset' => $datasets[0] ?? 'public-global-fishing-events:latest',
                     'pagination_page' => $page,
                     'offset' => $currentOffset,
                     'events_received' => $entriesCount,
+                    'status' => $status,
+                    'duration_ms' => $durationMs,
                 ]);
 
                 foreach ($rawEntries as $entry) {
@@ -962,20 +962,34 @@ class GFWService
 
             return $result;
         } catch (ConnectionException $e) {
-            $this->logWarning('/v3/events', null, 'Connection or timeout exception reaching GFW Events API: '.$e->getMessage());
+            $totalDurationMs = (int) round((microtime(true) - $queryStartTime) * 1000);
+            $errMsg = $e->getMessage();
+            $isCurl28 = str_contains($errMsg, 'cURL error 28') || str_contains($errMsg, 'timed out');
+            $this->logWarning('/v3/events', 504, ($isCurl28 ? 'Upstream request timed out (cURL error 28)' : 'Connection failure reaching GFW Events API: '.$errMsg), [
+                'duration_ms' => $totalDurationMs,
+                'timeout_config' => $timeout,
+                'connect_timeout_config' => $connectTimeout,
+                'exception_class' => get_class($e),
+            ]);
 
             return [
                 'success' => false,
                 'message' => 'Unable to connect to GFW API',
                 'status' => 503,
+                'duration_ms' => $totalDurationMs,
             ];
         } catch (Throwable $e) {
-            $this->logWarning('/v3/events', null, 'Unexpected exception in GFWService getVesselsInAoi: '.$e->getMessage());
+            $totalDurationMs = (int) round((microtime(true) - $queryStartTime) * 1000);
+            $this->logWarning('/v3/events', 500, 'Unexpected exception in GFWService getVesselsInAoi: '.$e->getMessage(), [
+                'duration_ms' => $totalDurationMs,
+                'exception_class' => get_class($e),
+            ]);
 
             return [
                 'success' => false,
                 'message' => 'GFW API connection error',
                 'status' => 500,
+                'duration_ms' => $totalDurationMs,
             ];
         }
     }
@@ -1102,15 +1116,30 @@ class GFWService
 
     /**
      * Log failure safely without exposing secret credentials or authorization headers.
+     *
+     * @param  array<string, mixed>  $context
      */
-    protected function logWarning(string $endpoint, ?int $status, string $message): void
+    protected function logWarning(string $endpoint, ?int $status, string $message, array $context = []): void
     {
-        Log::warning('GFW API communication warning', [
+        $category = match ($status) {
+            401 => 'authentication_or_token_problem',
+            403 => 'authorization_or_access_problem',
+            429 => 'rate_limit',
+            502, 503, 504 => 'upstream_server_availability',
+            default => (str_contains($message, 'cURL error 28') || str_contains($message, 'timed out')) ? 'timeout' : 'client_or_network_error',
+        };
+
+        // Ensure no sensitive token or auth headers ever enter the log context
+        unset($context['Authorization'], $context['token'], $context['api_token'], $context['api_key'], $context['secret']);
+
+        Log::warning('GFW API communication warning', array_merge([
             'endpoint' => $endpoint,
+            'host' => parse_url($this->url, PHP_URL_HOST),
             'status' => $status,
+            'category' => $category,
             'error' => $message,
             'timestamp' => now()->toIso8601String(),
-        ]);
+        ], $context));
     }
 
     /**

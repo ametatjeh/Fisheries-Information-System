@@ -46,6 +46,9 @@ return [
         'token' => env('GFW_API_TOKEN', env('GFW_API_KEY')),
         'api_token' => env('GFW_API_TOKEN', env('GFW_API_KEY')),
         'base_url' => env('GFW_API_BASE_URL', 'https://gateway.api.globalfishingwatch.org/v3'),
+        'timeout' => (int) env('GFW_API_TIMEOUT', 60),
+        'connect_timeout' => (int) env('GFW_API_CONNECT_TIMEOUT', 5),
+        'vessel_cache_ttl' => (int) env('GFW_VESSEL_CACHE_TTL', 3600),
     ],
 
 ];

@@ -22,8 +22,8 @@ class GfwApiService
     public function __construct()
     {
         $this->baseUrl = rtrim((string) (config('gfw.base_url') ?? config('services.gfw.base_url', 'https://gateway.api.globalfishingwatch.org/v3')), '/');
-        $this->timeout = (int) config('gfw.timeout', 30);
-        $this->connectTimeout = (int) config('gfw.connect_timeout', 5);
+        $this->timeout = (int) (config('gfw.timeout') ?? config('services.gfw.timeout') ?? 60);
+        $this->connectTimeout = (int) (config('gfw.connect_timeout') ?? config('services.gfw.connect_timeout') ?? 5);
     }
 
     /**
@@ -37,6 +37,9 @@ class GfwApiService
         }
         if (empty($key)) {
             $key = config('services.gfw.api_token');
+        }
+        if (empty($key)) {
+            $key = config('services.gfw.token');
         }
 
         return ! empty($key) ? (string) $key : null;
@@ -86,15 +89,17 @@ class GfwApiService
         $endpoint = '/'.ltrim($endpoint, '/');
 
         if (! $this->isConfigured()) {
-            $this->logError($endpoint, null, 'GFW API key is not configured.');
+            $this->logError($endpoint, null, 'GFW token missing');
 
             return [
                 'success' => false,
                 'status' => 500,
-                'error' => 'GFW API key is not configured.',
+                'error' => 'GFW token missing',
                 'data' => null,
             ];
         }
+
+        $startTime = microtime(true);
 
         try {
             $client = $this->client();
@@ -107,38 +112,68 @@ class GfwApiService
                 default => $client->send($method, $endpoint, $options),
             };
 
+            $durationMs = (int) round((microtime(true) - $startTime) * 1000);
+
             if ($response->successful()) {
+                Log::info('GFW API request completed', [
+                    'endpoint' => $endpoint,
+                    'host' => parse_url($this->baseUrl, PHP_URL_HOST),
+                    'status' => $response->status(),
+                    'duration_ms' => $durationMs,
+                ]);
+
                 return [
                     'success' => true,
                     'status' => $response->status(),
+                    'duration_ms' => $durationMs,
                     'data' => $response->json() ?? [],
                 ];
             }
 
-            $errorMessage = "GFW API returned status {$response->status()}";
-            $this->logError($endpoint, $response->status(), $errorMessage);
+            $status = $response->status();
+            $sanitizedBody = mb_substr(strip_tags((string) $response->body()), 0, 300);
+            $errorMessage = "GFW API returned status {$status}";
+            $this->logError($endpoint, $status, $errorMessage, [
+                'duration_ms' => $durationMs,
+                'response_sample' => $sanitizedBody,
+            ]);
 
             return [
                 'success' => false,
-                'status' => $response->status(),
+                'status' => $status,
+                'duration_ms' => $durationMs,
                 'error' => $errorMessage,
                 'data' => null,
             ];
         } catch (ConnectionException $e) {
-            $this->logError($endpoint, null, 'Connection timeout or network error: '.$e->getMessage());
+            $durationMs = (int) round((microtime(true) - $startTime) * 1000);
+            $msg = $e->getMessage();
+            $isCurl28 = str_contains($msg, 'cURL error 28') || str_contains($msg, 'timed out');
+            $this->logError($endpoint, 504, ($isCurl28 ? 'Upstream request timed out (cURL error 28)' : 'Connection failure reaching GFW API: '.$msg), [
+                'duration_ms' => $durationMs,
+                'timeout_config' => $this->timeout,
+                'connect_timeout_config' => $this->connectTimeout,
+                'exception_class' => get_class($e),
+            ]);
 
             return [
                 'success' => false,
                 'status' => 504,
+                'duration_ms' => $durationMs,
                 'error' => 'Connection timeout or network failure reaching GFW API.',
                 'data' => null,
             ];
         } catch (Throwable $e) {
-            $this->logError($endpoint, null, 'Unexpected GFW client error: '.$e->getMessage());
+            $durationMs = (int) round((microtime(true) - $startTime) * 1000);
+            $this->logError($endpoint, 500, 'Unexpected GFW client error: '.$e->getMessage(), [
+                'duration_ms' => $durationMs,
+                'exception_class' => get_class($e),
+            ]);
 
             return [
                 'success' => false,
                 'status' => 500,
+                'duration_ms' => $durationMs,
                 'error' => 'Unexpected error communicating with GFW API.',
                 'data' => null,
             ];
