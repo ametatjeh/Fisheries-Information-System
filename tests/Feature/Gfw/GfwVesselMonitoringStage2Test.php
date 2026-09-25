@@ -3,8 +3,8 @@
 namespace Tests\Feature\Gfw;
 
 use App\Models\User;
+use App\Services\Gfw\GfwQueryGeometryService;
 use App\Services\GFWService;
-use App\Services\Gis\BigMaritimeBoundaryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Config;
@@ -306,7 +306,7 @@ class GfwVesselMonitoringStage2Test extends TestCase
         $response->assertStatus(200);
         $response->assertJsonPath('summary.total_vessels', 0);
         $this->assertCount(0, $response->json('vessels'));
-        $this->assertSame('No vessel detected in BIG ZEE Aceh for selected period.', $response->json('message'));
+        $this->assertSame('No vessel detected in GFW Query Area for selected period.', $response->json('message'));
     }
 
     /**
@@ -327,25 +327,18 @@ class GfwVesselMonitoringStage2Test extends TestCase
     }
 
     /**
-     * TEST 11 — BIG geometry failure mengembalikan fail-safe HTTP 502.
+     * TEST 11 — GFW query geometry failure mengembalikan fail-safe HTTP 500.
      */
     public function test_11_big_geometry_failure_returns_fail_safe_502(): void
     {
-        $mockBig = $this->mock(BigMaritimeBoundaryService::class);
-        $mockBig->shouldReceive('getAcehZeeGeometry')->andReturn([
-            'success' => false,
-            'source' => 'BIG',
-            'layer' => 'Peta Batas ZEE',
-            'layer_id' => 10,
-            'error' => 'BIG Layer 10 unavailable or upstream timeout',
-        ]);
+        $mockGeom = $this->mock(GfwQueryGeometryService::class);
+        $mockGeom->shouldReceive('getAcehQueryPolygon')->andReturn([]);
 
         $response = $this->actingAs($this->user)->getJson('/api/gfw/vessels/zee-indonesia-aceh');
 
-        $response->assertStatus(502);
+        $response->assertStatus(500);
         $response->assertJsonPath('success', false);
-        $response->assertJsonPath('boundary_source', 'BIG');
-        $response->assertJsonPath('boundary_layer', 10);
+        $response->assertJsonPath('message', 'GFW Query Geometry is unavailable.');
     }
 
     /**

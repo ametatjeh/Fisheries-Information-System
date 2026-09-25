@@ -72,7 +72,7 @@ class GfwVesselObservatoryEndpointTest extends TestCase
         $response->assertStatus(200)
             ->assertSee('GFW VESSEL OBSERVATORY')
             ->assertSee('ZEE Indonesia – Kawasan Aceh')
-            ->assertSee('AOI Source: BIG')
+            ->assertSee('Area: GFW Query AOI')
             ->assertSee('Vessel Data: Global Fishing Watch')
             ->assertSee('Total Vessels')
             ->assertSee('Fishing Vessels')
@@ -156,9 +156,9 @@ class GfwVesselObservatoryEndpointTest extends TestCase
             ->assertJson([
                 'success' => true,
                 'aoi' => [
-                    'id' => 'zee-indonesia-aceh',
-                    'name' => 'ZEE Indonesia - Kawasan Aceh',
-                    'source' => 'BIG',
+                    'id' => 'gfw-query-aoi-aceh',
+                    'name' => 'GFW Query AOI — Aceh',
+                    'source' => 'GFW Query AOI',
                     'crs' => 'EPSG:4326',
                 ],
                 'period' => [

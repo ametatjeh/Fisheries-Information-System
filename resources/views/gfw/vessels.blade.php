@@ -24,11 +24,11 @@
                         </span>
                         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-semibold">
                             <span>🏛️</span>
-                            <span>AOI Source: BIG</span>
+                            <span>Area: GFW Query AOI — Aceh</span>
                         </span>
                         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30 text-[10px] font-semibold">
                             <span>📡</span>
-                            <span>Vessel Data: Global Fishing Watch</span>
+                            <span>Data Source: Global Fishing Watch</span>
                         </span>
                         <span class="font-mono text-[9px] bg-indigo-900/50 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-700/40">EPSG:4326</span>
                     </div>
@@ -38,11 +38,11 @@
                             GFW VESSEL OBSERVATORY
                         </h2>
                         <span class="text-indigo-400 font-light hidden sm:inline">|</span>
-                        <span class="text-indigo-200 text-xs sm:text-sm font-medium">ZEE Indonesia – Kawasan Aceh</span>
+                        <span class="text-indigo-200 text-xs sm:text-sm font-medium">GFW Query AOI — Aceh</span>
                     </div>
 
                     <p class="text-slate-300 text-xs leading-relaxed line-clamp-2 sm:line-clamp-none">
-                        Pemantauan spasial armada kapal terdeteksi satelit dan lintasan (Observed Track) dalam Area of Interest batas resmi <strong>ZEE Indonesia Kawasan Aceh (BIG Layer 10)</strong> menggunakan dataset GFW <code>public-global-fishing-events:latest</code>.
+                        Pemantauan spasial armada kapal terdeteksi satelit dan lintasan (Observed Track) dalam <strong>GFW Query AOI — Aceh</strong> menggunakan data dari <strong>Global Fishing Watch</strong>. Area ini merupakan geometri teknis untuk query GFW dan bukan representasi batas hukum ZEE.
                     </p>
                     <div class="p-2 rounded-lg bg-slate-800/60 border border-indigo-500/20 text-[11px] text-slate-300 leading-normal flex items-start gap-1.5">
                         <span class="text-indigo-400 shrink-0 mt-0.5">ℹ️</span>
@@ -82,7 +82,7 @@
                     </div>
 
                     <div class="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px] text-slate-400 font-mono">
-                        <div>Batas: <span class="text-slate-200 font-semibold font-sans">BIG ZEE Layer 10</span></div>
+                        <div>Area: <span class="text-slate-200 font-semibold font-sans">GFW Query AOI — Aceh</span></div>
                         <div class="text-right">Maks: <span class="text-amber-400 font-semibold font-sans">7 Hari</span></div>
                         <div>Update: <span id="meta-last-updated" class="text-indigo-300 font-mono">-</span></div>
                         <div class="text-right">Usia: <span id="meta-data-age" class="text-slate-300 font-mono">-</span></div>
@@ -158,7 +158,7 @@
                     <h3 id="stat-total-vessels" class="text-2xl font-black text-slate-800 mt-1">
                         <span class="animate-pulse">...</span>
                     </h3>
-                    <p id="stat-total-subtitle" class="text-[11px] text-slate-400 mt-0.5">Kapal unik lolos BIG ZEE PIP</p>
+                    <p id="stat-total-subtitle" class="text-[11px] text-slate-400 mt-0.5">Kapal unik dalam GFW Query AOI — Aceh</p>
                 </div>
                 <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl shrink-0">
                     🚢
@@ -522,7 +522,7 @@
                             </div>
                             <div class="flex items-center justify-between text-[10px] text-amber-800 pt-0.5 border-t border-amber-200/50">
                                 <span>Periode: <strong id="vessel-track-period">-</strong></span>
-                                <span>Batas: <strong class="text-amber-900">ZEE BIG Layer 10</strong></span>
+                                <span>Area: <strong class="text-amber-900">GFW Query AOI</strong></span>
                             </div>
                         </div>
 
@@ -688,8 +688,19 @@
             const APP_TIMEZONE = "{{ config('app.timezone', 'Asia/Jakarta') }}";
             const INITIAL_LAST_SUCCESSFUL_SYNC = {{ Illuminate\Support\Js::from($lastSuccessfulSync ?? null) }};
             let lastSuccessfulTimestamp = INITIAL_LAST_SUCCESSFUL_SYNC || localStorage.getItem('gfw_vessels_last_success_ts') || null;
-            let lastSuccessfulDataAge = localStorage.getItem('gfw_vessels_last_success_age') ? parseInt(localStorage.getItem('gfw_vessels_last_success_age'), 10) : null;
             let currentDatasetStatus = 'INIT'; // 'LIVE' | 'STALE' | 'NO_DATA'
+
+            // Clean up deprecated static age cache from prior sessions
+            try { localStorage.removeItem('gfw_vessels_last_success_age'); } catch (e) {}
+
+            // Debug log raw timestamp received (Audit Step 2)
+            console.log('[GFW Vessels Debug] Raw timestamp received from server:', {
+                INITIAL_LAST_SUCCESSFUL_SYNC,
+                lastSuccessfulTimestamp,
+                computed_age_seconds: calcAgeFromTimestamp(lastSuccessfulTimestamp),
+                formatted_age: formatAge(calcAgeFromTimestamp(lastSuccessfulTimestamp)),
+                now: new Date().toISOString()
+            });
 
             // DOM elements
             const mapContainer = document.getElementById('gfw-vessels-map');
@@ -731,6 +742,15 @@
             const truncatedBanner = document.getElementById('vessels-truncated-banner');
             const statUpstreamEventsBadge = document.getElementById('stat-upstream-events-badge');
 
+            // Initial UI sync for provenance header
+            if (lastSuccessfulTimestamp) {
+                const initialAgeSec = calcAgeFromTimestamp(lastSuccessfulTimestamp);
+                if (metaLastUpdated) metaLastUpdated.textContent = formatDate(lastSuccessfulTimestamp);
+                if (metaDataAge && initialAgeSec !== null) metaDataAge.textContent = formatAge(initialAgeSec);
+                if (noticeLastUpdated) noticeLastUpdated.textContent = formatDate(lastSuccessfulTimestamp);
+                if (noticeDataAge && initialAgeSec !== null) noticeDataAge.textContent = `(Sekitar ${formatAge(initialAgeSec)})`;
+            }
+
             const tableBody = document.getElementById('vessel-table-body');
             const tableLimitSelect = document.getElementById('table-limit-select');
             const btnPrev = document.getElementById('btn-prev-page');
@@ -748,6 +768,7 @@
             const detailSsvid = document.getElementById('detail-ssvid');
             const detailMmsi = document.getElementById('detail-mmsi');
             const detailImo = document.getElementById('detail-imo');
+            const detailCallsign = document.getElementById('detail-callsign');
             const detailFlag = document.getElementById('detail-flag');
             const detailVesselType = document.getElementById('detail-vessel-type');
             const detailLength = document.getElementById('detail-length');
@@ -1087,21 +1108,11 @@
                 if (status === 'LIVE') {
                     if (meta.last_updated) {
                         lastSuccessfulTimestamp = meta.last_updated;
-                    } else if (!lastSuccessfulTimestamp) {
-                        lastSuccessfulTimestamp = new Date().toISOString();
-                    }
-                    if (meta.data_age_seconds !== undefined && meta.data_age_seconds !== null) {
-                        lastSuccessfulDataAge = meta.data_age_seconds;
-                    }
-
-                    try {
-                        if (lastSuccessfulTimestamp) {
+                        try {
                             localStorage.setItem('gfw_vessels_last_success_ts', lastSuccessfulTimestamp);
-                        }
-                        if (lastSuccessfulDataAge !== null) {
-                            localStorage.setItem('gfw_vessels_last_success_age', String(lastSuccessfulDataAge));
-                        }
-                    } catch (e) {}
+                        } catch (e) {}
+                    }
+                    try { localStorage.removeItem('gfw_vessels_last_success_age'); } catch (e) {}
 
                     if (refreshErrorNotice) refreshErrorNotice.classList.add('hidden');
                     if (errorBox) errorBox.classList.add('hidden');
@@ -1116,14 +1127,15 @@
                     }
 
                     if (statTotalSubtitle) {
-                        statTotalSubtitle.innerHTML = 'Kapal unik lolos BIG ZEE PIP &bull; <span class="text-emerald-600 font-semibold">Terkini</span>';
+                        statTotalSubtitle.innerHTML = 'Kapal unik terdeteksi &bull; <span class="text-emerald-600 font-semibold">Terkini</span>';
                     }
 
+                    const liveAgeSec = calcAgeFromTimestamp(lastSuccessfulTimestamp);
                     if (metaLastUpdated && lastSuccessfulTimestamp) {
                         metaLastUpdated.textContent = formatDate(lastSuccessfulTimestamp);
                     }
-                    if (metaDataAge && lastSuccessfulDataAge !== null) {
-                        metaDataAge.textContent = formatAge(lastSuccessfulDataAge);
+                    if (metaDataAge && liveAgeSec !== null) {
+                        metaDataAge.textContent = formatAge(liveAgeSec);
                     }
 
                 } else if (status === 'STALE') {
@@ -1132,12 +1144,12 @@
                     }
                     if (errorBox) errorBox.classList.add('hidden');
 
+                    const staleAgeSec = calcAgeFromTimestamp(lastSuccessfulTimestamp);
                     if (noticeLastUpdated) {
                         noticeLastUpdated.textContent = lastSuccessfulTimestamp ? formatDate(lastSuccessfulTimestamp) : 'Dataset sebelumnya';
                     }
                     if (noticeDataAge) {
-                        const ageSec = lastSuccessfulDataAge !== null ? lastSuccessfulDataAge : calcAgeFromTimestamp(lastSuccessfulTimestamp);
-                        noticeDataAge.textContent = ageSec !== null ? `(Sekitar ${formatAge(ageSec)})` : '';
+                        noticeDataAge.textContent = staleAgeSec !== null ? `(Sekitar ${formatAge(staleAgeSec)})` : '';
                     }
 
                     if (datasetStatusPill) {
@@ -1150,14 +1162,14 @@
                     }
 
                     if (statTotalSubtitle) {
-                        statTotalSubtitle.innerHTML = 'Kapal unik lolos BIG ZEE PIP &bull; <span class="text-amber-700 font-semibold">Dataset Terakhir</span>';
+                        statTotalSubtitle.innerHTML = 'Kapal unik terdeteksi &bull; <span class="text-amber-700 font-semibold">Dataset Terakhir</span>';
                     }
 
                     if (metaLastUpdated && lastSuccessfulTimestamp) {
                         metaLastUpdated.textContent = formatDate(lastSuccessfulTimestamp);
                     }
-                    if (metaDataAge && lastSuccessfulDataAge !== null) {
-                        metaDataAge.textContent = formatAge(lastSuccessfulDataAge);
+                    if (metaDataAge && staleAgeSec !== null) {
+                        metaDataAge.textContent = formatAge(staleAgeSec);
                     }
 
                 } else if (status === 'NO_DATA') {
@@ -1342,6 +1354,7 @@
                                 mmsi: v.mmsi || 'Not available',
                                 ssvid: v.ssvid || 'Not available',
                                 imo: v.imo || 'Not available',
+                                callsign: v.callsign || 'Tidak tersedia',
                                 flag: v.flag || 'Not available',
                                 vessel_type: v.vessel_type || 'Unknown',
                                 status: v.status || 'STALE',
@@ -1350,7 +1363,8 @@
                                 engine_power: v.engine_power !== null ? `${v.engine_power} kW` : 'Not available',
                                 gear: v.gear || 'Not available',
                                 first_seen: v.first_seen ? formatDate(v.first_seen) : 'Not available',
-                                last_seen: v.last_seen ? formatDate(v.last_seen) : 'Not available',
+                                last_seen: v.observed_at ? formatDate(v.observed_at) : (v.last_seen ? formatDate(v.last_seen) : 'Not available'),
+                                observed_at: v.observed_at ? formatDate(v.observed_at) : (v.last_seen ? formatDate(v.last_seen) : 'Not available'),
                                 activity: v.activity || 'Vessel Presence',
                                 lat: v.lat,
                                 lon: v.lon
@@ -1466,6 +1480,7 @@
                         const vMmsi = (p.mmsi && p.mmsi !== 'Not available') ? p.mmsi : '—';
                         const vSsvid = (p.ssvid && p.ssvid !== 'Not available') ? p.ssvid : '—';
                         const vImo = (p.imo && p.imo !== 'Not available') ? p.imo : '—';
+                        const vCallsign = (p.callsign && p.callsign !== 'Tidak tersedia') ? p.callsign : 'Tidak tersedia';
                         const vFlag = (p.flag && p.flag !== 'Not available') ? p.flag : '—';
                         const vType = (p.vessel_type && p.vessel_type !== 'Unknown') ? p.vessel_type : '—';
                         const vFirstSeen = (p.first_seen && p.first_seen !== 'Not available') ? p.first_seen : '—';
@@ -1484,12 +1499,13 @@
                                     <div class="text-[11px] space-y-1">
                                         <div class="flex justify-between"><span class="text-slate-400">GFW ID:</span> <span class="font-mono text-slate-700 truncate max-w-[130px]">${escapeHtml(vId)}</span></div>
                                         <div class="flex justify-between"><span class="text-slate-400">MMSI:</span> <strong class="font-mono text-slate-800">${escapeHtml(vMmsi)}</strong></div>
+                                        <div class="flex justify-between"><span class="text-slate-400">Call Sign:</span> <span class="font-mono text-slate-700">${escapeHtml(vCallsign)}</span></div>
                                         <div class="flex justify-between"><span class="text-slate-400">SSVID:</span> <span class="font-mono text-slate-700">${escapeHtml(vSsvid)}</span></div>
                                         <div class="flex justify-between"><span class="text-slate-400">IMO:</span> <span class="font-mono text-slate-700">${escapeHtml(vImo)}</span></div>
                                         <div class="flex justify-between"><span class="text-slate-400">Type:</span> <strong class="text-slate-800">${escapeHtml(vType)}</strong></div>
                                         <div class="flex justify-between"><span class="text-slate-400">Activity:</span> <strong class="text-indigo-600">${escapeHtml(vActivity)}</strong></div>
                                         <div class="flex justify-between"><span class="text-slate-400">First Seen:</span> <span class="text-slate-600">${escapeHtml(vFirstSeen)}</span></div>
-                                        <div class="flex justify-between"><span class="text-slate-400">Last Seen:</span> <span class="text-slate-800 font-semibold">${escapeHtml(vLastSeen)}</span></div>
+                                        <div class="flex justify-between"><span class="text-slate-400">Observasi:</span> <span class="text-slate-800 font-semibold">${escapeHtml(vLastSeen)}</span></div>
                                         <div class="flex justify-between items-center"><span class="text-slate-400">Status:</span> <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${vStatus === 'LIVE' ? 'bg-emerald-100 text-emerald-800' : (vStatus === 'RECENT' ? 'bg-sky-100 text-sky-800' : 'bg-slate-100 text-slate-600')}">${escapeHtml(vStatus)}</span></div>
                                     </div>
                                 </div>
@@ -1510,7 +1526,7 @@
             // Render Table Rows
             function renderVesselsTable(vessels, emptyMsg = null) {
                 if (!vessels || vessels.length === 0) {
-                    renderEmptyTable(emptyMsg || 'No vessel detected in BIG ZEE Aceh for selected period.');
+                    renderEmptyTable(emptyMsg || 'No vessel detected in GFW Query Area for selected period.');
                     return;
                 }
 
@@ -1526,7 +1542,7 @@
                     const vImo = v.imo || '-';
                     const vFlag = v.flag || '-';
                     const vType = v.vessel_type || 'Unknown';
-                    const vLastSeen = v.last_seen ? formatDate(v.last_seen) : 'Not available';
+                    const vLastSeen = v.observed_at ? formatDate(v.observed_at) : (v.last_seen ? formatDate(v.last_seen) : 'Not available');
                     const vActivity = v.activity || 'Vessel Presence';
                     const vStatus = v.status || 'STALE';
 
@@ -1659,6 +1675,9 @@
                 if (detailSsvid) detailSsvid.textContent = ': ' + (v.ssvid || 'Not available');
                 detailMmsi.textContent = ': ' + (v.mmsi || 'Not available');
                 detailImo.textContent = ': ' + (v.imo || 'Not available');
+                if (detailCallsign) {
+                    detailCallsign.textContent = ': ' + (v.callsign || 'Tidak tersedia');
+                }
                 if (detailFlag) {
                     if (v.flag && v.flag !== 'Not available' && v.flag !== '-' && v.flag !== 'Unknown') {
                         const info = getCountryFlagInfo(v.flag);
@@ -1673,7 +1692,7 @@
                 detailEnginePower.textContent = ': ' + (v.engine_power !== null ? `${v.engine_power} kW` : 'Not available');
                 detailGear.textContent = ': ' + (v.gear || 'Not available');
                 detailFirstSeen.textContent = ': ' + (v.first_seen ? formatDate(v.first_seen) : 'Not available');
-                detailLastSeen.textContent = ': ' + (v.last_seen ? formatDate(v.last_seen) : 'Not available');
+                detailLastSeen.textContent = ': ' + (v.observed_at ? formatDate(v.observed_at) : (v.last_seen ? formatDate(v.last_seen) : 'Not available'));
 
                 if (detailStatus) {
                     const st = v.status || 'STALE';
@@ -1904,7 +1923,7 @@
                                             </div>
                                         </div>
                                         <div class="pt-1 border-t border-slate-100 text-[10px] text-slate-500">
-                                            Batas: <span class="font-medium text-slate-700">ZEE Aceh (BIG Layer 10)</span>
+                                            Batas: <span class="font-medium text-slate-700">Area Query GFW Aceh</span>
                                         </div>
                                     </div>
                                 `;
@@ -2097,7 +2116,9 @@
             function calcAgeFromTimestamp(isoStr) {
                 if (!isoStr) return null;
                 try {
-                    const ms = Date.now() - new Date(isoStr).getTime();
+                    const parsed = new Date(isoStr).getTime();
+                    if (isNaN(parsed)) return null;
+                    const ms = Date.now() - parsed;
                     return Math.max(0, Math.floor(ms / 1000));
                 } catch (e) {
                     return null;
@@ -2105,12 +2126,30 @@
             }
 
             function formatAge(seconds) {
-                if (seconds === null || seconds === undefined) return '-';
+                if (seconds === null || seconds === undefined || isNaN(seconds) || seconds < 0) return '-';
                 if (seconds < 60) return `${seconds} detik yang lalu`;
                 if (seconds < 3600) return `${Math.floor(seconds / 60)} menit yang lalu`;
                 if (seconds < 86400) return `${Math.floor(seconds / 3600)} jam yang lalu`;
-                return `${Math.floor(seconds / 86400)} hari yang lalu`;
+                const days = Math.floor(seconds / 86400);
+                const remainingHours = Math.floor((seconds % 86400) / 3600);
+                if (remainingHours > 0) {
+                    return `${days} hari ${remainingHours} jam yang lalu`;
+                }
+                return `${days} hari yang lalu`;
             }
+
+            // Periodic live update for relative age display
+            setInterval(() => {
+                if (lastSuccessfulTimestamp) {
+                    const currentAge = calcAgeFromTimestamp(lastSuccessfulTimestamp);
+                    if (currentAge !== null) {
+                        if (metaDataAge) metaDataAge.textContent = formatAge(currentAge);
+                        if (noticeDataAge && refreshErrorNotice && !refreshErrorNotice.classList.contains('hidden')) {
+                            noticeDataAge.textContent = `(Sekitar ${formatAge(currentAge)})`;
+                        }
+                    }
+                }
+            }, 10000);
 
             function escapeHtml(str) {
                 if (str === null || str === undefined) return '';

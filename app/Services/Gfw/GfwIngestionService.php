@@ -5,7 +5,6 @@ namespace App\Services\Gfw;
 use App\Models\Gfw\GfwSyncRun;
 use App\Models\Gfw\GfwVessel;
 use App\Models\Gfw\GfwVesselPresence;
-use App\Services\Gis\BigMaritimeBoundaryService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -17,9 +16,9 @@ class GfwIngestionService
         protected GfwVesselService $vesselService,
         protected GfwActivityService $activityService,
         protected AoiService $aoiService,
-        protected ?BigMaritimeBoundaryService $bigBoundaryService = null
+        protected ?GfwQueryGeometryService $queryGeometryService = null
     ) {
-        $this->bigBoundaryService = $bigBoundaryService ?? app(BigMaritimeBoundaryService::class);
+        $this->queryGeometryService = $queryGeometryService ?? app(GfwQueryGeometryService::class);
     }
 
     /**
@@ -148,7 +147,7 @@ class GfwIngestionService
                     } elseif ($presenceResult['status'] === 'duplicate') {
                         $stats['duplicate_presence']++;
                     } elseif ($presenceResult['status'] === 'outside_aoi') {
-                        // Excluded by authoritative BIG ZEE spatial filter
+                        // Excluded by GFW Query AOI spatial filter
                         continue;
                     } else {
                         $stats['invalid_records']++;
@@ -291,14 +290,13 @@ class GfwIngestionService
             return ['status' => 'invalid'];
         }
 
-        // Spatial validation: verify coordinates reside within authoritative BIG ZEE boundary
-        if (! $this->bigBoundaryService->isPointInBigZee($lonFloat, $latFloat)) {
-            Log::info('GFW presence point excluded by spatial filter (outside BIG ZEE Aceh boundary)', [
+        // Spatial validation: verify coordinates reside within GFW Query AOI boundary
+        if (! $this->queryGeometryService->isPointInPolygon($lonFloat, $latFloat)) {
+            Log::info('GFW presence point excluded by spatial filter (outside GFW Query AOI boundary)', [
                 'vessel_id' => $vesselId,
                 'latitude' => $latFloat,
                 'longitude' => $lonFloat,
-                'boundary_source' => 'BIG',
-                'boundary_layer' => 10,
+                'boundary_source' => 'GFW_QUERY_AOI',
             ]);
 
             return ['status' => 'outside_aoi'];

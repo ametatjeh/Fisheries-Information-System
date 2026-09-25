@@ -107,7 +107,7 @@ class GfwObservatoryStages02To06Test extends TestCase
         $this->assertTrue($data['live']);
         $this->assertIsInt($data['data_age_seconds']);
         $this->assertNotEmpty($data['last_updated']);
-        $this->assertEquals('BIG', $data['aoi']['source']);
+        $this->assertEquals('GFW Query AOI', $data['aoi']['source']);
         $this->assertEquals('EPSG:4326', $data['aoi']['crs']);
 
         // Check each vessel has normalized status
@@ -224,8 +224,8 @@ class GfwObservatoryStages02To06Test extends TestCase
         ]);
 
         $data = $response->json();
-        $this->assertEquals('zee-indonesia-aceh', $data['aoi']['id']);
-        $this->assertEquals('BIG', $data['aoi']['source']);
+        $this->assertEquals('gfw-query-aoi-aceh', $data['aoi']['id']);
+        $this->assertEquals('GFW Query AOI', $data['aoi']['source']);
         $this->assertEquals('EPSG:4326', $data['aoi']['crs']);
 
         // Check alerts taxonomy are factual not criminal

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Gfw\GfwVessel;
 use App\Services\Gfw\GfwActivityService;
+use App\Services\Gfw\GfwQueryGeometryService;
 use App\Services\Gis\BigMaritimeBoundaryService;
 use Carbon\Carbon;
 use Illuminate\Http\Client\ConnectionException;
@@ -402,7 +403,7 @@ class GFWService
      * @param  array<string, mixed>  $options
      * @return array<string, mixed>
      */
-    public function getVesselsInAoi(array $geometry, string $startDate, string $endDate, array $options = []): array
+    public function getVesselsInAoi(?array $geometry = null, string $startDate = '', string $endDate = '', array $options = []): array
     {
         $token = $this->getToken();
         $url = $this->getUrl();
@@ -417,14 +418,35 @@ class GFWService
             ];
         }
 
+        // Canonical fallback to GFW Query Geometry if not provided
+        if (empty($geometry)) {
+            $geometry = app(GfwQueryGeometryService::class)->getAcehQueryPolygon();
+        }
+
         $cleanGeometry = $this->extractGeometryObject($geometry);
-        if (empty($cleanGeometry)) {
+        if (empty($cleanGeometry) || empty($cleanGeometry['coordinates'][0])) {
             return [
                 'success' => false,
                 'message' => 'Invalid geometry provided for GFW Vessels query',
                 'status' => 422,
             ];
         }
+
+        // Technical logging of GFW query geometry (safe, zero credential exposure)
+        $ringCoords = $cleanGeometry['coordinates'][0] ?? [];
+        $lons = ! empty($ringCoords) ? array_column($ringCoords, 0) : [];
+        $lats = ! empty($ringCoords) ? array_column($ringCoords, 1) : [];
+
+        Log::info('GFW query geometry', [
+            'type' => $cleanGeometry['type'] ?? 'Polygon',
+            'vertex_count' => count($ringCoords),
+            'bounding_box' => ! empty($lons) && ! empty($lats) ? [
+                'min_lon' => min($lons),
+                'max_lon' => max($lons),
+                'min_lat' => min($lats),
+                'max_lat' => max($lats),
+            ] : null,
+        ]);
 
         $limit = isset($options['limit']) ? max(1, min(100, (int) $options['limit'])) : 50;
         $offset = isset($options['offset']) ? max(0, (int) $options['offset']) : 0;
@@ -437,10 +459,27 @@ class GFWService
             $options['dataset'] ?? config('gfw.fishing_events_dataset', 'public-global-fishing-events:latest'),
         ];
 
-        $cacheKey = 'gfw:vessels_in_aoi:'.md5(json_encode([$startDate, $endDate, $limit, $offset, $vesselTypeFilter, $flagFilter, $activityFilter, $searchQuery]));
+        $geomHash = md5(json_encode($cleanGeometry));
+        $cacheKey = 'gfw:vessels_in_aoi:'.md5(json_encode([
+            'area' => $options['query_area'] ?? 'aceh',
+            'geom' => $geomHash,
+            'start' => $startDate,
+            'end' => $endDate,
+            'limit' => $limit,
+            'offset' => $offset,
+            'type' => $vesselTypeFilter,
+            'flag' => $flagFilter,
+            'act' => $activityFilter,
+            'search' => $searchQuery,
+        ]));
+
         if (! ($options['refresh'] ?? false) && Cache::has($cacheKey)) {
             return Cache::get($cacheKey);
         }
+
+        $timeout = (int) config('gfw.timeout', 60);
+        $connectTimeout = (int) config('gfw.connect_timeout', 5);
+        $vesselCacheTtl = (int) config('gfw.vessel_cache_ttl', 3600);
 
         $maxPages = self::MAX_UPSTREAM_PAGES;
         $maxUpstreamEvents = self::MAX_UPSTREAM_EVENTS;
@@ -456,8 +495,8 @@ class GFWService
                 try {
                     $response = Http::baseUrl($url)
                         ->withToken($token)
-                        ->timeout(30)
-                        ->connectTimeout(5)
+                        ->timeout($timeout)
+                        ->connectTimeout($connectTimeout)
                         ->acceptJson()
                         ->asJson()
                         ->withQueryParameters([
@@ -562,8 +601,7 @@ class GFWService
                 $entriesCount = count($rawEntries);
 
                 Log::info('GFW upstream pagination progress', [
-                    'boundary_source' => 'BIG',
-                    'boundary_layer' => 10,
+                    'boundary_source' => 'GFW_QUERY_AOI',
                     'dataset' => $datasets[0] ?? 'public-global-fishing-events:latest',
                     'pagination_page' => $page,
                     'offset' => $currentOffset,
@@ -583,8 +621,7 @@ class GFWService
                         $paginationComplete = false;
                         $paginationTruncated = true;
                         Log::info('GFW upstream pagination reached safety limit', [
-                            'boundary_source' => 'BIG',
-                            'boundary_layer' => 10,
+                            'boundary_source' => 'GFW_QUERY_AOI',
                             'max_events' => $maxUpstreamEvents,
                             'max_pages' => $maxPages,
                             'events_received' => count($allEntries),
@@ -616,8 +653,7 @@ class GFWService
             }
 
             Log::info('GFW upstream pagination completed', [
-                'boundary_source' => 'BIG',
-                'boundary_layer' => 10,
+                'boundary_source' => 'GFW_QUERY_AOI',
                 'total_pages' => $page,
                 'total_events' => count($allEntries),
                 'pagination_complete' => $paginationComplete,
@@ -632,8 +668,8 @@ class GFWService
             $vesselKeyByMmsi = [];
             $vesselKeyByImo = [];
 
-            /** @var BigMaritimeBoundaryService $bigService */
-            $bigService = app(BigMaritimeBoundaryService::class);
+            /** @var GfwQueryGeometryService $geometryService */
+            $geometryService = app(GfwQueryGeometryService::class);
 
             foreach ($rawEntries as $entry) {
                 if (! is_array($entry)) {
@@ -650,11 +686,10 @@ class GFWService
                     $lon = null;
                 }
 
-                // Strict point-in-polygon verification:
-                // Any observation with spatial coordinates MUST fall strictly inside the official BIG ZEE Aceh polygon.
+                // Point-in-polygon verification: verify coordinates reside within GFW Query AOI polygon
                 if ($lat !== null && $lon !== null) {
-                    if (! $bigService->isPointInGeometry($lon, $lat, $cleanGeometry)) {
-                        continue; // Strictly excluded outside BIG ZEE
+                    if (! $geometryService->isPointInPolygon($lon, $lat, $cleanGeometry)) {
+                        continue; // Strictly excluded outside GFW Query AOI
                     }
                 }
 
@@ -708,6 +743,7 @@ class GFWService
                         'mmsi' => ! empty($vesselRaw['ssvid']) ? trim((string) $vesselRaw['ssvid']) : (! empty($vesselRaw['mmsi']) ? trim((string) $vesselRaw['mmsi']) : null),
                         'ssvid' => ! empty($vesselRaw['ssvid']) ? trim((string) $vesselRaw['ssvid']) : null,
                         'imo' => ! empty($vesselRaw['imo']) ? trim((string) $vesselRaw['imo']) : null,
+                        'callsign' => ! empty($vesselRaw['callsign']) ? trim((string) $vesselRaw['callsign']) : 'Tidak tersedia',
                         'flag' => ! empty($vesselRaw['flag']) ? strtoupper(trim((string) $vesselRaw['flag'])) : null,
                         'vessel_type' => self::normalizeVesselType($rawType),
                         'length' => isset($vesselRaw['length']) && is_numeric($vesselRaw['length']) ? round((float) $vesselRaw['length'], 2) : (isset($vesselRaw['lengthM']) && is_numeric($vesselRaw['lengthM']) ? round((float) $vesselRaw['lengthM'], 2) : null),
@@ -716,6 +752,7 @@ class GFWService
                         'gear' => ! empty($vesselRaw['gear']) ? trim((string) $vesselRaw['gear']) : (! empty($vesselRaw['gear_type']) ? trim((string) $vesselRaw['gear_type']) : null),
                         'first_seen' => $startTime,
                         'last_seen' => $obsTime,
+                        'observed_at' => $obsTime,
                         'activity' => $activityName,
                         'position' => [
                             'lat' => $lat,
@@ -731,6 +768,7 @@ class GFWService
                         $vesselsById[$vKey]['lat'] = $lat;
                         $vesselsById[$vKey]['lon'] = $lon;
                         $vesselsById[$vKey]['last_seen'] = $obsTime;
+                        $vesselsById[$vKey]['observed_at'] = $obsTime;
                     }
                     if ($startTime && (! $vesselsById[$vKey]['first_seen'] || $startTime < $vesselsById[$vKey]['first_seen'])) {
                         $vesselsById[$vKey]['first_seen'] = $startTime;
@@ -741,7 +779,7 @@ class GFWService
                 }
             }
 
-            // Enrich missing vessel details from local database if available (single batch query, zero N+1)
+            // Enrich missing vessel details from local GFW database (sistem_gfw) if available (single batch query, zero N+1)
             try {
                 if (! empty($vesselsById) && class_exists(GfwVessel::class)) {
                     $keys = array_keys($vesselsById);
@@ -764,6 +802,9 @@ class GFWService
                                 }
                                 if ($vRef['imo'] === null && $lr->imo !== null) {
                                     $vRef['imo'] = $lr->imo;
+                                }
+                                if (($vRef['callsign'] === null || $vRef['callsign'] === 'Tidak tersedia') && ! empty($lr->callsign)) {
+                                    $vRef['callsign'] = $lr->callsign;
                                 }
                             }
                         }
@@ -870,19 +911,20 @@ class GFWService
             $pagedVessels = array_values(array_slice($filteredVessels, $offset, $limit));
             $hasMore = ($offset + $limit) < $totalVessels;
 
-            return [
+            $result = [
                 'success' => true,
                 'live' => true,
-                'message' => $totalVessels > 0 ? null : 'No vessel detected in BIG ZEE Aceh for selected period.',
+                'message' => $totalVessels > 0 ? null : 'No vessel detected in GFW Query Area for selected period.',
                 'last_updated' => $latestSeenTimestamp ?? $nowUtc->toIso8601String(),
                 'data_age_seconds' => $minDataAgeSeconds ?? 0,
                 'aoi' => [
-                    'id' => 'zee-indonesia-aceh',
-                    'name' => 'ZEE Indonesia - Kawasan Aceh',
-                    'source' => 'BIG',
+                    'id' => 'gfw-query-aoi-aceh',
+                    'name' => 'GFW Query AOI — Aceh',
+                    'source' => 'GFW Query AOI',
                     'crs' => 'EPSG:4326',
+                    'disclaimer' => 'Area ini merupakan geometri teknis untuk query GFW dan bukan representasi batas hukum ZEE.',
                 ],
-                'description' => 'Observasi kapal Global Fishing Watch yang berada di dalam batas ZEE Aceh berdasarkan BIG',
+                'description' => 'Observasi kapal Global Fishing Watch di dalam Area Query GFW Aceh',
                 'period' => [
                     'start' => $startDate,
                     'end' => $endDate,
@@ -916,7 +958,7 @@ class GFWService
                 'status' => 200,
             ];
 
-            Cache::put($cacheKey, $result, 300);
+            Cache::put($cacheKey, $result, $vesselCacheTtl);
 
             return $result;
         } catch (ConnectionException $e) {

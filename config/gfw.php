@@ -32,7 +32,7 @@ return [
     | Maximum execution timeout in seconds for requests made to GFW API.
     |
     */
-    'timeout' => (int) env('GFW_API_TIMEOUT', 30),
+    'timeout' => (int) env('GFW_API_TIMEOUT', 60),
 
     /*
     |--------------------------------------------------------------------------
@@ -64,6 +64,7 @@ return [
     |
     */
     'cache_ttl' => (int) env('GFW_CACHE_TTL', 86400),
+    'vessel_cache_ttl' => (int) env('GFW_VESSEL_CACHE_TTL', 3600),
 
     /*
     |--------------------------------------------------------------------------

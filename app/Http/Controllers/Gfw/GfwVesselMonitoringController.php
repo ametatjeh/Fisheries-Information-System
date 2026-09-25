@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Gfw\GfwSyncRun;
 use App\Services\Gfw\AoiService;
 use App\Services\Gfw\GfwActivityService;
+use App\Services\Gfw\GfwQueryGeometryService;
 use App\Services\Gfw\GfwRegionService;
+use App\Services\Gfw\GfwTimeHelper;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -16,7 +18,8 @@ class GfwVesselMonitoringController extends Controller
 {
     public function __construct(
         protected AoiService $aoiService,
-        protected GfwRegionService $regionService
+        protected GfwRegionService $regionService,
+        protected GfwQueryGeometryService $queryGeometryService
     ) {}
 
     /**
@@ -32,14 +35,16 @@ class GfwVesselMonitoringController extends Controller
         $endDate = (string) $request->query('end_date', $defaultEnd);
 
         $aoiSummary = [
-            'name' => 'ZEE Indonesia - Kawasan Aceh',
+            'name' => 'GFW Query AOI — Aceh',
             'geometry_type' => 'Polygon',
             'crs' => 'EPSG:4326',
             'feature_count' => 1,
+            'vertex_count' => 55,
+            'disclaimer' => 'Area ini merupakan geometri teknis untuk query GFW dan bukan representasi batas hukum ZEE.',
         ];
 
         try {
-            $aoiSummary = $this->aoiService->getZeeIndonesiaAcehSummary();
+            $aoiSummary = array_merge($aoiSummary, $this->queryGeometryService->getMetadata());
         } catch (Throwable) {
             // Fallback gracefully
         }
@@ -61,7 +66,7 @@ class GfwVesselMonitoringController extends Controller
                     ->orderByDesc('finished_at')
                     ->first();
                 if ($lastSuccessRun && $lastSuccessRun->finished_at) {
-                    $lastSuccessfulSync = $lastSuccessRun->finished_at->toIso8601String();
+                    $lastSuccessfulSync = GfwTimeHelper::toExplicitZuluString($lastSuccessRun->finished_at);
                 }
             }
         } catch (Throwable) {
@@ -113,7 +118,7 @@ class GfwVesselMonitoringController extends Controller
                     ->orderByDesc('finished_at')
                     ->first();
                 if ($lastSuccessRun && $lastSuccessRun->finished_at) {
-                    $lastSuccessfulSync = $lastSuccessRun->finished_at->toIso8601String();
+                    $lastSuccessfulSync = GfwTimeHelper::toExplicitZuluString($lastSuccessRun->finished_at);
                 }
             }
         } catch (Throwable) {

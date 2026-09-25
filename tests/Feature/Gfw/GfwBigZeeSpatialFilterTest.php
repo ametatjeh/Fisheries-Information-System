@@ -6,7 +6,7 @@ use App\Models\User;
 use App\Services\Gfw\AoiService;
 use App\Services\Gfw\GfwActivityService;
 use App\Services\Gfw\GfwIngestionService;
-use App\Services\Gis\BigMaritimeBoundaryService;
+use App\Services\Gfw\GfwQueryGeometryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
@@ -110,7 +110,7 @@ class GfwBigZeeSpatialFilterTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJsonPath('summary.total_vessels', 2);
-        $response->assertJsonPath('aoi.source', 'BIG');
+        $response->assertJsonPath('aoi.source', 'GFW Query AOI');
 
         $vessels = $response->json('vessels');
         $this->assertCount(2, $vessels);
@@ -260,8 +260,8 @@ class GfwBigZeeSpatialFilterTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJsonPath('summary.total_vessels', 0);
-        $response->assertJsonPath('message', 'No vessel detected in BIG ZEE Aceh for selected period.');
-        $response->assertJsonPath('aoi.source', 'BIG');
+        $response->assertJsonPath('message', 'No vessel detected in GFW Query Area for selected period.');
+        $response->assertJsonPath('aoi.source', 'GFW Query AOI');
     }
 
     /**
@@ -314,21 +314,17 @@ class GfwBigZeeSpatialFilterTest extends TestCase
      */
     public function test_invalid_aoi_configuration_returns_http_500(): void
     {
-        $mockBig = $this->createMock(BigMaritimeBoundaryService::class);
-        $mockBig->method('getAcehZeeGeometry')
-            ->willReturn([
-                'success' => false,
-                'error' => 'BIG ZEE Aceh boundary geometry tidak tersedia atau tidak valid.',
-            ]);
-        $this->app->instance(BigMaritimeBoundaryService::class, $mockBig);
+        $mockGeom = $this->createMock(GfwQueryGeometryService::class);
+        $mockGeom->method('getAcehQueryPolygon')
+            ->willReturn([]);
+        $this->app->instance(GfwQueryGeometryService::class, $mockGeom);
 
         $response = $this->actingAs($this->user)->getJson('/api/gfw/vessels/zee-indonesia-aceh');
 
-        $response->assertStatus(502);
+        $response->assertStatus(500);
         $response->assertJson([
             'success' => false,
-            'boundary_source' => 'BIG',
-            'boundary_layer' => 10,
+            'message' => 'GFW Query Geometry is unavailable.',
         ]);
     }
 
