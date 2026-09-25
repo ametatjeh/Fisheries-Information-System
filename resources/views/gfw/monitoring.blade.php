@@ -12,10 +12,56 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
-    <div class="space-y-6">
+    {{-- Dark Mode Page Styles for GFW Monitoring --}}
+    <style>
+        .main-content {
+            background-color: #0b1120 !important;
+        }
+
+        /* Leaflet dark theme controls */
+        .leaflet-bar a {
+            background-color: #1e293b !important;
+            color: #e2e8f0 !important;
+            border-bottom: 1px solid #334155 !important;
+        }
+        .leaflet-bar a:hover {
+            background-color: #334155 !important;
+            color: #ffffff !important;
+        }
+        .leaflet-control-layers {
+            background: #0f172a !important;
+            color: #cbd5e1 !important;
+            border: 1px solid #334155 !important;
+            border-radius: 0.75rem !important;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+        }
+        .leaflet-control-layers-expanded {
+            padding: 8px 12px !important;
+        }
+
+        /* Leaflet dark popup */
+        .leaflet-popup-content-wrapper {
+            background: #0f172a !important;
+            color: #f1f5f9 !important;
+            border: 1px solid #334155 !important;
+            border-radius: 0.75rem !important;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7) !important;
+        }
+        .leaflet-popup-tip {
+            background: #0f172a !important;
+        }
+        .leaflet-popup-close-button {
+            color: #94a3b8 !important;
+        }
+        .leaflet-popup-close-button:hover {
+            color: #ffffff !important;
+        }
+    </style>
+
+    <div class="space-y-6 text-slate-100">
         {{-- Banner Header & Freshness / Latency Notice --}}
-        <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-5 rounded-2xl shadow-sm relative overflow-hidden border border-indigo-900/40">
-            <div class="absolute right-4 -bottom-6 text-8xl opacity-10 pointer-events-none">🛰️</div>
+        <div class="bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 text-white p-5 rounded-2xl shadow-sm relative overflow-hidden border border-indigo-900/50">
+            <div class="absolute right-4 -bottom-6 text-8xl opacity-5 pointer-events-none select-none">🛰️</div>
             <div class="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                 <div class="max-w-4xl">
                     <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-semibold tracking-wide uppercase mb-2">
@@ -26,18 +72,18 @@
                         <span>🛰️</span>
                         <span>{{ __('Pemantauan Aktivitas Kapal & Analisis Spasial Laut Lepas') }}</span>
                     </h2>
-                    <p class="text-indigo-200 text-xs sm:text-sm mt-1 leading-relaxed">
+                    <p class="text-slate-300 text-xs sm:text-sm mt-1 leading-relaxed">
                         {{ __('Visualisasi data observasi pergerakan kapal (AIS/VMS), indikasi penangkapan (Apparent Fishing), pertemuan kapal (Potential Encounters), pola menunggu (Loitering), dan persinggahan pelabuhan (Port Visits) pada perairan Indonesia & Aceh.') }}
                     </p>
                 </div>
 
                 {{-- Latency & Provenance Notice Box --}}
-                <div class="px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs max-w-md shrink-0">
+                <div class="px-4 py-3 rounded-xl bg-amber-950/40 border border-amber-800/80 text-amber-200 text-xs max-w-md shrink-0">
                     <div class="font-bold flex items-center gap-1 text-amber-300">
                         <span>⚠️</span>
                         <span>{{ __('Pemberitahuan Latensi Data') }}</span>
                     </div>
-                    <p class="mt-1 leading-normal opacity-90">
+                    <p class="mt-1 leading-normal text-amber-200/90 font-medium">
                         {{ $latencyNotice }}
                     </p>
                 </div>
@@ -48,13 +94,13 @@
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
             {{-- Filter & Layer Control Sidebar (1 col on desktop) --}}
             <div class="lg:col-span-1 space-y-4">
-                <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 space-y-5">
-                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                        <div class="font-bold text-sm text-slate-800 flex items-center gap-2">
+                <div class="bg-slate-900/90 rounded-2xl p-5 shadow-sm border border-slate-800 space-y-5">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                        <div class="font-bold text-sm text-slate-100 flex items-center gap-2">
                             <span>⚙️</span>
                             <span>{{ __('Filter & Lapisan Peta') }}</span>
                         </div>
-                        <button type="button" id="btn-refresh-all" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                        <button type="button" id="btn-refresh-all" class="text-xs font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
                             <span>🔄</span>
                             <span>{{ __('Muat Ulang') }}</span>
                         </button>
@@ -62,17 +108,17 @@
 
                     {{-- Region Selector --}}
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
                             {{ __('Wilayah Geografis') }}
                         </label>
-                        <select id="filter-region" class="w-full text-xs rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
+                        <select id="filter-region" class="w-full text-xs rounded-xl bg-slate-800/90 border border-slate-700 text-slate-100 focus:border-indigo-500 focus:ring-indigo-500">
                             @foreach($regions as $reg)
                                 <option value="{{ $reg['key'] }}" {{ $selectedRegionKey === $reg['key'] ? 'selected' : '' }}>
                                     {{ $reg['name'] }}
                                 </option>
                             @endforeach
                         </select>
-                        <div id="region-note" class="text-[11px] text-slate-500 mt-1 italic">
+                        <div id="region-note" class="text-[11px] text-slate-400 mt-1 italic">
                             {{ $selectedRegion['provenance_note'] ?? '' }}
                         </div>
                     </div>
@@ -80,23 +126,23 @@
                     {{-- Date Range --}}
                     <div class="grid grid-cols-2 gap-2">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">{{ __('Mulai') }}</label>
-                            <input type="date" id="filter-start-date" value="{{ $startDate }}" class="w-full text-xs rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">{{ __('Mulai') }}</label>
+                            <input type="date" id="filter-start-date" value="{{ $startDate }}" class="w-full text-xs rounded-xl bg-slate-800/90 border border-slate-700 text-slate-100 focus:border-indigo-500 focus:ring-indigo-500 [color-scheme:dark]">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">{{ __('Selesai') }}</label>
-                            <input type="date" id="filter-end-date" value="{{ $endDate }}" class="w-full text-xs rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">{{ __('Selesai') }}</label>
+                            <input type="date" id="filter-end-date" value="{{ $endDate }}" class="w-full text-xs rounded-xl bg-slate-800/90 border border-slate-700 text-slate-100 focus:border-indigo-500 focus:ring-indigo-500 [color-scheme:dark]">
                         </div>
                     </div>
 
                     {{-- Single Vessel Search (Tracks) --}}
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
                             {{ __('Lacak Kapal Tertentu (MMSI / Nama)') }}
                         </label>
                         <div class="flex gap-1.5">
-                            <input type="text" id="filter-vessel-query" placeholder="Contoh: KM MEULABOH / 525001234" class="w-full text-xs rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
-                            <button type="button" id="btn-search-vessel" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shrink-0">
+                            <input type="text" id="filter-vessel-query" placeholder="Contoh: KM MEULABOH / 525001234" class="w-full text-xs rounded-xl bg-slate-800/90 border border-slate-700 text-slate-100 placeholder-slate-400 focus:border-indigo-500 focus:ring-indigo-500">
+                            <button type="button" id="btn-search-vessel" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold shrink-0">
                                 🔍
                             </button>
                         </div>
@@ -104,57 +150,57 @@
                     </div>
 
                     {{-- Layer Toggles --}}
-                    <div class="pt-3 border-t border-slate-100 space-y-3">
-                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                    <div class="pt-3 border-t border-slate-800 space-y-3">
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
                             {{ __('Lapisan Peristiwa & Aktivitas') }}
                         </label>
 
                         <div class="space-y-2.5 text-xs">
                             <label class="flex items-center gap-2 cursor-pointer select-none">
-                                <input type="checkbox" id="layer-presence" checked class="rounded text-emerald-600 focus:ring-emerald-500">
+                                <input type="checkbox" id="layer-presence" checked class="rounded border-slate-600 bg-slate-800 text-emerald-500 focus:ring-0">
                                 <span class="w-3 h-3 rounded-full bg-emerald-500 shrink-0"></span>
-                                <span class="font-medium text-slate-700">{{ __('GFW Vessel Presence') }}</span>
-                                <span id="count-presence" class="ml-auto font-mono text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">0</span>
+                                <span class="font-medium text-slate-200">{{ __('GFW Vessel Presence') }}</span>
+                                <span id="count-presence" class="ml-auto font-mono text-[10px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-300 border border-slate-700">0</span>
                             </label>
 
                             <label class="flex items-center gap-2 cursor-pointer select-none">
-                                <input type="checkbox" id="layer-fishing" checked class="rounded text-rose-600 focus:ring-rose-500">
+                                <input type="checkbox" id="layer-fishing" checked class="rounded border-slate-600 bg-slate-800 text-rose-500 focus:ring-0">
                                 <span class="w-3 h-3 rounded-full bg-rose-500 shrink-0"></span>
-                                <span class="font-medium text-slate-700">{{ __('Apparent Fishing Events') }}</span>
-                                <span id="count-fishing" class="ml-auto font-mono text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">0</span>
+                                <span class="font-medium text-slate-200">{{ __('Apparent Fishing Events') }}</span>
+                                <span id="count-fishing" class="ml-auto font-mono text-[10px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-300 border border-slate-700">0</span>
                             </label>
 
                             <label class="flex items-center gap-2 cursor-pointer select-none">
-                                <input type="checkbox" id="layer-encounters" checked class="rounded text-orange-500 focus:ring-orange-500">
+                                <input type="checkbox" id="layer-encounters" checked class="rounded border-slate-600 bg-slate-800 text-orange-500 focus:ring-0">
                                 <span class="w-3 h-3 rounded-full bg-orange-500 shrink-0"></span>
-                                <span class="font-medium text-slate-700">{{ __('Potential Encounters') }}</span>
-                                <span id="count-encounters" class="ml-auto font-mono text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">0</span>
+                                <span class="font-medium text-slate-200">{{ __('Potential Encounters') }}</span>
+                                <span id="count-encounters" class="ml-auto font-mono text-[10px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-300 border border-slate-700">0</span>
                             </label>
 
                             <label class="flex items-center gap-2 cursor-pointer select-none">
-                                <input type="checkbox" id="layer-loitering" checked class="rounded text-purple-600 focus:ring-purple-500">
+                                <input type="checkbox" id="layer-loitering" checked class="rounded border-slate-600 bg-slate-800 text-purple-500 focus:ring-0">
                                 <span class="w-3 h-3 rounded-full bg-purple-500 shrink-0"></span>
-                                <span class="font-medium text-slate-700">{{ __('Loitering Events') }}</span>
-                                <span id="count-loitering" class="ml-auto font-mono text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">0</span>
+                                <span class="font-medium text-slate-200">{{ __('Loitering Events') }}</span>
+                                <span id="count-loitering" class="ml-auto font-mono text-[10px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-300 border border-slate-700">0</span>
                             </label>
 
                             <label class="flex items-center gap-2 cursor-pointer select-none">
-                                <input type="checkbox" id="layer-port-visits" checked class="rounded text-amber-500 focus:ring-amber-500">
+                                <input type="checkbox" id="layer-port-visits" checked class="rounded border-slate-600 bg-slate-800 text-amber-500 focus:ring-0">
                                 <span class="w-3 h-3 rounded-full bg-amber-500 shrink-0"></span>
-                                <span class="font-medium text-slate-700">{{ __('Port Visits') }}</span>
-                                <span id="count-port-visits" class="ml-auto font-mono text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">0</span>
+                                <span class="font-medium text-slate-200">{{ __('Port Visits') }}</span>
+                                <span id="count-port-visits" class="ml-auto font-mono text-[10px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-300 border border-slate-700">0</span>
                             </label>
 
                             <label class="flex items-center gap-2 cursor-pointer select-none">
-                                <input type="checkbox" id="layer-activity-tracks" checked class="rounded text-cyan-600 focus:ring-cyan-500">
+                                <input type="checkbox" id="layer-activity-tracks" checked class="rounded border-slate-600 bg-slate-800 text-cyan-500 focus:ring-0">
                                 <span class="w-3 h-3 rounded-full bg-cyan-500 shrink-0"></span>
-                                <span class="font-medium text-slate-700">{{ __('Lintasan Track Kapal') }}</span>
-                                <span id="count-tracks" class="ml-auto font-mono text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">0</span>
+                                <span class="font-medium text-slate-200">{{ __('Lintasan Track Kapal') }}</span>
+                                <span id="count-tracks" class="ml-auto font-mono text-[10px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-300 border border-slate-700">0</span>
                             </label>
                         </div>
                     </div>
 
-                    <button type="button" id="btn-apply-filter" class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition shadow-sm">
+                    <button type="button" id="btn-apply-filter" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition shadow-sm">
                         {{ __('Terapkan Filter Spasial') }}
                     </button>
                 </div>
@@ -162,21 +208,21 @@
 
             {{-- Map Canvas (3 cols on desktop) --}}
             <div class="lg:col-span-3 space-y-3">
-                <div class="bg-white rounded-2xl p-2 shadow-sm border border-slate-200/80 relative">
+                <div class="bg-slate-900/90 rounded-2xl p-2 shadow-sm border border-slate-800 relative">
                     {{-- Status / Notification Overlay --}}
-                    <div id="map-status-overlay" class="absolute top-4 right-4 z-[1000] px-3 py-1.5 rounded-xl bg-slate-900/90 text-white text-xs font-medium shadow-lg backdrop-blur-sm hidden items-center gap-2">
+                    <div id="map-status-overlay" class="absolute top-4 right-4 z-[1000] px-3 py-1.5 rounded-xl bg-slate-900/95 text-white text-xs font-medium shadow-lg backdrop-blur-xs border border-slate-700 hidden items-center gap-2">
                         <span id="map-status-icon">🔄</span>
                         <span id="map-status-text">{{ __('Loading GFW data...') }}</span>
                     </div>
 
                     {{-- Leaflet Map Element --}}
-                    <div id="gfw-map" class="w-full h-[620px] rounded-xl z-0"></div>
+                    <div id="gfw-map" class="w-full h-[620px] rounded-xl z-0 bg-slate-950"></div>
                 </div>
 
                 {{-- Map Legend & Data Provenance Panel --}}
-                <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs text-slate-600">
+                <div class="bg-slate-900/90 rounded-2xl p-4 shadow-sm border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs text-slate-300">
                     <div class="flex flex-wrap items-center gap-3">
-                        <span class="font-bold text-slate-700">{{ __('Legenda:') }}</span>
+                        <span class="font-bold text-slate-200">{{ __('Legenda:') }}</span>
                         <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Presence</span>
                         <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Apparent Fishing</span>
                         <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-orange-500"></span> Potential Encounter</span>
@@ -184,7 +230,7 @@
                         <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Port Visit</span>
                     </div>
                     <div class="text-[11px] text-slate-400">
-                        {{ __('Sumber Data:') }} <strong class="text-slate-600">{{ __('Global Fishing Watch API v3') }}</strong> &bull; {{ __('Diperbarui via Proxy Internal Laravel') }}
+                        {{ __('Sumber Data:') }} <strong class="text-slate-200">{{ __('Global Fishing Watch API v3') }}</strong> &bull; {{ __('Diperbarui via Proxy Internal Laravel') }}
                     </div>
                 </div>
             </div>
@@ -203,9 +249,9 @@
             });
 
             // Base Layers
-            const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap contributors &bull; Data &copy; Global Fishing Watch',
-                maxZoom: 19
+            const darkLayer = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ &bull; Data &copy; Global Fishing Watch',
+                maxZoom: 16
             });
 
             const oceanLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}', {
@@ -213,9 +259,15 @@
                 maxZoom: 13
             });
 
-            oceanLayer.addTo(map);
+            const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors &bull; Data &copy; Global Fishing Watch',
+                maxZoom: 19
+            });
+
+            darkLayer.addTo(map);
             L.control.layers({
-                'Peta Oseanografi (Esri)': oceanLayer,
+                'Peta Gelap (Esri Dark)': darkLayer,
+                'Peta Oseanografi (Esri Ocean)': oceanLayer,
                 'Peta Jalan (OpenStreetMap)': osmLayer
             }, null, { position: 'topright' }).addTo(map);
 
@@ -240,8 +292,10 @@
                 statusText.innerText = text;
                 statusIcon.innerText = icon;
                 statusOverlay.classList.remove('hidden');
-                statusOverlay.classList.toggle('bg-rose-900/90', isError);
-                statusOverlay.classList.toggle('bg-slate-900/90', !isError);
+                statusOverlay.classList.toggle('bg-rose-950/95', isError);
+                statusOverlay.classList.toggle('border-rose-700', isError);
+                statusOverlay.classList.toggle('bg-slate-900/95', !isError);
+                statusOverlay.classList.toggle('border-slate-700', !isError);
             }
 
             function hideStatus() {
@@ -260,9 +314,9 @@
                             const [minLon, minLat, maxLon, maxLat] = reg.bounding_box;
                             const bounds = [[minLat, minLon], [maxLat, maxLon]];
                             L.rectangle(bounds, {
-                                color: '#4f46e5',
+                                color: '#0ea5e9',
                                 weight: 1.5,
-                                fillOpacity: 0.03,
+                                fillOpacity: 0.04,
                                 dashArray: '4, 4'
                             }).addTo(layerBoundary);
                             map.fitBounds(bounds, { padding: [20, 20] });
@@ -306,17 +360,17 @@
                                     const marker = L.circleMarker([item.latitude, item.longitude], {
                                         radius: 5,
                                         fillColor: '#10b981',
-                                        color: '#ffffff',
-                                        weight: 1,
+                                        color: '#0f172a',
+                                        weight: 1.5,
                                         fillOpacity: 0.85
                                     });
                                     marker.bindPopup(`
-                                        <div style="font-family: sans-serif; font-size: 12px; line-height: 1.4;">
-                                            <strong style="color: #047857;">🟢 GFW Vessel Presence</strong><br>
-                                            <strong>Vessel ID:</strong> ${item.gfw_vessel_id || 'N/A'}<br>
-                                            <strong>Posisi:</strong> ${item.latitude}, ${item.longitude}<br>
-                                            <strong>Waktu Observasi:</strong> ${item.observation_timestamp || '-'}<br>
-                                            <div style="margin-top: 6px; font-size: 10px; color: #6b7280; border-top: 1px solid #e5e7eb; padding-top: 4px;">
+                                        <div style="font-family: sans-serif; font-size: 12px; line-height: 1.4; color: #f1f5f9; min-width: 190px;">
+                                            <strong style="color: #34d399;">🟢 GFW Vessel Presence</strong><br>
+                                            <strong style="color: #94a3b8;">Vessel ID:</strong> <span style="font-family: monospace;">${item.gfw_vessel_id || 'N/A'}</span><br>
+                                            <strong style="color: #94a3b8;">Posisi:</strong> <span style="font-family: monospace;">${item.latitude}, ${item.longitude}</span><br>
+                                            <strong style="color: #94a3b8;">Waktu:</strong> ${item.observation_timestamp || '-'}<br>
+                                            <div style="margin-top: 6px; font-size: 10px; color: #64748b; border-top: 1px solid #334155; padding-top: 4px;">
                                                 Data Source: Global Fishing Watch
                                             </div>
                                         </div>
@@ -339,21 +393,21 @@
                                     const marker = L.circleMarker([item.latitude, item.longitude], {
                                         radius: 6,
                                         fillColor: '#f43f5e',
-                                        color: '#ffffff',
+                                        color: '#0f172a',
                                         weight: 1.5,
                                         fillOpacity: 0.9
                                     });
                                     marker.bindPopup(`
-                                        <div style="font-family: sans-serif; font-size: 12px; line-height: 1.4; max-width: 250px;">
-                                            <strong style="color: #be123c;">🎣 Apparent Fishing Event</strong><br>
-                                            <strong>Vessel ID:</strong> ${item.gfw_vessel_id || 'N/A'}<br>
-                                            <strong>Durasi:</strong> ${item.duration_hours || '-'} jam<br>
-                                            <strong>Confidence:</strong> ${item.confidence || '-'}<br>
-                                            <strong>Waktu:</strong> ${item.start_time || '-'} s/d ${item.end_time || '-'}<br>
-                                            <div style="background: #fff1f2; color: #9f1239; padding: 4px 6px; border-radius: 4px; font-size: 10px; margin-top: 6px;">
+                                        <div style="font-family: sans-serif; font-size: 12px; line-height: 1.4; max-width: 250px; color: #f1f5f9;">
+                                            <strong style="color: #fb7185;">🎣 Apparent Fishing Event</strong><br>
+                                            <strong style="color: #94a3b8;">Vessel ID:</strong> <span style="font-family: monospace;">${item.gfw_vessel_id || 'N/A'}</span><br>
+                                            <strong style="color: #94a3b8;">Durasi:</strong> ${item.duration_hours || '-'} jam<br>
+                                            <strong style="color: #94a3b8;">Confidence:</strong> ${item.confidence || '-'}<br>
+                                            <strong style="color: #94a3b8;">Waktu:</strong> ${item.start_time || '-'} s/d ${item.end_time || '-'}<br>
+                                            <div style="background: rgba(136, 19, 55, 0.4); color: #fecdd3; border: 1px solid rgba(225, 29, 72, 0.4); padding: 4px 6px; border-radius: 6px; font-size: 10px; margin-top: 6px;">
                                                 ⚠️ <em>Indikasi analitik algoritma pergerakan AIS/VMS, bukan verifikasi penangkapan faktual.</em>
                                             </div>
-                                            <div style="margin-top: 4px; font-size: 10px; color: #6b7280;">
+                                            <div style="margin-top: 4px; font-size: 10px; color: #64748b;">
                                                 Source: Global Fishing Watch
                                             </div>
                                         </div>
@@ -376,17 +430,17 @@
                                     const marker = L.circleMarker([item.latitude, item.longitude], {
                                         radius: 6,
                                         fillColor: '#f97316',
-                                        color: '#ffffff',
+                                        color: '#0f172a',
                                         weight: 1.5,
                                         fillOpacity: 0.9
                                     });
                                     marker.bindPopup(`
-                                        <div style="font-family: sans-serif; font-size: 12px; line-height: 1.4; max-width: 250px;">
-                                            <strong style="color: #c2410c;">🤝 Potential Encounter</strong><br>
-                                            <strong>Kapal 1:</strong> ${item.gfw_vessel_id || 'N/A'}<br>
-                                            <strong>Kapal 2:</strong> ${item.secondary_vessel_id || 'N/A'}<br>
-                                            <strong>Durasi:</strong> ${item.duration_hours || '-'} jam<br>
-                                            <div style="background: #fff7ed; color: #9a3412; padding: 4px 6px; border-radius: 4px; font-size: 10px; margin-top: 6px;">
+                                        <div style="font-family: sans-serif; font-size: 12px; line-height: 1.4; max-width: 250px; color: #f1f5f9;">
+                                            <strong style="color: #fb923c;">🤝 Potential Encounter</strong><br>
+                                            <strong style="color: #94a3b8;">Kapal 1:</strong> <span style="font-family: monospace;">${item.gfw_vessel_id || 'N/A'}</span><br>
+                                            <strong style="color: #94a3b8;">Kapal 2:</strong> <span style="font-family: monospace;">${item.secondary_vessel_id || 'N/A'}</span><br>
+                                            <strong style="color: #94a3b8;">Durasi:</strong> ${item.duration_hours || '-'} jam<br>
+                                            <div style="background: rgba(154, 52, 18, 0.4); color: #fed7aa; border: 1px solid rgba(234, 88, 12, 0.4); padding: 4px 6px; border-radius: 6px; font-size: 10px; margin-top: 6px;">
                                                 ⚠️ <em>Kedekatan posisi dua kapal secara algoritmik, tidak dapat disimpulkan sebagai alih muatan (transshipment).</em>
                                             </div>
                                         </div>
@@ -409,16 +463,16 @@
                                     const marker = L.circleMarker([item.latitude, item.longitude], {
                                         radius: 6,
                                         fillColor: '#9333ea',
-                                        color: '#ffffff',
+                                        color: '#0f172a',
                                         weight: 1.5,
                                         fillOpacity: 0.9
                                     });
                                     marker.bindPopup(`
-                                        <div style="font-family: sans-serif; font-size: 12px; line-height: 1.4;">
-                                            <strong style="color: #7e22ce;">⚓ Loitering Event</strong><br>
-                                            <strong>Vessel ID:</strong> ${item.gfw_vessel_id || 'N/A'}<br>
-                                            <strong>Durasi:</strong> ${item.duration_hours || '-'} jam<br>
-                                            <div style="font-size: 10px; color: #6b7280; margin-top: 4px;">Source: Global Fishing Watch</div>
+                                        <div style="font-family: sans-serif; font-size: 12px; line-height: 1.4; color: #f1f5f9;">
+                                            <strong style="color: #c084fc;">⚓ Loitering Event</strong><br>
+                                            <strong style="color: #94a3b8;">Vessel ID:</strong> <span style="font-family: monospace;">${item.gfw_vessel_id || 'N/A'}</span><br>
+                                            <strong style="color: #94a3b8;">Durasi:</strong> ${item.duration_hours || '-'} jam<br>
+                                            <div style="font-size: 10px; color: #64748b; margin-top: 4px;">Source: Global Fishing Watch</div>
                                         </div>
                                     `);
                                     marker.addTo(layerLoitering);
@@ -439,16 +493,16 @@
                                     const marker = L.circleMarker([item.latitude, item.longitude], {
                                         radius: 6,
                                         fillColor: '#f59e0b',
-                                        color: '#ffffff',
+                                        color: '#0f172a',
                                         weight: 1.5,
                                         fillOpacity: 0.9
                                     });
                                     marker.bindPopup(`
-                                        <div style="font-family: sans-serif; font-size: 12px; line-height: 1.4;">
-                                            <strong style="color: #b45309;">🚢 Port Visit</strong><br>
-                                            <strong>Pelabuhan:</strong> ${item.port_name || 'N/A'}<br>
-                                            <strong>Vessel ID:</strong> ${item.gfw_vessel_id || 'N/A'}<br>
-                                            <strong>Durasi:</strong> ${item.duration_hours || '-'} jam
+                                        <div style="font-family: sans-serif; font-size: 12px; line-height: 1.4; color: #f1f5f9;">
+                                            <strong style="color: #fbbf24;">🚢 Port Visit</strong><br>
+                                            <strong style="color: #94a3b8;">Pelabuhan:</strong> ${item.port_name || 'N/A'}<br>
+                                            <strong style="color: #94a3b8;">Vessel ID:</strong> <span style="font-family: monospace;">${item.gfw_vessel_id || 'N/A'}</span><br>
+                                            <strong style="color: #94a3b8;">Durasi:</strong> ${item.duration_hours || '-'} jam
                                         </div>
                                     `);
                                     marker.addTo(layerPortVisits);
@@ -477,7 +531,7 @@
                 if (!query) return;
 
                 resultDiv.classList.remove('hidden');
-                resultDiv.innerHTML = '<span class="text-indigo-600">Mencari kapal di gateway GFW...</span>';
+                resultDiv.innerHTML = '<span class="text-indigo-400">Mencari kapal di gateway GFW...</span>';
 
                 try {
                     const searchRes = await fetch(`/api/gfw/vessels?query=${encodeURIComponent(query)}`);
@@ -485,7 +539,7 @@
 
                     if (searchJson.success && Array.isArray(searchJson.data) && searchJson.data.length > 0) {
                         const vessel = searchJson.data[0];
-                        resultDiv.innerHTML = `<div class="p-2 bg-emerald-50 text-emerald-800 rounded-lg">Ditemukan: <strong>${vessel.name || vessel.gfw_vessel_id}</strong> (MMSI: ${vessel.mmsi || '-'})</div>`;
+                        resultDiv.innerHTML = `<div class="p-2 bg-emerald-950/70 border border-emerald-800 text-emerald-200 rounded-lg">Ditemukan: <strong class="text-white">${vessel.name || vessel.gfw_vessel_id}</strong> (MMSI: ${vessel.mmsi || '-'})</div>`;
 
                         // Fetch track
                         const startDate = startDateInput.value;
@@ -503,23 +557,29 @@
                                     L.circleMarker([pt.latitude, pt.longitude], {
                                         radius: 4,
                                         fillColor: '#06b6d4',
-                                        color: '#ffffff',
-                                        weight: 1,
+                                        color: '#0f172a',
+                                        weight: 1.5,
                                         fillOpacity: 0.9
-                                    }).bindPopup(`<strong>Track Point</strong><br>Waktu: ${pt.observation_timestamp}<br>Kecepatan: ${pt.speed_knots || '-'} knots`).addTo(layerTracks);
+                                    }).bindPopup(`
+                                        <div style="font-family: sans-serif; font-size: 11px; color: #f1f5f9;">
+                                            <strong style="color: #38bdf8;">📍 Track Point</strong><br>
+                                            <span style="color: #94a3b8;">Waktu:</span> ${pt.observation_timestamp}<br>
+                                            <span style="color: #94a3b8;">Kecepatan:</span> ${pt.speed_knots || '-'} knots
+                                        </div>
+                                    `).addTo(layerTracks);
                                 }
                             });
 
                             if (latLngs.length > 1) {
-                                const polyline = L.polyline(latLngs, { color: '#0891b2', weight: 2.5, opacity: 0.85 }).addTo(layerTracks);
+                                const polyline = L.polyline(latLngs, { color: '#06b6d4', weight: 2.5, opacity: 0.9 }).addTo(layerTracks);
                                 map.fitBounds(polyline.getBounds(), { padding: [30, 30] });
                             }
                         }
                     } else {
-                        resultDiv.innerHTML = '<span class="text-rose-600">Kapal tidak ditemukan pada data GFW.</span>';
+                        resultDiv.innerHTML = '<span class="text-rose-400">Kapal tidak ditemukan pada data GFW.</span>';
                     }
                 } catch (e) {
-                    resultDiv.innerHTML = '<span class="text-rose-600">Gagal mencari kapal.</span>';
+                    resultDiv.innerHTML = '<span class="text-rose-400">Gagal mencari kapal.</span>';
                 }
             });
 

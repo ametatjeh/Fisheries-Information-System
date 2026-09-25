@@ -10,10 +10,84 @@
     <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" crossorigin=""/>
     <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js" crossorigin=""></script>
 
-    <div class="space-y-6">
-        {{-- Banner Header, AOI Attribution & Source Info --}}
+    {{-- Dark Mode Page Styles for GFW Vessel Observatory --}}
+    <style>
+        .main-content {
+            background-color: #0b1120 !important;
+        }
+
+        /* MapLibre controls dark theme styling */
+        .maplibregl-ctrl-group {
+            background-color: #1e293b !important;
+            border: 1px solid #334155 !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+        }
+        .maplibregl-ctrl-group button {
+            border-bottom: 1px solid #334155 !important;
+            background-color: transparent !important;
+        }
+        .maplibregl-ctrl-group button:hover {
+            background-color: #334155 !important;
+        }
+        .maplibregl-ctrl-group button .maplibregl-ctrl-icon {
+            filter: invert(1) brightness(1.5) !important;
+        }
+        .maplibregl-ctrl-scale {
+            background-color: rgba(15, 23, 42, 0.85) !important;
+            color: #cbd5e1 !important;
+            border-color: #475569 !important;
+            font-family: monospace !important;
+            font-size: 10px !important;
+        }
+
+        /* MapLibre dark popup container */
+        .maplibregl-popup-content {
+            background-color: #0f172a !important;
+            color: #f1f5f9 !important;
+            border: 1px solid #334155 !important;
+            border-radius: 0.875rem !important;
+            box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.7) !important;
+            padding: 0.85rem !important;
+        }
+        .maplibregl-popup-anchor-top .maplibregl-popup-tip { border-bottom-color: #0f172a !important; }
+        .maplibregl-popup-anchor-bottom .maplibregl-popup-tip { border-top-color: #0f172a !important; }
+        .maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: #0f172a !important; }
+        .maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: #0f172a !important; }
+        .maplibregl-popup-close-button {
+            color: #94a3b8 !important;
+            font-size: 16px !important;
+            padding: 4px 8px !important;
+            line-height: 1 !important;
+        }
+        .maplibregl-popup-close-button:hover {
+            color: #ffffff !important;
+            background-color: transparent !important;
+        }
+
+        /* Custom scrollbar for dark feeds */
+        #vessels-activity-feed-list::-webkit-scrollbar,
+        #vessels-alerts-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        #vessels-activity-feed-list::-webkit-scrollbar-track,
+        #vessels-alerts-list::-webkit-scrollbar-track {
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 4px;
+        }
+        #vessels-activity-feed-list::-webkit-scrollbar-thumb,
+        #vessels-alerts-list::-webkit-scrollbar-thumb {
+            background: rgba(71, 85, 105, 0.8);
+            border-radius: 4px;
+        }
+        #vessels-activity-feed-list::-webkit-scrollbar-thumb:hover,
+        #vessels-alerts-list::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 116, 139, 1);
+        }
+    </style>
+
+    <div class="space-y-6 text-slate-100">
         {{-- Banner Header, AOI Attribution & Source Info (Compact) --}}
-        <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-3.5 sm:p-4 rounded-xl shadow-xs relative overflow-hidden border border-indigo-900/50">
+        <div class="bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 text-white p-3.5 sm:p-4 rounded-xl shadow-xs relative overflow-hidden border border-indigo-900/50">
             <div class="absolute right-3 -bottom-5 text-7xl opacity-5 pointer-events-none select-none">🚢</div>
             <div class="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
                 <div class="space-y-1.5 max-w-2xl">
@@ -44,7 +118,7 @@
                     <p class="text-slate-300 text-xs leading-relaxed line-clamp-2 sm:line-clamp-none">
                         Pemantauan spasial armada kapal terdeteksi satelit dan lintasan (Observed Track) dalam <strong>GFW Query AOI — Aceh</strong> menggunakan data dari <strong>Global Fishing Watch</strong>. Area ini merupakan geometri teknis untuk query GFW dan bukan representasi batas hukum ZEE.
                     </p>
-                    <div class="p-2 rounded-lg bg-slate-800/60 border border-indigo-500/20 text-[11px] text-slate-300 leading-normal flex items-start gap-1.5">
+                    <div class="p-2 rounded-lg bg-slate-800/80 border border-indigo-500/30 text-[11px] text-slate-300 leading-normal flex items-start gap-1.5">
                         <span class="text-indigo-400 shrink-0 mt-0.5">ℹ️</span>
                         <span>
                             <strong>Catatan:</strong> Tidak munculnya vessel pada hasil GFW tidak membuktikan bahwa kapal tersebut tidak berada secara fisik di ZEE. Hasil bergantung pada dataset dan sumber observasi GFW.
@@ -53,14 +127,14 @@
                 </div>
 
                 {{-- AOI & Provenance Compact Control Badge --}}
-                <div class="p-2.5 sm:p-3 rounded-lg bg-slate-800/80 backdrop-blur-xs border border-indigo-500/30 text-xs w-full lg:w-auto lg:min-w-[340px] shrink-0 space-y-2 text-slate-200">
+                <div class="p-2.5 sm:p-3 rounded-lg bg-slate-900/90 backdrop-blur-xs border border-indigo-500/30 text-xs w-full lg:w-auto lg:min-w-[340px] shrink-0 space-y-2 text-slate-200">
                     <div class="flex items-center justify-between text-[11px] pb-1.5 border-b border-slate-700/60">
                         <span class="flex items-center gap-1 text-[10px] font-medium text-indigo-300">
                             <span>🗺️</span>
                             <span>{{ __('Pemberitahuan Latensi & AOI Spasial') }}</span>
                         </span>
                         <label class="inline-flex items-center gap-1.5 cursor-pointer text-[10px] text-indigo-300 hover:text-indigo-200">
-                            <input type="checkbox" id="toggle-big-zee-aceh" checked class="rounded border-slate-600 bg-slate-700 text-indigo-500 focus:ring-0 text-[10px]">
+                            <input type="checkbox" id="toggle-big-zee-aceh" checked class="rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-0 text-[10px]">
                             <span>ZEE — Data Resmi BIG</span>
                         </label>
                     </div>
@@ -69,13 +143,13 @@
                         <div class="flex items-center gap-2">
                             <span id="vessels-live-pulse" class="w-2 h-2 rounded-full bg-slate-500 inline-block"></span>
                             <span class="font-semibold text-slate-200">Status Dataset:</span>
-                            <span id="vessels-dataset-pill" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-700 text-slate-300 font-mono">
+                            <span id="vessels-dataset-pill" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700 font-mono">
                                 MEMUAT...
                             </span>
                         </div>
                         <div class="flex items-center gap-1.5">
                             <span class="text-[10px] text-slate-400">Auto Live:</span>
-                            <button type="button" id="btn-toggle-live-vessels" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-700 text-slate-300 hover:bg-slate-600 transition">
+                            <button type="button" id="btn-toggle-live-vessels" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 transition">
                                 OFF
                             </button>
                         </div>
@@ -98,122 +172,122 @@
         </div>
 
         {{-- Upstream Pagination Truncated Warning Banner --}}
-        <div id="vessels-truncated-banner" class="hidden p-3.5 sm:p-4 rounded-xl bg-amber-50 border border-amber-300/80 text-amber-900 text-xs flex items-start gap-2.5 shadow-xs">
+        <div id="vessels-truncated-banner" class="hidden p-3.5 sm:p-4 rounded-xl bg-amber-950/40 border border-amber-800/80 text-amber-200 text-xs flex items-start gap-2.5 shadow-xs">
             <span class="text-lg shrink-0 mt-0.5">⚠️</span>
             <div class="space-y-1">
-                <div class="font-bold text-amber-950 flex items-center gap-2">
+                <div class="font-bold text-amber-100 flex items-center gap-2">
                     <span>{{ __('Data Dibatasi oleh Safety Limit Upstream') }}</span>
-                    <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300 font-bold">Maks. 500 Events / 5 Halaman</span>
+                    <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-900/80 text-amber-200 border border-amber-700/80 font-bold">Maks. 500 Events / 5 Halaman</span>
                 </div>
-                <p class="text-amber-900 leading-relaxed text-[11px] font-medium">
+                <p class="text-amber-200/90 leading-relaxed text-[11px] font-medium">
                     Jumlah event hulu pada rentang waktu ini mencapai batas aman pengambilan data. Hasil observasi mungkin belum mencakup seluruh event yang tersedia di GFW API. Disarankan mempersempit rentang tanggal untuk kelengkapan data yang lebih detail.
                 </p>
             </div>
         </div>
 
         {{-- Fallback / Error Resilience Notice --}}
-        <div id="vessels-refresh-error-notice" class="hidden p-4 rounded-2xl bg-amber-50/95 border border-amber-300 text-amber-950 text-xs shadow-xs space-y-2">
+        <div id="vessels-refresh-error-notice" class="hidden p-4 rounded-2xl bg-amber-950/40 border border-amber-800/80 text-amber-200 text-xs shadow-xs space-y-2">
             <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                 <div class="flex items-start gap-3">
                     <span class="text-2xl shrink-0 mt-0.5">⚠️</span>
                     <div class="space-y-1.5">
                         <div class="flex flex-wrap items-center gap-2">
-                            <span class="font-bold text-amber-950 text-sm">Gagal memperbarui data dari GFW API</span>
-                            <span id="vessels-notice-status-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-200/90 text-amber-950 border border-amber-300 font-mono">
+                            <span class="font-bold text-amber-100 text-sm">Gagal memperbarui data dari GFW API</span>
+                            <span id="vessels-notice-status-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-900/80 text-amber-200 border border-amber-700/80 font-mono">
                                 DATA TERAKHIR TERSEDIA
                             </span>
                         </div>
-                        <p class="text-xs text-amber-900 font-medium leading-relaxed">
+                        <p class="text-xs text-amber-200/90 font-medium leading-relaxed">
                             Menampilkan dataset berhasil terakhir. Data kapal tidak direset ke 0.
                         </p>
-                        <div class="flex flex-wrap items-center gap-x-5 gap-y-1 pt-1 border-t border-amber-200/60 text-[11px] text-amber-950">
+                        <div class="flex flex-wrap items-center gap-x-5 gap-y-1 pt-1 border-t border-amber-800/50 text-[11px] text-amber-200">
                             <div>
-                                <span class="text-amber-800">Data terakhir berhasil diperbarui:</span>
-                                <strong id="vessels-notice-last-updated" class="font-mono ml-1 text-amber-950">-</strong>
-                                <span id="vessels-notice-data-age" class="text-amber-800 text-[10px] font-medium ml-1"></span>
+                                <span class="text-amber-400">Data terakhir berhasil diperbarui:</span>
+                                <strong id="vessels-notice-last-updated" class="font-mono ml-1 text-amber-100">-</strong>
+                                <span id="vessels-notice-data-age" class="text-amber-300/80 text-[10px] font-medium ml-1"></span>
                             </div>
                             <div>
-                                <span class="text-amber-800">Status:</span>
-                                <strong class="text-amber-900 ml-1 uppercase font-bold">DATA TERAKHIR TERSEDIA</strong>
+                                <span class="text-amber-400">Status:</span>
+                                <strong class="text-amber-200 ml-1 uppercase font-bold">DATA TERAKHIR TERSEDIA</strong>
                             </div>
                         </div>
                     </div>
                 </div>
-                <button type="button" id="btn-retry-vessels" class="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition shrink-0 shadow-xs flex items-center gap-1.5 self-end sm:self-center">
+                <button type="button" id="btn-retry-vessels" class="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs transition shrink-0 shadow-xs flex items-center gap-1.5 self-end sm:self-center">
                     <span>🔄</span>
                     <span>Coba Lagi</span>
                 </button>
             </div>
         </div>
 
-        {{-- KPI / Summary Cards --}}
+        {{-- KPI / Summary Cards (Dark Mode) --}}
         <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {{-- Total Vessels --}}
-            <div class="bg-white p-4 rounded-2xl shadow-2xs border border-slate-200/80 flex items-center justify-between">
+            <div class="bg-slate-900/90 p-4 rounded-2xl shadow-sm border border-slate-800 flex items-center justify-between hover:border-slate-700 transition">
                 <div>
                     <div class="flex items-center gap-1.5">
-                        <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{{ __('Total Vessels') }}</span>
-                        <span id="stat-upstream-events-badge" class="hidden text-[9px] font-mono px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 font-bold border border-indigo-100">0 events</span>
+                        <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{{ __('Total Vessels') }}</span>
+                        <span id="stat-upstream-events-badge" class="hidden text-[9px] font-mono px-1.5 py-0.2 rounded bg-indigo-950 text-indigo-300 font-bold border border-indigo-800">0 events</span>
                     </div>
-                    <h3 id="stat-total-vessels" class="text-2xl font-black text-slate-800 mt-1">
+                    <h3 id="stat-total-vessels" class="text-2xl font-black text-white mt-1">
                         <span class="animate-pulse">...</span>
                     </h3>
                     <p id="stat-total-subtitle" class="text-[11px] text-slate-400 mt-0.5">Kapal unik dalam GFW Query AOI — Aceh</p>
                 </div>
-                <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl shrink-0">
+                <div class="w-12 h-12 rounded-xl bg-slate-800 text-indigo-400 flex items-center justify-center text-xl shrink-0 border border-slate-700/80">
                     🚢
                 </div>
             </div>
 
             {{-- Fishing Vessels --}}
-            <div class="bg-white p-4 rounded-2xl shadow-2xs border border-slate-200/80 flex items-center justify-between">
+            <div class="bg-slate-900/90 p-4 rounded-2xl shadow-sm border border-slate-800 flex items-center justify-between hover:border-slate-700 transition">
                 <div>
-                    <span class="text-[11px] font-semibold uppercase tracking-wider text-emerald-600">{{ __('Fishing Vessels') }}</span>
-                    <h3 id="stat-fishing-vessels" class="text-2xl font-black text-emerald-600 mt-1">
+                    <span class="text-[11px] font-semibold uppercase tracking-wider text-emerald-400">{{ __('Fishing Vessels') }}</span>
+                    <h3 id="stat-fishing-vessels" class="text-2xl font-black text-emerald-400 mt-1">
                         <span class="animate-pulse">...</span>
                     </h3>
                     <p class="text-[11px] text-slate-400 mt-0.5">Kapal perikanan tangkap</p>
                 </div>
-                <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shrink-0">
+                <div class="w-12 h-12 rounded-xl bg-slate-800 text-emerald-400 flex items-center justify-center text-xl shrink-0 border border-slate-700/80">
                     🎣
                 </div>
             </div>
 
             {{-- Other Vessels --}}
-            <div class="bg-white p-4 rounded-2xl shadow-2xs border border-slate-200/80 flex items-center justify-between">
+            <div class="bg-slate-900/90 p-4 rounded-2xl shadow-sm border border-slate-800 flex items-center justify-between hover:border-slate-700 transition">
                 <div>
-                    <span class="text-[11px] font-semibold uppercase tracking-wider text-sky-600">{{ __('Other Vessels') }}</span>
-                    <h3 id="stat-other-vessels" class="text-2xl font-black text-sky-600 mt-1">
+                    <span class="text-[11px] font-semibold uppercase tracking-wider text-sky-400">{{ __('Other Vessels') }}</span>
+                    <h3 id="stat-other-vessels" class="text-2xl font-black text-sky-400 mt-1">
                         <span class="animate-pulse">...</span>
                     </h3>
                     <p class="text-[11px] text-slate-400 mt-0.5">Kargo, tanker, tug, carrier</p>
                 </div>
-                <div class="w-12 h-12 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center text-xl shrink-0">
+                <div class="w-12 h-12 rounded-xl bg-slate-800 text-sky-400 flex items-center justify-center text-xl shrink-0 border border-slate-700/80">
                     ⛴️
                 </div>
             </div>
 
             {{-- Flags --}}
-            <div class="bg-white p-4 rounded-2xl shadow-2xs border border-slate-200/80 flex items-center justify-between">
+            <div class="bg-slate-900/90 p-4 rounded-2xl shadow-sm border border-slate-800 flex items-center justify-between hover:border-slate-700 transition">
                 <div>
-                    <span class="text-[11px] font-semibold uppercase tracking-wider text-purple-600">{{ __('Flags') }}</span>
-                    <h3 id="stat-flags" class="text-2xl font-black text-purple-600 mt-1">
+                    <span class="text-[11px] font-semibold uppercase tracking-wider text-purple-400">{{ __('Flags') }}</span>
+                    <h3 id="stat-flags" class="text-2xl font-black text-purple-400 mt-1">
                         <span class="animate-pulse">...</span>
                     </h3>
                     <p id="stat-flags-preview" class="text-[11px] text-slate-400 mt-0.5 truncate max-w-[140px]">Negara bendera</p>
                 </div>
-                <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl shrink-0">
+                <div class="w-12 h-12 rounded-xl bg-slate-800 text-purple-400 flex items-center justify-center text-xl shrink-0 border border-slate-700/80">
                     🚩
                 </div>
             </div>
         </div>
 
-        {{-- Filter Controls --}}
-        <div class="bg-white rounded-xl p-3.5 sm:p-4 shadow-2xs border border-slate-200/80">
+        {{-- Filter Controls (Dark Mode) --}}
+        <div class="bg-slate-900/90 rounded-xl p-3.5 sm:p-4 shadow-sm border border-slate-800">
             <div class="flex flex-col sm:flex-row sm:flex-wrap lg:flex-nowrap items-end gap-2 lg:gap-2.5">
                 {{-- Search Vessel --}}
                 <div class="w-full sm:w-[190px] lg:w-[200px] shrink-0">
-                    <label for="vessel-search-input" class="block text-[11px] font-semibold text-slate-600 mb-1 truncate">
+                    <label for="vessel-search-input" class="block text-[11px] font-semibold text-slate-300 mb-1 truncate">
                         {{ __('Search Vessel') }}
                     </label>
                     <div class="relative flex items-center">
@@ -221,137 +295,137 @@
                         <input type="text"
                                id="vessel-search-input"
                                placeholder="Nama kapal, MMSI..."
-                               class="w-full h-9 text-xs pl-8 pr-7 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 shadow-2xs">
-                        <button type="button" id="btn-clear-search" class="absolute right-2 text-slate-400 hover:text-slate-600 text-xs hidden font-bold">✕</button>
+                               class="w-full h-9 text-xs pl-8 pr-7 rounded-lg bg-slate-800/90 border border-slate-700 text-slate-100 placeholder-slate-400 focus:border-indigo-500 focus:ring-indigo-500 shadow-2xs">
+                        <button type="button" id="btn-clear-search" class="absolute right-2 text-slate-400 hover:text-white text-xs hidden font-bold">✕</button>
                     </div>
                 </div>
 
                 {{-- Start Date --}}
                 <div class="w-full sm:w-[125px] shrink-0">
-                    <label for="filter-start-date" class="block text-[11px] font-semibold text-slate-600 mb-1 truncate">
+                    <label for="filter-start-date" class="block text-[11px] font-semibold text-slate-300 mb-1 truncate">
                         {{ __('Start Date') }}
                     </label>
                     <input type="date"
                            id="filter-start-date"
                            value="{{ $startDate }}"
-                           class="w-full h-9 text-xs px-2 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
+                           class="w-full h-9 text-xs px-2 rounded-lg bg-slate-800/90 border border-slate-700 text-slate-100 focus:border-indigo-500 focus:ring-indigo-500 [color-scheme:dark]">
                 </div>
 
                 {{-- End Date --}}
                 <div class="w-full sm:w-[125px] shrink-0">
                     <div class="flex items-center justify-between mb-1">
-                        <label for="filter-end-date" class="block text-[11px] font-semibold text-slate-600 truncate">
+                        <label for="filter-end-date" class="block text-[11px] font-semibold text-slate-300 truncate">
                             {{ __('End Date') }}
                         </label>
-                        <button type="button" class="btn-preset-7d text-[10px] text-indigo-600 hover:text-indigo-800 font-bold" title="Rentang cepat 7 hari terakhir">
+                        <button type="button" class="btn-preset-7d text-[10px] text-indigo-400 hover:text-indigo-300 font-bold" title="Rentang cepat 7 hari terakhir">
                             7h
                         </button>
                     </div>
                     <input type="date"
                            id="filter-end-date"
                            value="{{ $endDate }}"
-                           class="w-full h-9 text-xs px-2 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
+                           class="w-full h-9 text-xs px-2 rounded-lg bg-slate-800/90 border border-slate-700 text-slate-100 focus:border-indigo-500 focus:ring-indigo-500 [color-scheme:dark]">
                 </div>
 
                 {{-- Vessel Type Filter --}}
                 <div class="w-full sm:w-[125px] shrink-0">
-                    <label for="filter-vessel-type" class="block text-[11px] font-semibold text-slate-600 mb-1 truncate">
+                    <label for="filter-vessel-type" class="block text-[11px] font-semibold text-slate-300 mb-1 truncate">
                         {{ __('Vessel Type') }}
                     </label>
-                    <select id="filter-vessel-type" class="w-full h-9 text-xs px-2 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
-                        <option value="">{{ __('Semua Tipe') }}</option>
-                        <option value="Fishing">Fishing</option>
-                        <option value="Carrier">Carrier</option>
-                        <option value="Support">Support</option>
-                        <option value="Bunker">Bunker</option>
-                        <option value="Tanker">Tanker</option>
-                        <option value="Cargo">Cargo</option>
-                        <option value="Passenger">Passenger</option>
-                        <option value="Recreational">Recreational</option>
-                        <option value="Other">Other</option>
-                        <option value="Unknown">Unknown</option>
+                    <select id="filter-vessel-type" class="w-full h-9 text-xs px-2 rounded-lg bg-slate-800/90 border border-slate-700 text-slate-100 focus:border-indigo-500 focus:ring-indigo-500">
+                        <option value="" class="bg-slate-800 text-slate-100">{{ __('Semua Tipe') }}</option>
+                        <option value="Fishing" class="bg-slate-800 text-slate-100">Fishing</option>
+                        <option value="Carrier" class="bg-slate-800 text-slate-100">Carrier</option>
+                        <option value="Support" class="bg-slate-800 text-slate-100">Support</option>
+                        <option value="Bunker" class="bg-slate-800 text-slate-100">Bunker</option>
+                        <option value="Tanker" class="bg-slate-800 text-slate-100">Tanker</option>
+                        <option value="Cargo" class="bg-slate-800 text-slate-100">Cargo</option>
+                        <option value="Passenger" class="bg-slate-800 text-slate-100">Passenger</option>
+                        <option value="Recreational" class="bg-slate-800 text-slate-100">Recreational</option>
+                        <option value="Other" class="bg-slate-800 text-slate-100">Other</option>
+                        <option value="Unknown" class="bg-slate-800 text-slate-100">Unknown</option>
                     </select>
                 </div>
 
                 {{-- Flag Filter --}}
                 <div class="w-full sm:w-[130px] shrink-0">
-                    <label for="filter-flag" class="block text-[11px] font-semibold text-slate-600 mb-1 truncate">
+                    <label for="filter-flag" class="block text-[11px] font-semibold text-slate-300 mb-1 truncate">
                         {{ __('Flag') }}
                     </label>
-                    <select id="filter-flag" class="w-full h-9 text-xs px-2 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
-                        <option value="">Semua Bendera</option>
-                        <option value="IDN">🇮🇩 IDN (Indonesia)</option>
-                        <option value="MYS">🇲🇾 MYS (Malaysia)</option>
-                        <option value="THA">🇹🇭 THA (Thailand)</option>
-                        <option value="VNM">🇻🇳 VNM (Vietnam)</option>
-                        <option value="CHN">🇨🇳 CHN (China)</option>
-                        <option value="TWN">🇹🇼 TWN (Taiwan)</option>
-                        <option value="PAN">🇵🇦 PAN (Panama)</option>
-                        <option value="LBR">🇱🇷 LBR (Liberia)</option>
-                        <option value="SGP">🇸🇬 SGP (Singapura)</option>
+                    <select id="filter-flag" class="w-full h-9 text-xs px-2 rounded-lg bg-slate-800/90 border border-slate-700 text-slate-100 focus:border-indigo-500 focus:ring-indigo-500">
+                        <option value="" class="bg-slate-800 text-slate-100">Semua Bendera</option>
+                        <option value="IDN" class="bg-slate-800 text-slate-100">🇮🇩 IDN (Indonesia)</option>
+                        <option value="MYS" class="bg-slate-800 text-slate-100">🇲🇾 MYS (Malaysia)</option>
+                        <option value="THA" class="bg-slate-800 text-slate-100">🇹🇭 THA (Thailand)</option>
+                        <option value="VNM" class="bg-slate-800 text-slate-100">🇻🇳 VNM (Vietnam)</option>
+                        <option value="CHN" class="bg-slate-800 text-slate-100">🇨🇳 CHN (China)</option>
+                        <option value="TWN" class="bg-slate-800 text-slate-100">🇹🇼 TWN (Taiwan)</option>
+                        <option value="PAN" class="bg-slate-800 text-slate-100">🇵🇦 PAN (Panama)</option>
+                        <option value="LBR" class="bg-slate-800 text-slate-100">🇱🇷 LBR (Liberia)</option>
+                        <option value="SGP" class="bg-slate-800 text-slate-100">🇸🇬 SGP (Singapura)</option>
                     </select>
                 </div>
 
                 {{-- Activity Filter --}}
                 <div class="w-full sm:w-[130px] shrink-0">
-                    <label for="filter-activity" class="block text-[11px] font-semibold text-slate-600 mb-1 truncate">
+                    <label for="filter-activity" class="block text-[11px] font-semibold text-slate-300 mb-1 truncate">
                         {{ __('Activity') }}
                     </label>
-                    <select id="filter-activity" class="w-full h-9 text-xs px-2 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
-                        <option value="">{{ __('Semua Aktivitas') }}</option>
-                        <option value="Vessel Presence">Vessel Presence</option>
-                        <option value="Fishing">Fishing Activity</option>
-                        <option value="Encounter">Encounter</option>
-                        <option value="Loitering">Loitering</option>
-                        <option value="Port Visit">Port Visit</option>
+                    <select id="filter-activity" class="w-full h-9 text-xs px-2 rounded-lg bg-slate-800/90 border border-slate-700 text-slate-100 focus:border-indigo-500 focus:ring-indigo-500">
+                        <option value="" class="bg-slate-800 text-slate-100">{{ __('Semua Aktivitas') }}</option>
+                        <option value="Vessel Presence" class="bg-slate-800 text-slate-100">Vessel Presence</option>
+                        <option value="Fishing" class="bg-slate-800 text-slate-100">Fishing Activity</option>
+                        <option value="Encounter" class="bg-slate-800 text-slate-100">Encounter</option>
+                        <option value="Loitering" class="bg-slate-800 text-slate-100">Loitering</option>
+                        <option value="Port Visit" class="bg-slate-800 text-slate-100">Port Visit</option>
                     </select>
                 </div>
 
                 {{-- Status Filter --}}
                 <div class="w-full sm:w-[90px] shrink-0">
-                    <label for="filter-status" class="block text-[11px] font-semibold text-slate-600 mb-1 truncate">
+                    <label for="filter-status" class="block text-[11px] font-semibold text-slate-300 mb-1 truncate">
                         {{ __('Status') }}
                     </label>
-                    <select id="filter-status" class="w-full h-9 text-xs px-1.5 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
-                        <option value="">Semua</option>
-                        <option value="LIVE">LIVE (&lt;24h)</option>
-                        <option value="RECENT">RECENT</option>
-                        <option value="STALE">STALE</option>
+                    <select id="filter-status" class="w-full h-9 text-xs px-1.5 rounded-lg bg-slate-800/90 border border-slate-700 text-slate-100 focus:border-indigo-500 focus:ring-indigo-500">
+                        <option value="" class="bg-slate-800 text-slate-100">Semua</option>
+                        <option value="LIVE" class="bg-slate-800 text-slate-100">LIVE (&lt;24h)</option>
+                        <option value="RECENT" class="bg-slate-800 text-slate-100">RECENT</option>
+                        <option value="STALE" class="bg-slate-800 text-slate-100">STALE</option>
                     </select>
                 </div>
 
                 {{-- Action Buttons (Right-aligned) --}}
                 <div class="flex items-center gap-1.5 shrink-0 sm:ml-auto pt-2 sm:pt-0">
-                    <button type="button" id="btn-reset-filter" class="h-9 px-3 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-xs font-semibold transition" title="Reset semua filter">
+                    <button type="button" id="btn-reset-filter" class="h-9 px-3 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold transition" title="Reset semua filter">
                         {{ __('Reset') }}
                     </button>
-                    <button type="button" id="btn-apply-filter" class="h-9 px-3.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5">
+                    <button type="button" id="btn-apply-filter" class="h-9 px-3.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5">
                         <span id="btn-apply-spinner" class="hidden">🔄</span>
                         <span>{{ __('Terapkan') }}</span>
                     </button>
                 </div>
             </div>
-            <span id="active-filter-indicator" class="text-[11px] text-slate-500 hidden"></span>
+            <span id="active-filter-indicator" class="text-[11px] text-slate-400 hidden"></span>
         </div>
 
         {{-- Main Map and Vessel Detail Layout --}}
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {{-- Map Container (8 cols) --}}
             <div class="lg:col-span-8 space-y-3">
-                <div class="bg-white rounded-2xl p-3 shadow-2xs border border-slate-200/80 relative">
+                <div class="bg-slate-900/90 rounded-2xl p-3 shadow-sm border border-slate-800 relative">
                     {{-- Map View Canvas --}}
                     <div id="gfw-vessels-map" class="w-full h-[520px] rounded-xl overflow-hidden bg-slate-950 z-0"></div>
 
                     {{-- Map Status Banner / Notification --}}
-                    <div id="map-status-overlay" class="absolute top-6 left-6 z-10 hidden bg-slate-900/90 text-white text-xs px-3.5 py-2 rounded-xl backdrop-blur-xs border border-slate-700 shadow-lg flex items-center gap-2">
+                    <div id="map-status-overlay" class="absolute top-6 left-6 z-10 hidden bg-slate-900/95 text-white text-xs px-3.5 py-2 rounded-xl backdrop-blur-xs border border-slate-700 shadow-lg flex items-center gap-2">
                         <span id="map-status-icon">🔄</span>
                         <span id="map-status-text">Memuat peta...</span>
                     </div>
 
                     {{-- Map Legend --}}
-                    <div class="mt-3 px-2 flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-600 border-t border-slate-100 pt-2.5">
+                    <div class="mt-3 px-2 flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-300 border-t border-slate-800 pt-2.5">
                         <div class="flex flex-wrap items-center gap-3">
-                            <span class="font-semibold text-slate-700">Legenda:</span>
+                            <span class="font-semibold text-slate-200">Legenda:</span>
                             <div class="flex items-center gap-1.5">
                                 <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
                                 <span>Fishing</span>
@@ -373,13 +447,13 @@
                                 <span>Other / Unknown</span>
                             </div>
                             <div class="flex items-center gap-1.5">
-                                <span class="w-4 h-1.5 bg-blue-600 rounded-sm inline-block"></span>
+                                <span class="w-4 h-1.5 bg-blue-500 rounded-sm inline-block"></span>
                                 <span>Batas ZEE (BIG)</span>
                             </div>
                         </div>
 
                         <div class="text-slate-400">
-                            <span>Sistem Proyeksi: <strong>EPSG:4326 (WGS 84)</strong></span>
+                            <span>Sistem Proyeksi: <strong class="text-slate-200">EPSG:4326 (WGS 84)</strong></span>
                         </div>
                     </div>
                 </div>
@@ -387,21 +461,21 @@
 
             {{-- Vessel Detail Panel (4 cols) --}}
             <div class="lg:col-span-4 space-y-4">
-                <div id="vessel-detail-card" class="bg-white rounded-2xl p-5 shadow-2xs border border-slate-200/80 space-y-4">
-                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div id="vessel-detail-card" class="bg-slate-900/90 rounded-2xl p-5 shadow-sm border border-slate-800 space-y-4">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-800">
                         <div class="flex items-center gap-2">
                             <span class="text-base">📋</span>
-                            <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">{{ __('VESSEL DETAIL') }}</h3>
+                            <h3 class="text-sm font-bold text-slate-100 uppercase tracking-wider">{{ __('VESSEL DETAIL') }}</h3>
                         </div>
-                        <span id="detail-badge-type" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">
+                        <span id="detail-badge-type" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
                             Pilih Kapal
                         </span>
                     </div>
 
                     {{-- Empty State: No Vessel Selected --}}
                     <div id="vessel-detail-empty" class="py-10 text-center space-y-2">
-                        <div class="text-4xl text-slate-300">🚢</div>
-                        <p class="text-xs font-semibold text-slate-600">Belum ada kapal dipilih</p>
+                        <div class="text-4xl text-slate-600">🚢</div>
+                        <p class="text-xs font-semibold text-slate-300">Belum ada kapal dipilih</p>
                         <p class="text-[11px] text-slate-400 max-w-[220px] mx-auto">
                             Klik salah satu titik kapal pada peta atau pilih dari tabel untuk melihat spesifikasi detail.
                         </p>
@@ -409,11 +483,11 @@
 
                     {{-- Selected Vessel Information --}}
                     <div id="vessel-detail-content" class="hidden space-y-3.5">
-                        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/70">
+                        <div class="p-3 rounded-xl bg-slate-800/80 border border-slate-700/70">
                             <div class="flex items-start justify-between gap-2">
                                 <div>
-                                    <h4 id="detail-name" class="font-extrabold text-sm text-slate-800 break-words">-</h4>
-                                    <p id="detail-activity" class="text-xs font-semibold text-indigo-600 mt-0.5">-</p>
+                                    <h4 id="detail-name" class="font-extrabold text-sm text-white break-words">-</h4>
+                                    <p id="detail-activity" class="text-xs font-semibold text-indigo-400 mt-0.5">-</p>
                                 </div>
                                 <span id="detail-flag-badge" class="shrink-0">
                                     -
@@ -423,127 +497,126 @@
 
                         {{-- Identity Attributes Table --}}
                         <table class="w-full text-xs">
-                            <tbody class="divide-y divide-slate-100">
+                            <tbody class="divide-y divide-slate-800">
                                 <tr>
-                                    <td class="py-1.5 text-slate-500 font-medium w-1/3">GFW Vessel ID</td>
-                                    <td id="detail-gfw-id" class="py-1.5 font-mono text-slate-800 break-all">: -</td>
+                                    <td class="py-1.5 text-slate-400 font-medium w-1/3">GFW Vessel ID</td>
+                                    <td id="detail-gfw-id" class="py-1.5 font-mono text-slate-200 break-all">: -</td>
                                 </tr>
                                 <tr>
-                                    <td class="py-1.5 text-slate-500 font-medium">SSVID</td>
-                                    <td id="detail-ssvid" class="py-1.5 font-mono text-slate-800">: -</td>
+                                    <td class="py-1.5 text-slate-400 font-medium">SSVID</td>
+                                    <td id="detail-ssvid" class="py-1.5 font-mono text-slate-200">: -</td>
                                 </tr>
                                 <tr>
-                                    <td class="py-1.5 text-slate-500 font-medium">MMSI</td>
-                                    <td id="detail-mmsi" class="py-1.5 font-mono font-semibold text-slate-800">: -</td>
+                                    <td class="py-1.5 text-slate-400 font-medium">MMSI</td>
+                                    <td id="detail-mmsi" class="py-1.5 font-mono font-semibold text-white">: -</td>
                                 </tr>
                                 <tr>
-                                    <td class="py-1.5 text-slate-500 font-medium">Nomor IMO</td>
-                                    <td id="detail-imo" class="py-1.5 font-mono text-slate-800">: -</td>
+                                    <td class="py-1.5 text-slate-400 font-medium">Nomor IMO</td>
+                                    <td id="detail-imo" class="py-1.5 font-mono text-slate-200">: -</td>
                                 </tr>
                                 <tr>
-                                    <td class="py-1.5 text-slate-500 font-medium">Call Sign</td>
-                                    <td id="detail-callsign" class="py-1.5 font-mono text-slate-800">: Tidak tersedia</td>
+                                    <td class="py-1.5 text-slate-400 font-medium">Call Sign</td>
+                                    <td id="detail-callsign" class="py-1.5 font-mono text-slate-300">: Tidak tersedia</td>
                                 </tr>
                                 <tr>
-                                    <td class="py-1.5 text-slate-500 font-medium">Flag</td>
-                                    <td id="detail-flag" class="py-1.5 font-semibold text-slate-800">: -</td>
+                                    <td class="py-1.5 text-slate-400 font-medium">Flag</td>
+                                    <td id="detail-flag" class="py-1.5 font-semibold text-slate-200">: -</td>
                                 </tr>
                                 <tr>
-                                    <td class="py-1.5 text-slate-500 font-medium">Vessel Type</td>
-                                    <td id="detail-vessel-type" class="py-1.5 font-semibold text-slate-800">: -</td>
+                                    <td class="py-1.5 text-slate-400 font-medium">Vessel Type</td>
+                                    <td id="detail-vessel-type" class="py-1.5 font-semibold text-slate-200">: -</td>
                                 </tr>
                                 <tr>
-                                    <td class="py-1.5 text-slate-500 font-medium">Panjang (LOA)</td>
-                                    <td id="detail-length" class="py-1.5 text-slate-800">: -</td>
+                                    <td class="py-1.5 text-slate-400 font-medium">Panjang (LOA)</td>
+                                    <td id="detail-length" class="py-1.5 text-slate-200">: -</td>
                                 </tr>
                                 <tr>
-                                    <td class="py-1.5 text-slate-500 font-medium">Tonnage</td>
-                                    <td id="detail-tonnage" class="py-1.5 text-slate-800">: -</td>
+                                    <td class="py-1.5 text-slate-400 font-medium">Tonnage</td>
+                                    <td id="detail-tonnage" class="py-1.5 text-slate-200">: -</td>
                                 </tr>
                                 <tr>
-                                    <td class="py-1.5 text-slate-500 font-medium">Engine Power</td>
-                                    <td id="detail-engine-power" class="py-1.5 text-slate-800">: -</td>
+                                    <td class="py-1.5 text-slate-400 font-medium">Engine Power</td>
+                                    <td id="detail-engine-power" class="py-1.5 text-slate-200">: -</td>
                                 </tr>
                                 <tr>
-                                    <td class="py-1.5 text-slate-500 font-medium">Kecepatan</td>
-                                    <td id="detail-speed" class="py-1.5 text-slate-700">: Tidak tersedia</td>
+                                    <td class="py-1.5 text-slate-400 font-medium">Kecepatan</td>
+                                    <td id="detail-speed" class="py-1.5 text-slate-300">: Tidak tersedia</td>
                                 </tr>
                                 <tr>
-                                    <td class="py-1.5 text-slate-500 font-medium">Course</td>
-                                    <td id="detail-course" class="py-1.5 text-slate-700">: Tidak tersedia</td>
+                                    <td class="py-1.5 text-slate-400 font-medium">Course</td>
+                                    <td id="detail-course" class="py-1.5 text-slate-300">: Tidak tersedia</td>
                                 </tr>
                                 <tr>
-                                    <td class="py-1.5 text-slate-500 font-medium">Gear</td>
-                                    <td id="detail-gear" class="py-1.5 text-slate-800">: -</td>
+                                    <td class="py-1.5 text-slate-400 font-medium">Gear</td>
+                                    <td id="detail-gear" class="py-1.5 text-slate-200">: -</td>
                                 </tr>
                                 <tr>
-                                    <td class="py-1.5 text-slate-500 font-medium">First Seen</td>
-                                    <td id="detail-first-seen" class="py-1.5 text-slate-700">: -</td>
+                                    <td class="py-1.5 text-slate-400 font-medium">First Seen</td>
+                                    <td id="detail-first-seen" class="py-1.5 text-slate-300">: -</td>
                                 </tr>
                                 <tr>
-                                    <td class="py-1.5 text-slate-500 font-medium">Observasi Terakhir</td>
-                                    <td id="detail-last-seen" class="py-1.5 font-semibold text-slate-800">: -</td>
+                                    <td class="py-1.5 text-slate-400 font-medium">Observasi Terakhir</td>
+                                    <td id="detail-last-seen" class="py-1.5 font-semibold text-white">: -</td>
                                 </tr>
                                 <tr>
-                                    <td class="py-1.5 text-slate-500 font-medium">Koordinat</td>
-                                    <td id="detail-coords" class="py-1.5 font-mono text-slate-700">: -</td>
+                                    <td class="py-1.5 text-slate-400 font-medium">Koordinat</td>
+                                    <td id="detail-coords" class="py-1.5 font-mono text-slate-300">: -</td>
                                 </tr>
-                            </tbody>
                                 <tr>
-                                    <td class="py-1.5 text-slate-500 font-medium">Status Data</td>
+                                    <td class="py-1.5 text-slate-400 font-medium">Status Data</td>
                                     <td class="py-1.5">
-                                        : <span id="detail-status" class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">STALE</span>
+                                        : <span id="detail-status" class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">STALE</span>
                                     </td>
                                 </tr>
                             </tbody>
                         </table>
 
                         {{-- Track Summary Box (Shown when track loaded) --}}
-                        <div id="vessel-track-info-box" class="hidden p-3 rounded-xl bg-amber-50/80 border border-amber-200 text-xs text-amber-950 space-y-1.5 shadow-xs">
-                            <div class="flex items-center justify-between font-bold text-amber-950 pb-1 border-b border-amber-200/60">
+                        <div id="vessel-track-info-box" class="hidden p-3 rounded-xl bg-amber-950/40 border border-amber-800/80 text-xs text-amber-200 space-y-1.5 shadow-xs">
+                            <div class="flex items-center justify-between font-bold text-amber-100 pb-1 border-b border-amber-800/50">
                                 <span class="flex items-center gap-1.5">
                                     <span>🗺️</span>
                                     <span>Jejak Lintasan (Track)</span>
                                 </span>
                                 <div class="flex items-center gap-2">
-                                    <span id="vessel-track-points-count" class="font-mono text-[10px] bg-amber-200/70 text-amber-900 px-1.5 py-0.5 rounded font-bold">0 titik</span>
-                                    <button type="button" id="btn-clear-track" title="Tutup Track" class="text-amber-700 hover:text-amber-900 text-xs font-bold leading-none cursor-pointer">✕</button>
+                                    <span id="vessel-track-points-count" class="font-mono text-[10px] bg-amber-900/80 text-amber-200 px-1.5 py-0.5 rounded font-bold border border-amber-700/70">0 titik</span>
+                                    <button type="button" id="btn-clear-track" title="Tutup Track" class="text-amber-400 hover:text-white text-xs font-bold leading-none cursor-pointer">✕</button>
                                 </div>
                             </div>
                             <div class="grid grid-cols-2 gap-1 text-[11px]">
                                 <div>
-                                    <span class="text-amber-700 text-[10px] block">Titik Awal (Start):</span>
-                                    <span id="vessel-track-first-seen" class="font-medium text-amber-950">-</span>
+                                    <span class="text-amber-400 text-[10px] block">Titik Awal (Start):</span>
+                                    <span id="vessel-track-first-seen" class="font-medium text-amber-100">-</span>
                                 </div>
                                 <div>
-                                    <span class="text-amber-700 text-[10px] block">Titik Akhir (Last):</span>
-                                    <span id="vessel-track-last-seen" class="font-medium text-amber-950">-</span>
+                                    <span class="text-amber-400 text-[10px] block">Titik Akhir (Last):</span>
+                                    <span id="vessel-track-last-seen" class="font-medium text-amber-100">-</span>
                                 </div>
                             </div>
-                            <div class="flex items-center justify-between text-[10px] text-amber-800 pt-0.5 border-t border-amber-200/50">
-                                <span>Periode: <strong id="vessel-track-period">-</strong></span>
-                                <span>Area: <strong class="text-amber-900">GFW Query AOI</strong></span>
+                            <div class="flex items-center justify-between text-[10px] text-amber-300/80 pt-0.5 border-t border-amber-800/50">
+                                <span>Periode: <strong id="vessel-track-period" class="text-amber-200">-</strong></span>
+                                <span>Area: <strong class="text-amber-100">GFW Query AOI</strong></span>
                             </div>
                         </div>
 
                         {{-- Activity Intelligence Summary Box --}}
-                        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/70 space-y-1.5">
-                            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Ringkasan Aktivitas GFW</span>
+                        <div class="p-3 rounded-xl bg-slate-800/80 border border-slate-700/70 space-y-1.5">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Ringkasan Aktivitas GFW</span>
                             <div class="grid grid-cols-2 gap-1 text-[11px]">
-                                <div><span class="text-slate-500">Fishing:</span> <span id="summary-ev-fishing" class="font-bold text-emerald-600 ml-1">N/A</span></div>
-                                <div><span class="text-slate-500">Encounter:</span> <span id="summary-ev-encounter" class="font-bold text-amber-600 ml-1">N/A</span></div>
-                                <div><span class="text-slate-500">Loitering:</span> <span id="summary-ev-loitering" class="font-bold text-purple-600 ml-1">N/A</span></div>
-                                <div><span class="text-slate-500">Port Visit:</span> <span id="summary-ev-port" class="font-bold text-sky-600 ml-1">N/A</span></div>
+                                <div><span class="text-slate-400">Fishing:</span> <span id="summary-ev-fishing" class="font-bold text-emerald-400 ml-1">N/A</span></div>
+                                <div><span class="text-slate-400">Encounter:</span> <span id="summary-ev-encounter" class="font-bold text-amber-400 ml-1">N/A</span></div>
+                                <div><span class="text-slate-400">Loitering:</span> <span id="summary-ev-loitering" class="font-bold text-purple-400 ml-1">N/A</span></div>
+                                <div><span class="text-slate-400">Port Visit:</span> <span id="summary-ev-port" class="font-bold text-sky-400 ml-1">N/A</span></div>
                             </div>
                         </div>
 
                         {{-- Action Buttons --}}
                         <div class="pt-2 flex items-center gap-2">
-                            <button type="button" id="btn-focus-vessel" class="w-1/2 py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition flex items-center justify-center gap-1.5">
+                            <button type="button" id="btn-focus-vessel" class="w-1/2 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold transition flex items-center justify-center gap-1.5">
                                 <span>🎯</span>
                                 <span>{{ __('Fokus Peta') }}</span>
                             </button>
-                            <button type="button" id="btn-view-track" class="w-1/2 py-2 px-3 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs">
+                            <button type="button" id="btn-view-track" class="w-1/2 py-2 px-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs">
                                 <span>🗺️</span>
                                 <span>{{ __('Lihat Track') }}</span>
                             </button>
@@ -552,37 +625,37 @@
                 </div>
 
                 {{-- Status Box / Notification Messages --}}
-                <div id="vessel-error-box" class="hidden p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs space-y-1">
-                    <div class="font-bold flex items-center gap-1.5 text-rose-700">
+                <div id="vessel-error-box" class="hidden p-4 rounded-2xl bg-rose-950/40 border border-rose-800 text-rose-200 text-xs space-y-1">
+                    <div class="font-bold flex items-center gap-1.5 text-rose-300">
                         <span>⚠️</span>
                         <span id="vessel-error-title">Kesalahan API</span>
                     </div>
-                    <p id="vessel-error-message" class="text-rose-600 leading-relaxed"></p>
+                    <p id="vessel-error-message" class="text-rose-200/90 leading-relaxed"></p>
                 </div>
             </div>
         </div>
 
-        {{-- Vessel Table Section --}}
-        <div id="vessel-list-container" class="bg-white rounded-2xl p-5 shadow-2xs border border-slate-200/80 space-y-4">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+        {{-- Vessel Table Section (Dark Mode) --}}
+        <div id="vessel-list-container" class="bg-slate-900/90 rounded-2xl p-5 shadow-sm border border-slate-800 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
                 <div class="flex items-center gap-2">
                     <span class="text-lg">📊</span>
                     <div>
-                        <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">{{ __('Tabel Armada Terdeteksi (ZEE Aceh)') }}</h3>
-                        <p class="text-xs text-slate-500 font-medium">Data posisi kapal satelit AIS/VMS dalam Area of Interest ZEE Indonesia Kawasan Aceh.</p>
+                        <h3 class="text-sm font-bold text-slate-100 uppercase tracking-wider">{{ __('Tabel Armada Terdeteksi (ZEE Aceh)') }}</h3>
+                        <p class="text-xs text-slate-400 font-medium">Data posisi kapal satelit AIS/VMS dalam Area of Interest ZEE Indonesia Kawasan Aceh.</p>
                     </div>
                 </div>
 
                 {{-- Limit Selector --}}
                 <div class="flex items-center gap-2 text-xs">
-                    <span class="text-slate-500">Tampilkan:</span>
-                    <select id="table-limit-select" class="text-xs py-1 px-2.5 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
-                        <option value="10">10</option>
-                        <option value="25">25</option>
-                        <option value="50" selected>50</option>
-                        <option value="100">100</option>
+                    <span class="text-slate-400">Tampilkan:</span>
+                    <select id="table-limit-select" class="text-xs py-1 px-2.5 rounded-lg bg-slate-800 border-slate-700 text-slate-100 focus:border-indigo-500 focus:ring-indigo-500">
+                        <option value="10" class="bg-slate-800 text-slate-100">10</option>
+                        <option value="25" class="bg-slate-800 text-slate-100">25</option>
+                        <option value="50" selected class="bg-slate-800 text-slate-100">50</option>
+                        <option value="100" class="bg-slate-800 text-slate-100">100</option>
                     </select>
-                    <span class="text-slate-500">per halaman</span>
+                    <span class="text-slate-400">per halaman</span>
                 </div>
             </div>
 
@@ -590,7 +663,7 @@
             <div class="overflow-x-auto">
                 <table class="w-full text-xs text-left border-collapse">
                     <thead>
-                        <tr class="bg-slate-50 text-slate-600 font-semibold uppercase tracking-wider text-[11px] border-y border-slate-200/80">
+                        <tr class="bg-slate-800/90 text-slate-400 font-semibold uppercase tracking-wider text-[11px] border-y border-slate-700">
                             <th class="py-2.5 px-3">#</th>
                             <th class="py-2.5 px-3">Vessel</th>
                             <th class="py-2.5 px-3">MMSI</th>
@@ -602,7 +675,7 @@
                             <th class="py-2.5 px-3 text-right">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody id="vessel-table-body" class="divide-y divide-slate-100 text-slate-700">
+                    <tbody id="vessel-table-body" class="divide-y divide-slate-800 text-slate-300">
                         {{-- Populated dynamically --}}
                         <tr>
                             <td colspan="9" class="py-8 text-center text-slate-400">
@@ -614,19 +687,19 @@
             </div>
 
             {{-- Table Pagination Controls --}}
-            <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-100 text-xs">
-                <div id="pagination-info" class="text-slate-500 font-medium">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-800 text-xs">
+                <div id="pagination-info" class="text-slate-400 font-medium">
                     Menampilkan 0 dari 0 kapal
                 </div>
 
                 <div class="flex items-center gap-2">
-                    <button type="button" id="btn-prev-page" class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition">
+                    <button type="button" id="btn-prev-page" class="px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition">
                         ← Sebelumnya
                     </button>
-                    <span id="pagination-page-display" class="px-3 py-1 font-bold text-slate-800">
+                    <span id="pagination-page-display" class="px-3 py-1 font-bold text-slate-100">
                         Hal 1
                     </span>
-                    <button type="button" id="btn-next-page" class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition">
+                    <button type="button" id="btn-next-page" class="px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition">
                         Berikutnya →
                     </button>
                 </div>
@@ -636,13 +709,13 @@
         {{-- Activity & Alerts Section (Stage 04 & Stage 05) --}}
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
             {{-- Recent Activity Feed --}}
-            <div class="bg-white rounded-2xl p-5 shadow-2xs border border-slate-200/80 space-y-3">
-                <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+            <div class="bg-slate-900/90 rounded-2xl p-5 shadow-sm border border-slate-800 space-y-3">
+                <div class="flex items-center justify-between pb-2 border-b border-slate-800">
                     <div class="flex items-center gap-2">
                         <span class="text-base">⚡</span>
-                        <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">{{ __('Aktivitas Terkini (Recent Activity)') }}</h3>
+                        <h3 class="text-xs font-bold text-slate-100 uppercase tracking-wider">{{ __('Aktivitas Terkini (Recent Activity)') }}</h3>
                     </div>
-                    <span id="vessels-activity-feed-count" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700">0 events</span>
+                    <span id="vessels-activity-feed-count" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-950 text-indigo-300 border border-indigo-800">0 events</span>
                 </div>
                 <div id="vessels-activity-feed-list" class="space-y-2 max-h-[380px] overflow-y-auto pr-1 text-xs">
                     <div class="py-8 text-center text-slate-400">
@@ -652,13 +725,13 @@
             </div>
 
             {{-- Alerts & Intelligence Panel --}}
-            <div class="bg-white rounded-2xl p-5 shadow-2xs border border-slate-200/80 space-y-3">
-                <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+            <div class="bg-slate-900/90 rounded-2xl p-5 shadow-sm border border-slate-800 space-y-3">
+                <div class="flex items-center justify-between pb-2 border-b border-slate-800">
                     <div class="flex items-center gap-2">
                         <span class="text-base">🔔</span>
-                        <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">{{ __('Peringatan Observasi (Data Alerts)') }}</h3>
+                        <h3 class="text-xs font-bold text-slate-100 uppercase tracking-wider">{{ __('Peringatan Observasi (Data Alerts)') }}</h3>
                     </div>
-                    <span id="vessels-alert-count" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700">0 alerts</span>
+                    <span id="vessels-alert-count" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-950 text-amber-300 border border-amber-800">0 alerts</span>
                 </div>
                 <div id="vessels-alerts-list" class="space-y-2 max-h-[380px] overflow-y-auto pr-1 text-xs">
                     <div class="py-8 text-center text-slate-400">
@@ -837,20 +910,20 @@
                         version: 8,
                         glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
                         sources: {
-                            'osm-tiles': {
+                            'esri-dark-tiles': {
                                 type: 'raster',
                                 tiles: [
-                                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+                                    'https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'
                                 ],
                                 tileSize: 256,
-                                attribution: '&copy; OpenStreetMap contributors'
+                                attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ &bull; GFW Query AOI'
                             }
                         },
                         layers: [
                             {
-                                id: 'osm-tiles-layer',
+                                id: 'esri-dark-tiles-layer',
                                 type: 'raster',
-                                source: 'osm-tiles',
+                                source: 'esri-dark-tiles',
                                 minzoom: 0,
                                 maxzoom: 19
                             }
@@ -920,7 +993,7 @@
                             type: 'line',
                             source: 'big-zee-line-src',
                             paint: {
-                                'line-color': '#0284c7',
+                                'line-color': '#0ea5e9',
                                 'line-width': 2.5
                             }
                         });
@@ -1268,22 +1341,22 @@
                 actFeedList.innerHTML = '';
                 activities.slice(0, 15).forEach(act => {
                     const item = document.createElement('div');
-                    item.className = 'p-2 rounded-xl bg-slate-50 border border-slate-100 hover:border-indigo-200 transition cursor-pointer space-y-0.5';
+                    item.className = 'p-2 rounded-xl bg-slate-800/60 border border-slate-700/70 hover:border-indigo-500/60 hover:bg-slate-800/90 transition cursor-pointer space-y-0.5';
 
-                    let badgeColor = 'bg-slate-100 text-slate-700';
-                    if (act.activity.includes('Fishing')) badgeColor = 'bg-emerald-100 text-emerald-800';
-                    else if (act.activity.includes('Encounter')) badgeColor = 'bg-amber-100 text-amber-800';
-                    else if (act.activity.includes('Loitering')) badgeColor = 'bg-purple-100 text-purple-800';
-                    else if (act.activity.includes('Port')) badgeColor = 'bg-sky-100 text-sky-800';
+                    let badgeColor = 'bg-slate-700/80 text-slate-300 border border-slate-600';
+                    if (act.activity.includes('Fishing')) badgeColor = 'bg-emerald-950/80 text-emerald-300 border border-emerald-800/80';
+                    else if (act.activity.includes('Encounter')) badgeColor = 'bg-amber-950/80 text-amber-300 border border-amber-800/80';
+                    else if (act.activity.includes('Loitering')) badgeColor = 'bg-purple-950/80 text-purple-300 border border-purple-800/80';
+                    else if (act.activity.includes('Port')) badgeColor = 'bg-sky-950/80 text-sky-300 border border-sky-800/80';
 
                     item.innerHTML = `
                         <div class="flex items-center justify-between text-[11px]">
-                            <span class="font-bold text-slate-800">${escapeHtml(act.vessel)}</span>
+                            <span class="font-bold text-slate-100 truncate">${escapeHtml(act.vessel)}</span>
                             <span class="font-mono text-[10px] text-slate-400">${formatDate(act.time)}</span>
                         </div>
                         <div class="flex items-center justify-between text-[10px]">
                             <span class="px-1.5 py-0.5 rounded font-bold ${badgeColor}">${escapeHtml(act.activity)}</span>
-                            <span class="text-slate-500 font-mono">${escapeHtml(act.location)}</span>
+                            <span class="text-slate-400 font-mono">${escapeHtml(act.location)}</span>
                         </div>
                     `;
 
@@ -1310,17 +1383,17 @@
                 alertsList.innerHTML = '';
                 alerts.slice(0, 12).forEach(al => {
                     const item = document.createElement('div');
-                    item.className = 'p-2 rounded-xl bg-amber-50/50 border border-amber-200/60 hover:border-amber-300 transition cursor-pointer space-y-0.5';
+                    item.className = 'p-2 rounded-xl bg-slate-800/60 border border-slate-700/70 hover:border-amber-500/60 hover:bg-slate-800/90 transition cursor-pointer space-y-0.5';
 
                     item.innerHTML = `
                         <div class="flex items-center justify-between text-[11px]">
-                            <span class="font-bold text-slate-800 flex items-center gap-1">
+                            <span class="font-bold text-slate-100 flex items-center gap-1 truncate">
                                 <span>🔔</span>
-                                <span>${escapeHtml(al.title)}</span>
+                                <span class="truncate">${escapeHtml(al.title)}</span>
                             </span>
-                            <span class="font-mono text-[10px] text-slate-400">${formatDate(al.time)}</span>
+                            <span class="font-mono text-[10px] text-slate-400 shrink-0 ml-1">${formatDate(al.time)}</span>
                         </div>
-                        <p class="text-[10px] text-slate-600 leading-tight">${escapeHtml(al.description)}</p>
+                        <p class="text-[10px] text-slate-300 leading-tight">${escapeHtml(al.description)}</p>
                     `;
 
                     item.addEventListener('click', () => {
@@ -1491,22 +1564,22 @@
                         new maplibregl.Popup({ offset: 15 })
                             .setLngLat(coords)
                             .setHTML(`
-                                <div class="text-xs p-1.5 space-y-2 font-sans min-w-[220px]">
-                                    <div class="font-bold text-slate-800 text-sm border-b border-slate-200 pb-1 flex items-center justify-between gap-2">
+                                <div class="text-xs p-1.5 space-y-2 font-sans min-w-[220px] text-slate-200">
+                                    <div class="font-bold text-slate-100 text-sm border-b border-slate-700/80 pb-1 flex items-center justify-between gap-2">
                                         <span class="truncate">${escapeHtml(vName)}</span>
                                         ${renderVesselFlag(vFlag)}
                                     </div>
                                     <div class="text-[11px] space-y-1">
-                                        <div class="flex justify-between"><span class="text-slate-400">GFW ID:</span> <span class="font-mono text-slate-700 truncate max-w-[130px]">${escapeHtml(vId)}</span></div>
-                                        <div class="flex justify-between"><span class="text-slate-400">MMSI:</span> <strong class="font-mono text-slate-800">${escapeHtml(vMmsi)}</strong></div>
-                                        <div class="flex justify-between"><span class="text-slate-400">Call Sign:</span> <span class="font-mono text-slate-700">${escapeHtml(vCallsign)}</span></div>
-                                        <div class="flex justify-between"><span class="text-slate-400">SSVID:</span> <span class="font-mono text-slate-700">${escapeHtml(vSsvid)}</span></div>
-                                        <div class="flex justify-between"><span class="text-slate-400">IMO:</span> <span class="font-mono text-slate-700">${escapeHtml(vImo)}</span></div>
-                                        <div class="flex justify-between"><span class="text-slate-400">Type:</span> <strong class="text-slate-800">${escapeHtml(vType)}</strong></div>
-                                        <div class="flex justify-between"><span class="text-slate-400">Activity:</span> <strong class="text-indigo-600">${escapeHtml(vActivity)}</strong></div>
-                                        <div class="flex justify-between"><span class="text-slate-400">First Seen:</span> <span class="text-slate-600">${escapeHtml(vFirstSeen)}</span></div>
-                                        <div class="flex justify-between"><span class="text-slate-400">Observasi:</span> <span class="text-slate-800 font-semibold">${escapeHtml(vLastSeen)}</span></div>
-                                        <div class="flex justify-between items-center"><span class="text-slate-400">Status:</span> <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${vStatus === 'LIVE' ? 'bg-emerald-100 text-emerald-800' : (vStatus === 'RECENT' ? 'bg-sky-100 text-sky-800' : 'bg-slate-100 text-slate-600')}">${escapeHtml(vStatus)}</span></div>
+                                        <div class="flex justify-between"><span class="text-slate-400">GFW ID:</span> <span class="font-mono text-slate-300 truncate max-w-[130px]">${escapeHtml(vId)}</span></div>
+                                        <div class="flex justify-between"><span class="text-slate-400">MMSI:</span> <strong class="font-mono text-slate-100">${escapeHtml(vMmsi)}</strong></div>
+                                        <div class="flex justify-between"><span class="text-slate-400">Call Sign:</span> <span class="font-mono text-slate-300">${escapeHtml(vCallsign)}</span></div>
+                                        <div class="flex justify-between"><span class="text-slate-400">SSVID:</span> <span class="font-mono text-slate-300">${escapeHtml(vSsvid)}</span></div>
+                                        <div class="flex justify-between"><span class="text-slate-400">IMO:</span> <span class="font-mono text-slate-300">${escapeHtml(vImo)}</span></div>
+                                        <div class="flex justify-between"><span class="text-slate-400">Type:</span> <strong class="text-slate-200">${escapeHtml(vType)}</strong></div>
+                                        <div class="flex justify-between"><span class="text-slate-400">Activity:</span> <strong class="text-indigo-400">${escapeHtml(vActivity)}</strong></div>
+                                        <div class="flex justify-between"><span class="text-slate-400">First Seen:</span> <span class="text-slate-300">${escapeHtml(vFirstSeen)}</span></div>
+                                        <div class="flex justify-between"><span class="text-slate-400">Observasi:</span> <span class="text-slate-100 font-semibold">${escapeHtml(vLastSeen)}</span></div>
+                                        <div class="flex justify-between items-center"><span class="text-slate-400">Status:</span> <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${vStatus === 'LIVE' ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800/80' : (vStatus === 'RECENT' ? 'bg-sky-950/80 text-sky-400 border border-sky-800/80' : 'bg-slate-800 text-slate-300 border border-slate-700')}">${escapeHtml(vStatus)}</span></div>
                                     </div>
                                 </div>
                             `)
@@ -1533,7 +1606,7 @@
                 tableBody.innerHTML = '';
                 vessels.forEach((v, idx) => {
                     const row = document.createElement('tr');
-                    row.className = 'hover:bg-slate-50/80 transition cursor-pointer border-b border-slate-100';
+                    row.className = 'hover:bg-slate-800/70 transition cursor-pointer border-b border-slate-800/70';
                     row.dataset.vesselId = v.id;
 
                     const rowNum = currentOffset + idx + 1;
@@ -1547,35 +1620,35 @@
                     const vStatus = v.status || 'STALE';
 
                     // Activity badge color
-                    let actBadgeClass = 'bg-slate-100 text-slate-700';
-                    if (vActivity.includes('Fishing')) actBadgeClass = 'bg-emerald-100 text-emerald-800';
-                    else if (vActivity.includes('Encounter')) actBadgeClass = 'bg-amber-100 text-amber-800';
-                    else if (vActivity.includes('Loitering')) actBadgeClass = 'bg-purple-100 text-purple-800';
-                    else if (vActivity.includes('Port')) actBadgeClass = 'bg-sky-100 text-sky-800';
+                    let actBadgeClass = 'bg-slate-800 text-slate-300 border border-slate-700';
+                    if (vActivity.includes('Fishing')) actBadgeClass = 'bg-emerald-950/80 text-emerald-300 border border-emerald-800/80';
+                    else if (vActivity.includes('Encounter')) actBadgeClass = 'bg-amber-950/80 text-amber-300 border border-amber-800/80';
+                    else if (vActivity.includes('Loitering')) actBadgeClass = 'bg-purple-950/80 text-purple-300 border border-purple-800/80';
+                    else if (vActivity.includes('Port')) actBadgeClass = 'bg-sky-950/80 text-sky-300 border border-sky-800/80';
 
-                    let statusClass = 'bg-slate-100 text-slate-600';
-                    if (vStatus === 'LIVE') statusClass = 'bg-emerald-100 text-emerald-800';
-                    else if (vStatus === 'RECENT') statusClass = 'bg-sky-100 text-sky-800';
+                    let statusClass = 'bg-slate-800 text-slate-300 border border-slate-700';
+                    if (vStatus === 'LIVE') statusClass = 'bg-emerald-950/80 text-emerald-400 border border-emerald-800/80';
+                    else if (vStatus === 'RECENT') statusClass = 'bg-sky-950/80 text-sky-400 border border-sky-800/80';
 
                     row.innerHTML = `
-                        <td class="py-2.5 px-3 text-slate-400 font-mono text-[11px]">${rowNum}</td>
-                        <td class="py-2.5 px-3 font-bold text-slate-800">${escapeHtml(vName)}</td>
-                        <td class="py-2.5 px-3 font-mono text-slate-600">${escapeHtml(vMmsi)}</td>
-                        <td class="py-2.5 px-3 font-mono text-slate-500">${escapeHtml(vImo)}</td>
+                        <td class="py-2.5 px-3 text-slate-500 font-mono text-[11px]">${rowNum}</td>
+                        <td class="py-2.5 px-3 font-bold text-slate-100">${escapeHtml(vName)}</td>
+                        <td class="py-2.5 px-3 font-mono text-slate-300">${escapeHtml(vMmsi)}</td>
+                        <td class="py-2.5 px-3 font-mono text-slate-400">${escapeHtml(vImo)}</td>
                         <td class="py-2.5 px-3">${renderVesselFlag(vFlag)}</td>
                         <td class="py-2.5 px-3">
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-700">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-200 border border-slate-700">
                                 ${escapeHtml(vType)}
                             </span>
                         </td>
-                        <td class="py-2.5 px-3 text-slate-600">${escapeHtml(vLastSeen)}</td>
+                        <td class="py-2.5 px-3 text-slate-300">${escapeHtml(vLastSeen)}</td>
                         <td class="py-2.5 px-3">
                             <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${actBadgeClass}">
                                 ${escapeHtml(vActivity)}
                             </span>
                         </td>
                         <td class="py-2.5 px-3 text-right">
-                            <button type="button" class="btn-inspect px-2 py-1 rounded bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-[11px] transition">
+                            <button type="button" class="btn-inspect px-2 py-1 rounded bg-indigo-950/80 hover:bg-indigo-900 text-indigo-300 border border-indigo-700 font-semibold text-[11px] transition">
                                 Detail ↗
                             </button>
                         </td>
@@ -1605,15 +1678,15 @@
                     tableBody.innerHTML = `
                         <tr>
                             <td colspan="9" class="py-12 px-4 text-center space-y-3">
-                                <div class="text-4xl text-amber-500">⚠️</div>
+                                <div class="text-4xl text-amber-400">⚠️</div>
                                 <div class="space-y-1">
-                                    <h4 class="font-bold text-slate-800 text-sm">Data GFW belum tersedia</h4>
-                                    <p class="text-xs text-slate-600 max-w-md mx-auto leading-relaxed">
+                                    <h4 class="font-bold text-slate-100 text-sm">Data GFW belum tersedia</h4>
+                                    <p class="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
                                         ${escapeHtml(message || 'GFW API gagal diakses dan belum ada dataset berhasil sebelumnya untuk ditampilkan.')}
                                     </p>
                                 </div>
                                 <div class="pt-2">
-                                    <button type="button" onclick="fetchVesselsData()" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition inline-flex items-center gap-1.5 shadow-xs">
+                                    <button type="button" onclick="fetchVesselsData()" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition inline-flex items-center gap-1.5 shadow-xs">
                                         <span>🔄</span>
                                         <span>Muat Ulang Data GFW</span>
                                     </button>
@@ -1627,18 +1700,18 @@
                 tableBody.innerHTML = `
                     <tr>
                         <td colspan="9" class="py-12 px-4 text-center space-y-3">
-                            <div class="text-4xl text-slate-300">🔍</div>
+                            <div class="text-4xl text-slate-600">🔍</div>
                             <div class="space-y-1">
-                                <h4 class="font-bold text-slate-700 text-sm">Tidak ada vessel GFW yang sesuai kriteria filter</h4>
-                                <p class="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+                                <h4 class="font-bold text-slate-200 text-sm">Tidak ada vessel GFW yang sesuai kriteria filter</h4>
+                                <p class="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
                                     ${escapeHtml(message || 'Tidak ada data kapal terdeteksi dalam periode atau filter yang dipilih.')}
                                 </p>
                             </div>
-                            <div class="inline-flex flex-wrap items-center justify-center gap-1.5 pt-2 text-[11px] text-slate-500">
-                                <span class="font-semibold text-slate-600">Saran penyesuaian:</span>
-                                <span class="px-2 py-0.5 rounded bg-slate-100 border border-slate-200">Ubah rentang tanggal (maks. 7 hari)</span>
-                                <span class="px-2 py-0.5 rounded bg-slate-100 border border-slate-200">Reset pilihan bendera / tipe</span>
-                                <span class="px-2 py-0.5 rounded bg-slate-100 border border-slate-200">Hapus kata kunci pencarian</span>
+                            <div class="inline-flex flex-wrap items-center justify-center gap-1.5 pt-2 text-[11px] text-slate-400">
+                                <span class="font-semibold text-slate-300">Saran penyesuaian:</span>
+                                <span class="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300">Ubah rentang tanggal (maks. 7 hari)</span>
+                                <span class="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300">Reset pilihan bendera / tipe</span>
+                                <span class="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300">Hapus kata kunci pencarian</span>
                             </div>
                         </td>
                     </tr>
@@ -1646,8 +1719,8 @@
             }
 
             function highlightTableRow(selectedRow) {
-                tableBody.querySelectorAll('tr').forEach(r => r.classList.remove('bg-indigo-50/60'));
-                if (selectedRow) selectedRow.classList.add('bg-indigo-50/60');
+                tableBody.querySelectorAll('tr').forEach(r => r.classList.remove('bg-indigo-950/50', 'ring-1', 'ring-indigo-500/40'));
+                if (selectedRow) selectedRow.classList.add('bg-indigo-950/50', 'ring-1', 'ring-indigo-500/40');
             }
 
             // Select Vessel into Detail Panel
@@ -1878,16 +1951,16 @@
                                 const props = e.features[0].properties;
 
                                 let badgeText = 'TITIK LINTASAN';
-                                let badgeBg = 'bg-sky-100 text-sky-800';
+                                let badgeBg = 'bg-sky-950/80 text-sky-300 border border-sky-800/80';
                                 if (props.marker_type === 'start') {
                                     badgeText = 'TITIK AWAL (START)';
-                                    badgeBg = 'bg-emerald-100 text-emerald-800 font-bold';
+                                    badgeBg = 'bg-emerald-950/80 text-emerald-300 border border-emerald-800/80 font-bold';
                                 } else if (props.marker_type === 'last') {
                                     badgeText = 'TITIK TERAKHIR (LAST)';
-                                    badgeBg = 'bg-rose-100 text-rose-800 font-bold';
+                                    badgeBg = 'bg-rose-950/80 text-rose-300 border border-rose-800/80 font-bold';
                                 } else if (props.marker_type === 'single') {
                                     badgeText = 'POSISI TUNGGAL';
-                                    badgeBg = 'bg-cyan-100 text-cyan-800 font-bold';
+                                    badgeBg = 'bg-cyan-950/80 text-cyan-300 border border-cyan-800/80 font-bold';
                                 }
 
                                 const speedDisplay = (props.speed_knots !== undefined && props.speed_knots !== null && props.speed_knots !== '')
@@ -1899,31 +1972,31 @@
                                 const timeDisplay = formatDate(props.timestamp);
 
                                 const popupContent = `
-                                    <div class="p-2.5 text-xs space-y-2 min-w-[220px] text-slate-800">
-                                        <div class="flex items-center justify-between pb-1 border-b border-slate-200">
+                                    <div class="p-2.5 text-xs space-y-2 min-w-[220px] text-slate-200">
+                                        <div class="flex items-center justify-between pb-1 border-b border-slate-700/80">
                                             <span class="inline-block px-1.5 py-0.5 rounded text-[10px] ${badgeBg}">${badgeText}</span>
-                                            <span class="font-mono text-[10px] text-slate-500">#${props.point_index || 1} / ${props.total_points || 1}</span>
+                                            <span class="font-mono text-[10px] text-slate-400">#${props.point_index || 1} / ${props.total_points || 1}</span>
                                         </div>
                                         <div class="space-y-1 text-[11px]">
                                             <div class="flex justify-between gap-2">
-                                                <span class="text-slate-500">Waktu:</span>
-                                                <span class="font-semibold text-slate-800 text-right">${timeDisplay}</span>
+                                                <span class="text-slate-400">Waktu:</span>
+                                                <span class="font-semibold text-slate-100 text-right">${timeDisplay}</span>
                                             </div>
                                             <div class="flex justify-between gap-2 font-mono">
-                                                <span class="text-slate-500 font-sans">Koordinat:</span>
-                                                <span>${coords[1].toFixed(5)}, ${coords[0].toFixed(5)}</span>
+                                                <span class="text-slate-400 font-sans">Koordinat:</span>
+                                                <span class="text-slate-200">${coords[1].toFixed(5)}, ${coords[0].toFixed(5)}</span>
                                             </div>
                                             <div class="flex justify-between gap-2">
-                                                <span class="text-slate-500">Kecepatan:</span>
-                                                <span class="font-semibold text-slate-800">${speedDisplay}</span>
+                                                <span class="text-slate-400">Kecepatan:</span>
+                                                <span class="font-semibold text-slate-100">${speedDisplay}</span>
                                             </div>
                                             <div class="flex justify-between gap-2">
-                                                <span class="text-slate-500">Arah (Heading):</span>
-                                                <span class="font-semibold text-slate-800">${courseDisplay}</span>
+                                                <span class="text-slate-400">Arah (Heading):</span>
+                                                <span class="font-semibold text-slate-100">${courseDisplay}</span>
                                             </div>
                                         </div>
-                                        <div class="pt-1 border-t border-slate-100 text-[10px] text-slate-500">
-                                            Batas: <span class="font-medium text-slate-700">Area Query GFW Aceh</span>
+                                        <div class="pt-1 border-t border-slate-800 text-[10px] text-slate-400">
+                                            Batas: <span class="font-medium text-slate-300">Area Query GFW Aceh</span>
                                         </div>
                                     </div>
                                 `;
@@ -2296,10 +2369,10 @@
                 const flagImg = alpha2 ? `<img src="https://flagcdn.com/20x15/${alpha2}.png" srcset="https://flagcdn.com/40x30/${alpha2}.png 2x" width="18" height="13" alt="${escapeHtml(flagCode)}" class="rounded-[2px] object-cover shadow-2xs shrink-0" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.classList.remove('hidden');" loading="lazy">` : '';
                 const flagEmoji = `<span class="${alpha2 ? 'hidden ' : ''}text-xs leading-none shrink-0">${info.emoji}</span>`;
 
-                return `<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100/90 hover:bg-slate-200/80 text-slate-700 border border-slate-200/80 transition-colors cursor-default" title="${escapeHtml(name)} (${escapeHtml(flagCode)})">
+                return `<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-800/90 hover:bg-slate-700/80 text-slate-200 border border-slate-700/80 transition-colors cursor-default" title="${escapeHtml(name)} (${escapeHtml(flagCode)})">
                     ${flagImg}
                     ${flagEmoji}
-                    <span class="font-mono font-bold text-[11px] text-slate-800">${escapeHtml(flagCode)}</span>
+                    <span class="font-mono font-bold text-[11px] text-slate-200">${escapeHtml(flagCode)}</span>
                 </span>`;
             }
 
