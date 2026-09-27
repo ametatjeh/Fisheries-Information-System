@@ -379,11 +379,15 @@ class GFWController extends Controller
                 ]
             );
         } catch (Throwable $e) {
-            Log::error('GFW_VESSEL_REQUEST_FAILED', [
-                'stage' => 'controller_execution',
-                'exception_class' => get_class($e),
-                'exception_message' => $e->getMessage(),
-            ]);
+            try {
+                Log::error('GFW_VESSEL_REQUEST_FAILED', [
+                    'stage' => 'controller_execution',
+                    'exception_class' => get_class($e),
+                    'exception_message' => $e->getMessage(),
+                ]);
+            } catch (Throwable) {
+                // Silently ignore Monolog permission error
+            }
 
             $fallback = null;
             try {

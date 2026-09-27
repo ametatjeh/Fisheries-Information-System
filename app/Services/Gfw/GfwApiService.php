@@ -115,12 +115,16 @@ class GfwApiService
             $durationMs = (int) round((microtime(true) - $startTime) * 1000);
 
             if ($response->successful()) {
-                Log::info('GFW API request completed', [
-                    'endpoint' => $endpoint,
-                    'host' => parse_url($this->baseUrl, PHP_URL_HOST),
-                    'status' => $response->status(),
-                    'duration_ms' => $durationMs,
-                ]);
+                try {
+                    Log::info('GFW API request completed', [
+                        'endpoint' => $endpoint,
+                        'host' => parse_url($this->baseUrl, PHP_URL_HOST),
+                        'status' => $response->status(),
+                        'duration_ms' => $durationMs,
+                    ]);
+                } catch (Throwable) {
+                    // Suppress Monolog stream/permission errors
+                }
 
                 return [
                     'success' => true,
@@ -226,11 +230,15 @@ class GfwApiService
      */
     protected function logError(string $endpoint, ?int $status, string $message, array $context = []): void
     {
-        Log::warning('GFW API communication failed', array_merge([
-            'endpoint' => $endpoint,
-            'status' => $status,
-            'error' => $message,
-            'timestamp' => now()->toIso8601String(),
-        ], $context));
+        try {
+            Log::warning('GFW API communication failed', array_merge([
+                'endpoint' => $endpoint,
+                'status' => $status,
+                'error' => $message,
+                'timestamp' => now()->toIso8601String(),
+            ], $context));
+        } catch (Throwable) {
+            // Suppress Monolog stream/permission errors
+        }
     }
 }

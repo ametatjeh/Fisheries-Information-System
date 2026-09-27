@@ -105,7 +105,7 @@ class GFWService
             $status = $response->status();
 
             if ($response->successful()) {
-                Log::info('GFW API request completed', [
+                $this->safeLog('info', 'GFW API request completed', [
                     'endpoint' => '/v3/events',
                     'host' => parse_url($url, PHP_URL_HOST),
                     'status' => 200,
@@ -463,7 +463,7 @@ class GFWService
         $lons = ! empty($ringCoords) ? array_column($ringCoords, 0) : [];
         $lats = ! empty($ringCoords) ? array_column($ringCoords, 1) : [];
 
-        Log::info('GFW query geometry', [
+        $this->safeLog('info', 'GFW query geometry', [
             'type' => $cleanGeometry['type'] ?? 'Polygon',
             'vertex_count' => count($ringCoords),
             'bounding_box' => ! empty($lons) && ! empty($lats) ? [
@@ -507,7 +507,7 @@ class GFWService
                 }
             }
         } catch (Throwable $e) {
-            Log::warning('GFW_CACHE_READ_FAILED', [
+            $this->safeLog('warning', 'GFW_CACHE_READ_FAILED', [
                 'stage' => 'cache_read',
                 'cache_key' => $cacheKey,
                 'error' => $e->getMessage(),
@@ -528,7 +528,7 @@ class GFWService
         $paginationTruncated = false;
         $queryStartTime = microtime(true);
 
-        Log::info('GFW_VESSEL_REQUEST_START', [
+        $this->safeLog('info', 'GFW_VESSEL_REQUEST_START', [
             'boundary_source' => 'GFW_QUERY_AOI',
             'start_date' => $startDate,
             'end_date' => $endDate,
@@ -538,7 +538,7 @@ class GFWService
 
         try {
             while (true) {
-                Log::info("GFW_PAGE_REQUEST page={$page}", [
+                $this->safeLog('info', "GFW_PAGE_REQUEST page={$page}", [
                     'page' => $page,
                     'offset' => $currentOffset,
                     'limit' => $upstreamLimit,
@@ -645,7 +645,7 @@ class GFWService
                 $rawEntries = $payload['entries'] ?? [];
                 $entriesCount = count($rawEntries);
 
-                Log::info("GFW_PAGE_SUCCESS page={$page}", [
+                $this->safeLog('info', "GFW_PAGE_SUCCESS page={$page}", [
                     'endpoint' => '/v3/events',
                     'host' => parse_url($url, PHP_URL_HOST),
                     'boundary_source' => 'GFW_QUERY_AOI',
@@ -669,7 +669,7 @@ class GFWService
                     if ($hasMoreUpstream) {
                         $paginationComplete = false;
                         $paginationTruncated = true;
-                        Log::info('GFW upstream pagination reached safety limit', [
+                        $this->safeLog('info', 'GFW upstream pagination reached safety limit', [
                             'boundary_source' => 'GFW_QUERY_AOI',
                             'max_events' => $maxUpstreamEvents,
                             'max_pages' => $maxPages,
@@ -688,7 +688,7 @@ class GFWService
                 }
 
                 if (! is_numeric($nextOffset) || (int) $nextOffset <= $currentOffset) {
-                    Log::warning('GFW upstream pagination stopped: invalid or non-advancing nextOffset', [
+                    $this->safeLog('warning', 'GFW upstream pagination stopped: invalid or non-advancing nextOffset', [
                         'current_offset' => $currentOffset,
                         'next_offset' => $nextOffset,
                         'pagination_stopped' => true,
@@ -701,7 +701,7 @@ class GFWService
                 $page++;
             }
 
-            Log::info('GFW_PAGINATION_COMPLETE', [
+            $this->safeLog('info', 'GFW_PAGINATION_COMPLETE', [
                 'boundary_source' => 'GFW_QUERY_AOI',
                 'total_pages' => $page,
                 'total_events' => count($allEntries),
@@ -829,7 +829,7 @@ class GFWService
                 }
             }
 
-            Log::info('GFW_DEDUP_COMPLETE', [
+            $this->safeLog('info', 'GFW_DEDUP_COMPLETE', [
                 'total_events' => count($allEntries),
                 'unique_vessels' => count($vesselsById),
             ]);
@@ -950,7 +950,7 @@ class GFWService
             $recentVessels = count(array_filter($filteredVessels, fn ($v) => ($v['status'] ?? '') === 'RECENT'));
             $staleVessels = count(array_filter($filteredVessels, fn ($v) => ($v['status'] ?? '') === 'STALE'));
 
-            Log::info('GFW_SPATIAL_FILTER_COMPLETE', [
+            $this->safeLog('info', 'GFW_SPATIAL_FILTER_COMPLETE', [
                 'total_vessels' => $totalVessels,
                 'fishing_vessels' => $fishingVessels,
                 'other_vessels' => $otherVessels,
@@ -1027,7 +1027,7 @@ class GFWService
                 'status' => 200,
             ];
 
-            Log::info('GFW_RESPONSE_BUILD_COMPLETE', [
+            $this->safeLog('info', 'GFW_RESPONSE_BUILD_COMPLETE', [
                 'total_vessels' => $totalVessels,
                 'status_refresh' => $result['status_refresh'],
                 'dataset_status' => $result['dataset_status'],
@@ -1037,7 +1037,7 @@ class GFWService
                 Cache::put($cacheKey, $result, $vesselCacheTtl);
                 Cache::put('gfw:vessels_in_aoi:last_successful:aceh', $result, 86400 * 30);
             } catch (Throwable $e) {
-                Log::warning('GFW_CACHE_WRITE_FAILED', [
+                $this->safeLog('warning', 'GFW_CACHE_WRITE_FAILED', [
                     'stage' => 'cache_write',
                     'cache_key' => $cacheKey,
                     'error' => $e->getMessage(),
@@ -1060,10 +1060,10 @@ class GFWService
                     ]);
                 }
             } catch (Throwable $e) {
-                Log::warning('Failed recording GfwSyncRun from getVesselsInAoi', ['error' => $e->getMessage()]);
+                $this->safeLog('warning', 'Failed recording GfwSyncRun from getVesselsInAoi', ['error' => $e->getMessage()]);
             }
 
-            Log::info('GFW_VESSEL_REQUEST_SUCCESS', [
+            $this->safeLog('info', 'GFW_VESSEL_REQUEST_SUCCESS', [
                 'total_vessels' => $totalVessels,
                 'events_count' => count($allEntries),
                 'elapsed_ms' => (int) round((microtime(true) - $queryStartTime) * 1000),
@@ -1074,7 +1074,7 @@ class GFWService
             $totalDurationMs = (int) round((microtime(true) - $queryStartTime) * 1000);
             $errMsg = $e->getMessage();
             $isCurl28 = str_contains($errMsg, 'cURL error 28') || str_contains($errMsg, 'timed out');
-            Log::error('GFW_VESSEL_REQUEST_FAILED', [
+            $this->safeLog('error', 'GFW_VESSEL_REQUEST_FAILED', [
                 'stage' => 'upstream_connection',
                 'exception_class' => get_class($e),
                 'exception_message' => $errMsg,
@@ -1120,7 +1120,7 @@ class GFWService
             ];
         } catch (Throwable $e) {
             $totalDurationMs = (int) round((microtime(true) - $queryStartTime) * 1000);
-            Log::error('GFW_VESSEL_REQUEST_FAILED', [
+            $this->safeLog('error', 'GFW_VESSEL_REQUEST_FAILED', [
                 'stage' => 'unexpected_exception',
                 'exception_class' => get_class($e),
                 'exception_message' => $e->getMessage(),
@@ -1302,14 +1302,32 @@ class GFWService
         // Ensure no sensitive token or auth headers ever enter the log context
         unset($context['Authorization'], $context['token'], $context['api_token'], $context['api_key'], $context['secret']);
 
-        Log::warning('GFW API communication warning', array_merge([
-            'endpoint' => $endpoint,
-            'host' => parse_url($this->url, PHP_URL_HOST),
-            'status' => $status,
-            'category' => $category,
-            'error' => $message,
-            'timestamp' => now()->toIso8601String(),
-        ], $context));
+        try {
+            Log::warning('GFW API communication warning', array_merge([
+                'endpoint' => $endpoint,
+                'host' => parse_url($this->url, PHP_URL_HOST),
+                'status' => $status,
+                'category' => $category,
+                'error' => $message,
+                'timestamp' => now()->toIso8601String(),
+            ], $context));
+        } catch (Throwable) {
+            // Silently suppress Monolog logging failures
+        }
+    }
+
+    /**
+     * Safely log messages without letting logging/Monolog stream errors crash request execution.
+     *
+     * @param  array<string, mixed>  $context
+     */
+    protected function safeLog(string $level, string $message, array $context = []): void
+    {
+        try {
+            Log::log($level, $message, $context);
+        } catch (Throwable) {
+            // Silently suppress Monolog file permission errors on storage/logs/laravel.log
+        }
     }
 
     /**
@@ -1607,7 +1625,7 @@ class GFWService
                 }
             }
         } catch (Throwable $e) {
-            Log::warning('GFW_CACHE_READ_FAILED', ['stage' => 'dashboard_cache_read', 'error' => $e->getMessage()]);
+            $this->safeLog('warning', 'GFW_CACHE_READ_FAILED', ['stage' => 'dashboard_cache_read', 'error' => $e->getMessage()]);
         }
 
         $vesselsResult = $this->getVesselsInAoi($geometry, $startDate, $endDate, $options);
@@ -1808,7 +1826,7 @@ class GFWService
         try {
             Cache::put($cacheKey, $dashboardResponse, 300);
         } catch (Throwable $e) {
-            Log::warning('GFW_CACHE_WRITE_FAILED', ['stage' => 'dashboard_cache_write', 'error' => $e->getMessage()]);
+            $this->safeLog('warning', 'GFW_CACHE_WRITE_FAILED', ['stage' => 'dashboard_cache_write', 'error' => $e->getMessage()]);
         }
 
         return $dashboardResponse;
