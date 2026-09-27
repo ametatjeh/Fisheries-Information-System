@@ -11,6 +11,7 @@ use App\Services\Gfw\GfwRegionService;
 use App\Services\Gfw\GfwTimeHelper;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
 use Throwable;
 
@@ -67,6 +68,14 @@ class GfwVesselMonitoringController extends Controller
                     ->first();
                 if ($lastSuccessRun && $lastSuccessRun->finished_at) {
                     $lastSuccessfulSync = GfwTimeHelper::toExplicitZuluString($lastSuccessRun->finished_at);
+                }
+            }
+            if (! $lastSuccessfulSync && Cache::has('gfw:vessels_in_aoi:last_successful:aceh')) {
+                $cached = Cache::get('gfw:vessels_in_aoi:last_successful:aceh');
+                if (! empty($cached['refreshed_at'])) {
+                    $lastSuccessfulSync = $cached['refreshed_at'];
+                } elseif (! empty($cached['last_updated'])) {
+                    $lastSuccessfulSync = $cached['last_updated'];
                 }
             }
         } catch (Throwable) {

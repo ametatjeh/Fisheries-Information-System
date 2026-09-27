@@ -930,8 +930,13 @@ class GFWService
             $result = [
                 'success' => true,
                 'live' => true,
+                'status_refresh' => 'SUCCESS',
+                'dataset_status' => 'DATA TERBARU',
+                'is_stale' => false,
                 'message' => $totalVessels > 0 ? null : 'No vessel detected in GFW Query Area for selected period.',
-                'last_updated' => $latestSeenTimestamp ?? $nowUtc->toIso8601String(),
+                'last_updated' => $nowUtc->toIso8601String(),
+                'refreshed_at' => $nowUtc->toIso8601String(),
+                'latest_vessel_observed_at' => $latestSeenTimestamp,
                 'data_age_seconds' => $minDataAgeSeconds ?? 0,
                 'aoi' => [
                     'id' => 'gfw-query-aoi-aceh',
@@ -1012,6 +1017,9 @@ class GFWService
             if ($fallback && is_array($fallback)) {
                 $fallback['live'] = false;
                 $fallback['stale'] = true;
+                $fallback['is_stale'] = true;
+                $fallback['status_refresh'] = 'STALE_FALLBACK';
+                $fallback['dataset_status'] = 'DATA TERAKHIR TERSEDIA';
                 $fallback['from_fallback_cache'] = true;
                 $fallback['notice'] = 'Menampilkan dataset berhasil terakhir. Data kapal tidak direset ke 0.';
                 $fallback['upstream_error'] = $isCurl28 ? 'Upstream request timed out (cURL error 28)' : 'Connection failure';
@@ -1021,6 +1029,8 @@ class GFWService
 
             return [
                 'success' => false,
+                'status_refresh' => 'FAILED',
+                'dataset_status' => 'GAGAL',
                 'message' => $isCurl28 ? 'Upstream request timed out (cURL error 28)' : 'Unable to connect to GFW API: '.$errMsg,
                 'error_type' => $isCurl28 ? 'CURL_TIMEOUT' : 'CONNECTION_FAILED',
                 'status' => 504,
@@ -1037,6 +1047,9 @@ class GFWService
             if ($fallback && is_array($fallback)) {
                 $fallback['live'] = false;
                 $fallback['stale'] = true;
+                $fallback['is_stale'] = true;
+                $fallback['status_refresh'] = 'STALE_FALLBACK';
+                $fallback['dataset_status'] = 'DATA TERAKHIR TERSEDIA';
                 $fallback['from_fallback_cache'] = true;
                 $fallback['notice'] = 'Menampilkan dataset berhasil terakhir. Data kapal tidak direset ke 0.';
                 $fallback['upstream_error'] = $e->getMessage();
@@ -1046,6 +1059,8 @@ class GFWService
 
             return [
                 'success' => false,
+                'status_refresh' => 'FAILED',
+                'dataset_status' => 'GAGAL',
                 'message' => 'GFW API connection error: '.$e->getMessage(),
                 'status' => 500,
                 'duration_ms' => $totalDurationMs,

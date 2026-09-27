@@ -761,6 +761,16 @@
             const APP_TIMEZONE = "{{ config('app.timezone', 'Asia/Jakarta') }}";
             const INITIAL_LAST_SUCCESSFUL_SYNC = {{ Illuminate\Support\Js::from($lastSuccessfulSync ?? null) }};
             let lastSuccessfulTimestamp = INITIAL_LAST_SUCCESSFUL_SYNC || localStorage.getItem('gfw_vessels_last_success_ts') || null;
+            if (INITIAL_LAST_SUCCESSFUL_SYNC && localStorage.getItem('gfw_vessels_last_success_ts')) {
+                try {
+                    const serverTs = new Date(INITIAL_LAST_SUCCESSFUL_SYNC).getTime();
+                    const localTs = new Date(localStorage.getItem('gfw_vessels_last_success_ts')).getTime();
+                    if (serverTs > localTs) {
+                        lastSuccessfulTimestamp = INITIAL_LAST_SUCCESSFUL_SYNC;
+                        localStorage.setItem('gfw_vessels_last_success_ts', INITIAL_LAST_SUCCESSFUL_SYNC);
+                    }
+                } catch (e) {}
+            }
             let currentDatasetStatus = 'INIT'; // 'LIVE' | 'STALE' | 'NO_DATA'
 
             // Clean up deprecated static age cache from prior sessions
@@ -1096,11 +1106,21 @@
                         return;
                     }
 
-                    // Success: update status to LIVE with fresh dataset metadata
-                    updateDatasetStatus('LIVE', {
-                        last_updated: json.last_updated,
-                        data_age_seconds: json.data_age_seconds
-                    });
+                    // Check if response is from fallback cache or live API
+                    const isFallback = Boolean(json.from_fallback_cache || json.stale || json.is_stale || json.live === false);
+                    if (isFallback) {
+                        updateDatasetStatus('STALE', {
+                            error: json.upstream_error || json.notice || 'Menampilkan dataset sebelumnya',
+                            last_updated: json.refreshed_at || json.last_updated
+                        });
+                    } else {
+                        // GFW API BERHASIL -> status refresh = SUCCESS / DATA TERBARU
+                        updateDatasetStatus('LIVE', {
+                            last_updated: json.refreshed_at || json.last_updated || new Date().toISOString(),
+                            data_age_seconds: json.data_age_seconds ?? 0,
+                            status_refresh: json.status_refresh || 'SUCCESS'
+                        });
+                    }
 
                     // Upstream Pagination Truncated Warning Banner
                     const isTruncated = json.pagination_truncated || json.pagination?.pagination_truncated || false;
@@ -1201,7 +1221,7 @@
                     }
 
                     if (statTotalSubtitle) {
-                        statTotalSubtitle.innerHTML = 'Kapal unik terdeteksi &bull; <span class="text-emerald-600 font-semibold">Terkini</span>';
+                        statTotalSubtitle.innerHTML = 'Kapal unik terdeteksi &bull; <span class="text-emerald-400 font-semibold">DATA TERBARU</span>';
                     }
 
                     const liveAgeSec = calcAgeFromTimestamp(lastSuccessfulTimestamp);
