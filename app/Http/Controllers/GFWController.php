@@ -366,6 +366,7 @@ class GFWController extends Controller
                 'search' => $cleanSearch,
                 'boundary_source' => 'GFW_QUERY_AOI',
                 'query_area' => 'aceh',
+                'refresh' => $request->boolean('refresh'),
             ]
         );
 

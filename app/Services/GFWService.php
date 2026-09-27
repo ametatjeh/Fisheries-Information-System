@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Gfw\GfwSyncRun;
 use App\Models\Gfw\GfwVessel;
 use App\Services\Gfw\GfwActivityService;
 use App\Services\Gfw\GfwQueryGeometryService;
@@ -15,11 +16,11 @@ use Throwable;
 
 class GFWService
 {
-    public const MAX_UPSTREAM_EVENTS = 500;
+    public const MAX_UPSTREAM_EVENTS = 1000;
 
     public const MAX_UPSTREAM_PAGES = 5;
 
-    public const UPSTREAM_PAGE_SIZE = 100;
+    public const UPSTREAM_PAGE_SIZE = 500;
 
     protected string $url;
 
@@ -31,8 +32,8 @@ class GFWService
 
     public function __construct()
     {
-        $this->url = rtrim((string) (config('services.gfw.url') ?? config('gfw.url', 'https://gateway.api.globalfishingwatch.org')), '/');
-        $this->token = config('services.gfw.token') ?: config('gfw.token') ?: config('services.gfw.api_token') ?: config('gfw.api_token') ?: config('gfw.api_key');
+        $this->url = rtrim((string) (config('services.gfw.url') ?? config('gfw.base_url') ?? config('gfw.url') ?? 'https://gateway.api.globalfishingwatch.org'), '/');
+        $this->token = config('services.gfw.token') ?: config('services.gfw.api_token') ?: config('gfw.token') ?: config('gfw.api_token') ?: config('gfw.api_key') ?: env('GFW_API_TOKEN') ?: env('GFW_API_KEY');
         $this->timeout = (int) (config('gfw.timeout') ?? config('services.gfw.timeout') ?? 60);
         $this->connectTimeout = (int) (config('gfw.connect_timeout') ?? config('services.gfw.connect_timeout') ?? 5);
     }
@@ -42,7 +43,7 @@ class GFWService
      */
     public function getToken(): ?string
     {
-        $token = config('services.gfw.token') ?: config('gfw.token') ?: config('services.gfw.api_token') ?: config('gfw.api_token') ?: config('gfw.api_key');
+        $token = config('services.gfw.token') ?: config('services.gfw.api_token') ?: config('gfw.token') ?: config('gfw.api_token') ?: config('gfw.api_key') ?: env('GFW_API_TOKEN') ?: env('GFW_API_KEY');
 
         return ! empty($token) ? (string) $token : null;
     }
@@ -569,15 +570,29 @@ class GFWService
                             'response_sample' => $sanitizedBody,
                         ]);
 
+                        $fallback = Cache::get('gfw:vessels_in_aoi:last_successful:aceh');
+                        if ($fallback && is_array($fallback)) {
+                            $fallback['live'] = false;
+                            $fallback['stale'] = true;
+                            $fallback['from_fallback_cache'] = true;
+                            $fallback['upstream_status'] = $status;
+                            $fallback['notice'] = 'Menampilkan dataset berhasil terakhir. Data kapal tidak direset ke 0.';
+
+                            return $fallback;
+                        }
+
                         return [
                             'success' => false,
                             'message' => match ($status) {
-                                400 => 'Invalid request sent to GFW API',
-                                401 => 'GFW API authentication failed',
-                                403 => 'GFW API access forbidden',
-                                422 => 'Unprocessable entity in GFW request',
-                                429 => 'GFW API rate limit reached',
-                                default => 'GFW API server error',
+                                400 => 'Invalid request sent to GFW API (400)',
+                                401 => 'GFW API authentication failed (401)',
+                                403 => 'GFW API access forbidden (403)',
+                                422 => 'Unprocessable entity in GFW request (422)',
+                                429 => 'GFW API rate limit reached (429)',
+                                502 => 'GFW API bad gateway (502)',
+                                503 => 'GFW API service unavailable (503)',
+                                504 => 'GFW API gateway timeout (504)',
+                                default => "GFW API server error ({$status})",
                             },
                             'status' => $status,
                             'duration_ms' => $durationMs,
@@ -694,20 +709,21 @@ class GFWService
                 }
 
                 $vesselRaw = $entry['vessel'] ?? [];
-                $vId = ! empty($vesselRaw['id']) ? trim((string) $vesselRaw['id']) : null;
                 $mmsi = ! empty($vesselRaw['ssvid']) ? trim((string) $vesselRaw['ssvid']) : (! empty($vesselRaw['mmsi']) ? trim((string) $vesselRaw['mmsi']) : null);
                 $imo = ! empty($vesselRaw['imo']) ? trim((string) $vesselRaw['imo']) : null;
+                $vId = ! empty($vesselRaw['id']) ? trim((string) $vesselRaw['id']) : null;
+                $ssvid = ! empty($vesselRaw['ssvid']) ? trim((string) $vesselRaw['ssvid']) : null;
 
-                // Resolve canonical vessel key: prioritize GFW vessel id, then seen MMSI, then seen IMO
+                // Resolve canonical vessel key: prioritize MMSI, then seen IMO, then GFW vessel ID / SSVID
                 $vKey = null;
-                if ($vId !== null && isset($vesselsById[$vId])) {
-                    $vKey = $vId;
-                } elseif ($mmsi !== null && isset($vesselKeyByMmsi[$mmsi])) {
+                if ($mmsi !== null && isset($vesselKeyByMmsi[$mmsi])) {
                     $vKey = $vesselKeyByMmsi[$mmsi];
                 } elseif ($imo !== null && isset($vesselKeyByImo[$imo])) {
                     $vKey = $vesselKeyByImo[$imo];
+                } elseif ($vId !== null && isset($vesselsById[$vId])) {
+                    $vKey = $vId;
                 } else {
-                    $vKey = $vId ?? ($mmsi ?? ($imo ?? ($entry['id'] ?? null)));
+                    $vKey = $mmsi ?? ($imo ?? ($vId ?? ($ssvid ?? ($entry['id'] ?? null))));
                 }
 
                 if (empty($vKey)) {
@@ -959,6 +975,26 @@ class GFWService
             ];
 
             Cache::put($cacheKey, $result, $vesselCacheTtl);
+            Cache::put('gfw:vessels_in_aoi:last_successful:aceh', $result, 86400 * 30);
+
+            try {
+                if (class_exists(GfwSyncRun::class)) {
+                    GfwSyncRun::create([
+                        'aoi' => 'zee-indonesia-aceh',
+                        'date_from' => Carbon::parse($startDate, 'UTC'),
+                        'date_to' => Carbon::parse($endDate, 'UTC'),
+                        'dataset' => $datasets[0] ?? 'public-global-fishing-events:latest',
+                        'endpoint' => '/v3/events',
+                        'records_found' => count($allEntries),
+                        'records_saved' => $totalVessels,
+                        'status' => 'success',
+                        'started_at' => Carbon::createFromTimestamp((int) $queryStartTime, 'UTC'),
+                        'finished_at' => Carbon::now('UTC'),
+                    ]);
+                }
+            } catch (Throwable $e) {
+                Log::warning('Failed recording GfwSyncRun from getVesselsInAoi', ['error' => $e->getMessage()]);
+            }
 
             return $result;
         } catch (ConnectionException $e) {
@@ -972,10 +1008,22 @@ class GFWService
                 'exception_class' => get_class($e),
             ]);
 
+            $fallback = Cache::get('gfw:vessels_in_aoi:last_successful:aceh');
+            if ($fallback && is_array($fallback)) {
+                $fallback['live'] = false;
+                $fallback['stale'] = true;
+                $fallback['from_fallback_cache'] = true;
+                $fallback['notice'] = 'Menampilkan dataset berhasil terakhir. Data kapal tidak direset ke 0.';
+                $fallback['upstream_error'] = $isCurl28 ? 'Upstream request timed out (cURL error 28)' : 'Connection failure';
+
+                return $fallback;
+            }
+
             return [
                 'success' => false,
-                'message' => 'Unable to connect to GFW API',
-                'status' => 503,
+                'message' => $isCurl28 ? 'Upstream request timed out (cURL error 28)' : 'Unable to connect to GFW API: '.$errMsg,
+                'error_type' => $isCurl28 ? 'CURL_TIMEOUT' : 'CONNECTION_FAILED',
+                'status' => 504,
                 'duration_ms' => $totalDurationMs,
             ];
         } catch (Throwable $e) {
@@ -985,9 +1033,20 @@ class GFWService
                 'exception_class' => get_class($e),
             ]);
 
+            $fallback = Cache::get('gfw:vessels_in_aoi:last_successful:aceh');
+            if ($fallback && is_array($fallback)) {
+                $fallback['live'] = false;
+                $fallback['stale'] = true;
+                $fallback['from_fallback_cache'] = true;
+                $fallback['notice'] = 'Menampilkan dataset berhasil terakhir. Data kapal tidak direset ke 0.';
+                $fallback['upstream_error'] = $e->getMessage();
+
+                return $fallback;
+            }
+
             return [
                 'success' => false,
-                'message' => 'GFW API connection error',
+                'message' => 'GFW API connection error: '.$e->getMessage(),
                 'status' => 500,
                 'duration_ms' => $totalDurationMs,
             ];

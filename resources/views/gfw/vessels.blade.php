@@ -1043,7 +1043,7 @@
             let isFetching = false;
 
             // Main API Fetcher for /api/gfw/vessels/zee-indonesia-aceh
-            async function fetchVesselsData() {
+            async function fetchVesselsData(forceRefresh = false) {
                 if (isFetching) return;
                 isFetching = true;
 
@@ -1066,6 +1066,7 @@
                     offset: currentOffset,
                 });
 
+                if (forceRefresh) params.append('refresh', '1');
                 if (vType) params.append('vessel_type', vType);
                 if (flag) params.append('flag', flag);
                 if (activity) params.append('activity', activity);
@@ -2149,7 +2150,7 @@
 
             if (btnRetry) {
                 btnRetry.addEventListener('click', () => {
-                    fetchVesselsData();
+                    fetchVesselsData(true);
                 });
             }
 

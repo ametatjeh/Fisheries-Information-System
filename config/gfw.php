@@ -21,7 +21,9 @@ return [
     | Sent as a Bearer token in the Authorization header.
     |
     */
+    'url' => env('GFW_API_URL', 'https://gateway.api.globalfishingwatch.org'),
     'api_token' => env('GFW_API_TOKEN', env('GFW_API_KEY')),
+    'token' => env('GFW_API_TOKEN', env('GFW_API_KEY')),
     'api_key' => env('GFW_API_TOKEN', env('GFW_API_KEY')),
 
     /*
