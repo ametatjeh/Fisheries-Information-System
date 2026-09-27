@@ -81,15 +81,24 @@ class GFWService
         $startTime = microtime(true);
 
         try {
+            $geometry = app(GfwQueryGeometryService::class)->getAcehQueryPolygon();
+            $cleanGeometry = $this->extractGeometryObject($geometry);
+
             $response = Http::baseUrl($url)
                 ->withToken($token)
                 ->timeout($this->timeout)
                 ->connectTimeout($this->connectTimeout)
                 ->acceptJson()
-                ->get('/v3/events', [
-                    'datasets' => ['public-global-fishing-events:latest'],
+                ->asJson()
+                ->withQueryParameters([
                     'limit' => 1,
                     'offset' => 0,
+                ])
+                ->post('/v3/events', [
+                    'datasets' => ['public-global-fishing-events:latest'],
+                    'startDate' => Carbon::now('UTC')->subDays(7)->toDateString(),
+                    'endDate' => Carbon::now('UTC')->subDays(1)->toDateString(),
+                    'geometry' => $cleanGeometry,
                 ]);
 
             $durationMs = (int) round((microtime(true) - $startTime) * 1000);
@@ -490,8 +499,19 @@ class GFWService
             'search' => $searchQuery,
         ]));
 
-        if (! ($options['refresh'] ?? false) && Cache::has($cacheKey)) {
-            return Cache::get($cacheKey);
+        try {
+            if (! ($options['refresh'] ?? false) && Cache::has($cacheKey)) {
+                $cached = Cache::get($cacheKey);
+                if (is_array($cached)) {
+                    return $cached;
+                }
+            }
+        } catch (Throwable $e) {
+            Log::warning('GFW_CACHE_READ_FAILED', [
+                'stage' => 'cache_read',
+                'cache_key' => $cacheKey,
+                'error' => $e->getMessage(),
+            ]);
         }
 
         $timeout = (int) (config('gfw.timeout') ?? config('services.gfw.timeout') ?? 60);
@@ -508,8 +528,22 @@ class GFWService
         $paginationTruncated = false;
         $queryStartTime = microtime(true);
 
+        Log::info('GFW_VESSEL_REQUEST_START', [
+            'boundary_source' => 'GFW_QUERY_AOI',
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+            'limit' => $limit,
+            'offset' => $offset,
+        ]);
+
         try {
             while (true) {
+                Log::info("GFW_PAGE_REQUEST page={$page}", [
+                    'page' => $page,
+                    'offset' => $currentOffset,
+                    'limit' => $upstreamLimit,
+                ]);
+
                 $reqStart = microtime(true);
                 try {
                     $response = Http::baseUrl($url)
@@ -611,7 +645,7 @@ class GFWService
                 $rawEntries = $payload['entries'] ?? [];
                 $entriesCount = count($rawEntries);
 
-                Log::info('GFW API request completed', [
+                Log::info("GFW_PAGE_SUCCESS page={$page}", [
                     'endpoint' => '/v3/events',
                     'host' => parse_url($url, PHP_URL_HOST),
                     'boundary_source' => 'GFW_QUERY_AOI',
@@ -667,7 +701,7 @@ class GFWService
                 $page++;
             }
 
-            Log::info('GFW upstream pagination completed', [
+            Log::info('GFW_PAGINATION_COMPLETE', [
                 'boundary_source' => 'GFW_QUERY_AOI',
                 'total_pages' => $page,
                 'total_events' => count($allEntries),
@@ -795,6 +829,11 @@ class GFWService
                 }
             }
 
+            Log::info('GFW_DEDUP_COMPLETE', [
+                'total_events' => count($allEntries),
+                'unique_vessels' => count($vesselsById),
+            ]);
+
             // Enrich missing vessel details from local GFW database (sistem_gfw) if available (single batch query, zero N+1)
             try {
                 if (! empty($vesselsById) && class_exists(GfwVessel::class)) {
@@ -911,6 +950,15 @@ class GFWService
             $recentVessels = count(array_filter($filteredVessels, fn ($v) => ($v['status'] ?? '') === 'RECENT'));
             $staleVessels = count(array_filter($filteredVessels, fn ($v) => ($v['status'] ?? '') === 'STALE'));
 
+            Log::info('GFW_SPATIAL_FILTER_COMPLETE', [
+                'total_vessels' => $totalVessels,
+                'fishing_vessels' => $fishingVessels,
+                'other_vessels' => $otherVessels,
+                'live_vessels' => $liveVessels,
+                'recent_vessels' => $recentVessels,
+                'stale_vessels' => $staleVessels,
+            ]);
+
             // Group flags and vessel types
             $flagsSummary = [];
             $vesselTypesSummary = [];
@@ -979,8 +1027,22 @@ class GFWService
                 'status' => 200,
             ];
 
-            Cache::put($cacheKey, $result, $vesselCacheTtl);
-            Cache::put('gfw:vessels_in_aoi:last_successful:aceh', $result, 86400 * 30);
+            Log::info('GFW_RESPONSE_BUILD_COMPLETE', [
+                'total_vessels' => $totalVessels,
+                'status_refresh' => $result['status_refresh'],
+                'dataset_status' => $result['dataset_status'],
+            ]);
+
+            try {
+                Cache::put($cacheKey, $result, $vesselCacheTtl);
+                Cache::put('gfw:vessels_in_aoi:last_successful:aceh', $result, 86400 * 30);
+            } catch (Throwable $e) {
+                Log::warning('GFW_CACHE_WRITE_FAILED', [
+                    'stage' => 'cache_write',
+                    'cache_key' => $cacheKey,
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
             try {
                 if (class_exists(GfwSyncRun::class)) {
@@ -1001,11 +1063,26 @@ class GFWService
                 Log::warning('Failed recording GfwSyncRun from getVesselsInAoi', ['error' => $e->getMessage()]);
             }
 
+            Log::info('GFW_VESSEL_REQUEST_SUCCESS', [
+                'total_vessels' => $totalVessels,
+                'events_count' => count($allEntries),
+                'elapsed_ms' => (int) round((microtime(true) - $queryStartTime) * 1000),
+            ]);
+
             return $result;
         } catch (ConnectionException $e) {
             $totalDurationMs = (int) round((microtime(true) - $queryStartTime) * 1000);
             $errMsg = $e->getMessage();
             $isCurl28 = str_contains($errMsg, 'cURL error 28') || str_contains($errMsg, 'timed out');
+            Log::error('GFW_VESSEL_REQUEST_FAILED', [
+                'stage' => 'upstream_connection',
+                'exception_class' => get_class($e),
+                'exception_message' => $errMsg,
+                'elapsed_ms' => $totalDurationMs,
+                'page' => $page,
+                'status' => 504,
+            ]);
+
             $this->logWarning('/v3/events', 504, ($isCurl28 ? 'Upstream request timed out (cURL error 28)' : 'Connection failure reaching GFW Events API: '.$errMsg), [
                 'duration_ms' => $totalDurationMs,
                 'timeout_config' => $timeout,
@@ -1013,7 +1090,12 @@ class GFWService
                 'exception_class' => get_class($e),
             ]);
 
-            $fallback = Cache::get('gfw:vessels_in_aoi:last_successful:aceh');
+            $fallback = null;
+            try {
+                $fallback = Cache::get('gfw:vessels_in_aoi:last_successful:aceh');
+            } catch (Throwable) {
+            }
+
             if ($fallback && is_array($fallback)) {
                 $fallback['live'] = false;
                 $fallback['stale'] = true;
@@ -1038,12 +1120,26 @@ class GFWService
             ];
         } catch (Throwable $e) {
             $totalDurationMs = (int) round((microtime(true) - $queryStartTime) * 1000);
+            Log::error('GFW_VESSEL_REQUEST_FAILED', [
+                'stage' => 'unexpected_exception',
+                'exception_class' => get_class($e),
+                'exception_message' => $e->getMessage(),
+                'elapsed_ms' => $totalDurationMs,
+                'page' => $page,
+                'status' => 500,
+            ]);
+
             $this->logWarning('/v3/events', 500, 'Unexpected exception in GFWService getVesselsInAoi: '.$e->getMessage(), [
                 'duration_ms' => $totalDurationMs,
                 'exception_class' => get_class($e),
             ]);
 
-            $fallback = Cache::get('gfw:vessels_in_aoi:last_successful:aceh');
+            $fallback = null;
+            try {
+                $fallback = Cache::get('gfw:vessels_in_aoi:last_successful:aceh');
+            } catch (Throwable) {
+            }
+
             if ($fallback && is_array($fallback)) {
                 $fallback['live'] = false;
                 $fallback['stale'] = true;
@@ -1503,9 +1599,15 @@ class GFWService
      */
     public function getDashboardData(array $geometry, string $startDate, string $endDate, array $options = []): array
     {
-        $cacheKey = 'gfw:dashboard_data:'.md5(json_encode([$startDate, $endDate, $options]));
-        if (! ($options['refresh'] ?? false) && Cache::has($cacheKey)) {
-            return Cache::get($cacheKey);
+        try {
+            if (! ($options['refresh'] ?? false) && Cache::has($cacheKey)) {
+                $cached = Cache::get($cacheKey);
+                if (is_array($cached)) {
+                    return $cached;
+                }
+            }
+        } catch (Throwable $e) {
+            Log::warning('GFW_CACHE_READ_FAILED', ['stage' => 'dashboard_cache_read', 'error' => $e->getMessage()]);
         }
 
         $vesselsResult = $this->getVesselsInAoi($geometry, $startDate, $endDate, $options);
@@ -1703,7 +1805,11 @@ class GFWService
             'status' => 200,
         ];
 
-        Cache::put($cacheKey, $dashboardResponse, 300);
+        try {
+            Cache::put($cacheKey, $dashboardResponse, 300);
+        } catch (Throwable $e) {
+            Log::warning('GFW_CACHE_WRITE_FAILED', ['stage' => 'dashboard_cache_write', 'error' => $e->getMessage()]);
+        }
 
         return $dashboardResponse;
     }

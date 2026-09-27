@@ -18,9 +18,17 @@ class GFWController extends Controller
      */
     public function test(GFWService $gfw): JsonResponse
     {
-        $result = $gfw->testConnection();
+        try {
+            $result = $gfw->testConnection();
 
-        return response()->json($result, $result['status'] ?? 200);
+            return response()->json($result, $result['status'] ?? 200);
+        } catch (Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'GFW test error: '.$e->getMessage(),
+                'status' => 500,
+            ], 500);
+        }
     }
 
     /**
@@ -353,22 +361,57 @@ class GFWController extends Controller
         $cleanActivity = is_string($activityParam) ? mb_substr(strip_tags(trim($activityParam)), 0, 50) : null;
 
         // 9. Execute GFW Vessels in AOI Query using GFW Query Geometry
-        $result = $gfw->getVesselsInAoi(
-            $geometryData,
-            $startDateStr,
-            $endDateStr,
-            [
-                'limit' => $limit,
-                'offset' => $offset,
-                'vessel_type' => $cleanVesselType,
-                'flag' => $cleanFlag,
-                'activity' => $cleanActivity,
-                'search' => $cleanSearch,
-                'boundary_source' => 'GFW_QUERY_AOI',
-                'query_area' => 'aceh',
-                'refresh' => $request->boolean('refresh'),
-            ]
-        );
+        try {
+            $result = $gfw->getVesselsInAoi(
+                $geometryData,
+                $startDateStr,
+                $endDateStr,
+                [
+                    'limit' => $limit,
+                    'offset' => $offset,
+                    'vessel_type' => $cleanVesselType,
+                    'flag' => $cleanFlag,
+                    'activity' => $cleanActivity,
+                    'search' => $cleanSearch,
+                    'boundary_source' => 'GFW_QUERY_AOI',
+                    'query_area' => 'aceh',
+                    'refresh' => $request->boolean('refresh'),
+                ]
+            );
+        } catch (Throwable $e) {
+            Log::error('GFW_VESSEL_REQUEST_FAILED', [
+                'stage' => 'controller_execution',
+                'exception_class' => get_class($e),
+                'exception_message' => $e->getMessage(),
+            ]);
+
+            $fallback = null;
+            try {
+                $fallback = Cache::get('gfw:vessels_in_aoi:last_successful:aceh');
+            } catch (Throwable) {
+            }
+
+            if (is_array($fallback)) {
+                $fallback['live'] = false;
+                $fallback['stale'] = true;
+                $fallback['is_stale'] = true;
+                $fallback['status_refresh'] = 'STALE_FALLBACK';
+                $fallback['dataset_status'] = 'DATA TERAKHIR TERSEDIA';
+                $fallback['from_fallback_cache'] = true;
+                $fallback['notice'] = 'Menampilkan dataset berhasil terakhir. Data kapal tidak direset ke 0.';
+                $fallback['upstream_error'] = $e->getMessage();
+
+                return response()->json($fallback, 200);
+            }
+
+            return response()->json([
+                'success' => false,
+                'status_refresh' => 'FAILED',
+                'dataset_status' => 'GAGAL',
+                'message' => 'GFW execution error: '.$e->getMessage(),
+                'error_type' => 'CONTROLLER_EXCEPTION',
+            ], 500);
+        }
 
         $httpStatus = $result['status'] ?? ($result['success'] ? 200 : 500);
         unset($result['status']);

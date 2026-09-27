@@ -221,14 +221,16 @@ class GfwApiService
 
     /**
      * Log failure safely without leaking API key, tokens, or credentials.
+     *
+     * @param  array<string, mixed>  $context
      */
-    protected function logError(string $endpoint, ?int $status, string $message): void
+    protected function logError(string $endpoint, ?int $status, string $message, array $context = []): void
     {
-        Log::warning('GFW API communication failed', [
+        Log::warning('GFW API communication failed', array_merge([
             'endpoint' => $endpoint,
             'status' => $status,
             'error' => $message,
             'timestamp' => now()->toIso8601String(),
-        ]);
+        ], $context));
     }
 }
