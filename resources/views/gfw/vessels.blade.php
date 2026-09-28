@@ -1765,7 +1765,7 @@
                     detailFlagBadge.innerHTML = renderVesselFlag(v.flag);
                 }
 
-                if (detailGfwId) detailGfwId.textContent = ': ' + (v.id || 'Not available');
+                if (detailGfwId) detailGfwId.textContent = ': ' + (v.gfw_vessel_id || v.id || 'Not available');
                 if (detailSsvid) detailSsvid.textContent = ': ' + (v.ssvid || 'Not available');
                 detailMmsi.textContent = ': ' + (v.mmsi || 'Not available');
                 detailImo.textContent = ': ' + (v.imo || 'Not available');
@@ -1832,6 +1832,7 @@
 
                 showStatus('Memuat track lintasan kapal di ZEE Aceh...', '🗺️');
 
+                const targetTrackId = selectedVessel.gfw_vessel_id || selectedVessel.id;
                 const params = new URLSearchParams({
                     start_date: startDate,
                     end_date: endDate,
@@ -1844,7 +1845,7 @@
                 });
 
                 try {
-                    const res = await fetch(`/api/gfw/vessels/${encodeURIComponent(selectedVessel.id)}/track?${params.toString()}`, {
+                    const res = await fetch(`/api/gfw/vessels/${encodeURIComponent(targetTrackId)}/track?${params.toString()}`, {
                         headers: {
                             'Accept': 'application/json'
                         }
@@ -1854,29 +1855,34 @@
                     btnViewTrack.innerHTML = '<span>🗺️</span> <span>Lihat Track</span>';
 
                     const contentType = res.headers.get('content-type') || '';
-                    if (!contentType.includes('application/json')) {
-                        throw new Error(`Server mengembalikan response non-JSON (HTTP ${res.status}).`);
+                    let json = null;
+                    if (contentType.includes('application/json')) {
+                        try {
+                            json = await res.json();
+                        } catch (e) {
+                            json = null;
+                        }
                     }
 
-                    const json = await res.json();
-
-                    if (!res.ok || json.success === false) {
+                    if (!res.ok || !json || json.success === false) {
+                        hideStatus();
                         let errMsg = json?.message || json?.error;
                         if (!errMsg) {
                             if (res.status === 401) errMsg = 'Sesi atau autentikasi tidak valid (HTTP 401).';
                             else if (res.status === 403) errMsg = 'Tidak memiliki hak akses (HTTP 403).';
-                            else if (res.status === 404) errMsg = 'Data track untuk kapal ini tidak ditemukan di GFW (HTTP 404).';
+                            else if (res.status === 404) errMsg = 'Vessel GFW tidak ditemukan.';
                             else if (res.status === 429) errMsg = 'Terlalu banyak permintaan ke server (HTTP 429). Silakan tunggu sejenak.';
                             else if (res.status === 500) errMsg = 'Kesalahan internal server (HTTP 500).';
                             else if (res.status === 502 || res.status === 504) errMsg = 'Gagal berkomunikasi dengan upstream GFW API (HTTP ' + res.status + ').';
                             else errMsg = 'Gagal memuat data track (HTTP ' + res.status + ').';
                         }
-                        showError('Gagal Memuat Track', errMsg);
+                        showError(errMsg, 'Informasi Track');
                         return;
                     }
 
                     if (!json.track) {
-                        showError('Gagal Memuat Track', json.message || 'Data lintasan kapal tidak ditemukan.');
+                        hideStatus();
+                        showError(json.message || 'Data lintasan kapal tidak ditemukan.', 'Informasi Track');
                         return;
                     }
 
@@ -1894,7 +1900,8 @@
                         if (map.getSource('vessel-track-src')) {
                             map.getSource('vessel-track-src').setData({ type: 'FeatureCollection', features: [] });
                         }
-                        showStatus('Tidak ada data track untuk vessel dan periode yang dipilih.', 'ℹ️');
+                        hideError();
+                        showStatus(json.message || 'Belum tersedia data track untuk vessel ini.', 'ℹ️');
                         return;
                     }
 

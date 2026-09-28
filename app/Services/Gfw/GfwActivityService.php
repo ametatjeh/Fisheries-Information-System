@@ -2,6 +2,7 @@
 
 namespace App\Services\Gfw;
 
+use App\Models\Gfw\GfwVessel;
 use App\Models\Gfw\GfwVesselPresence;
 use App\Models\GfwVesselActivity;
 use Carbon\Carbon;
@@ -38,13 +39,14 @@ class GfwActivityService
         if ($cleanId === '') {
             return [
                 'success' => false,
-                'source' => 'global_fishing_watch',
+                'source' => 'sistem_gfw',
                 'latency_notice' => self::LATENCY_NOTICE,
                 'query_period' => ['start_date' => '', 'end_date' => ''],
                 'total' => 0,
                 'cached' => false,
                 'data' => [],
                 'error' => 'Vessel ID cannot be empty.',
+                'message' => 'Vessel ID cannot be empty.',
                 'error_type' => 'validation_error',
                 'status' => 422,
             ];
@@ -60,13 +62,14 @@ class GfwActivityService
             if (! $dateResult['valid']) {
                 return [
                     'success' => false,
-                    'source' => 'global_fishing_watch',
+                    'source' => 'sistem_gfw',
                     'latency_notice' => self::LATENCY_NOTICE,
                     'query_period' => ['start_date' => '', 'end_date' => ''],
                     'total' => 0,
                     'cached' => false,
                     'data' => [],
                     'error' => $dateResult['error'] ?? 'Format tanggal tidak valid.',
+                    'message' => $dateResult['error'] ?? 'Format tanggal tidak valid.',
                     'error_type' => 'validation_error',
                     'status' => 422,
                 ];
@@ -74,10 +77,30 @@ class GfwActivityService
 
             $startDate = $dateResult['start_date'];
             $endDate = $dateResult['end_date'];
-            $dataset = (string) ($options['dataset'] ?? $this->defaultActivityDataset);
             $forceRefresh = (bool) ($options['refresh'] ?? false);
+            $localOnly = (bool) ($options['local_only'] ?? false);
 
-            $cacheKey = 'gfw:activity:vessel:'.$cleanId.':'.md5($startDate.':'.$endDate.':'.$dataset);
+            // 1. Resolve identifier: MMSI -> GFW Vessel UUID (Section 3)
+            $targetGfwId = $cleanId;
+            $dbVessel = null;
+            try {
+                if (ctype_digit($cleanId)) {
+                    $dbVessel = GfwVessel::where('mmsi', $cleanId)->first();
+                }
+                if (! $dbVessel) {
+                    $dbVessel = GfwVessel::where('gfw_vessel_id', $cleanId)->first();
+                }
+                if (! $dbVessel && ! ctype_digit($cleanId)) {
+                    $dbVessel = GfwVessel::where('mmsi', $cleanId)->first();
+                }
+                if ($dbVessel && ! empty($dbVessel->gfw_vessel_id)) {
+                    $targetGfwId = $dbVessel->gfw_vessel_id;
+                }
+            } catch (Throwable) {
+                // Non-blocking fallback
+            }
+
+            $cacheKey = 'gfw:activity:vessel:'.$targetGfwId.':'.md5($startDate.':'.$endDate);
 
             if (! $forceRefresh && Cache::has($cacheKey)) {
                 /** @var list<array<string, mixed>> $cachedData */
@@ -85,7 +108,7 @@ class GfwActivityService
                 if (is_array($cachedData)) {
                     return [
                         'success' => true,
-                        'source' => 'global_fishing_watch',
+                        'source' => 'sistem_gfw',
                         'latency_notice' => self::LATENCY_NOTICE,
                         'query_period' => [
                             'start_date' => $startDate,
@@ -99,6 +122,105 @@ class GfwActivityService
                 }
             }
 
+            // 2. Query local presence table: sistem_gfw.gfw_vessel_presence (Section 4 & 7)
+            $localPresences = collect();
+            try {
+                $localPresences = GfwVesselPresence::where('gfw_vessel_id', $targetGfwId)
+                    ->orWhere('gfw_vessel_id', $cleanId)
+                    ->orderBy('observed_at', 'asc')
+                    ->get();
+            } catch (Throwable) {
+                // Non-blocking
+            }
+
+            if ($localPresences->isNotEmpty()) {
+                // Section 8: Coordinate validation (lon, lat valid, non-null, in geographic bounds)
+                $normalizedList = $localPresences->filter(function ($p) {
+                    return $p->latitude !== null && $p->longitude !== null
+                        && is_numeric($p->latitude) && is_numeric($p->longitude)
+                        && ! is_nan($p->latitude) && ! is_nan($p->longitude)
+                        && $p->latitude >= -90 && $p->latitude <= 90
+                        && $p->longitude >= -180 && $p->longitude <= 180;
+                })->map(function ($p) use ($targetGfwId, $dbVessel) {
+                    $obs = $p->observed_at ? Carbon::parse($p->observed_at)->toIso8601String() : null;
+
+                    return [
+                        'gfw_vessel_id' => $targetGfwId,
+                        'mmsi' => $dbVessel?->mmsi,
+                        'timestamp' => $obs,
+                        'date' => $obs,
+                        'observed_at' => $obs,
+                        'latitude' => (float) $p->latitude,
+                        'longitude' => (float) $p->longitude,
+                        'lat' => (float) $p->latitude,
+                        'lon' => (float) $p->longitude,
+                        'speed_knots' => $p->speed !== null ? (float) $p->speed : null,
+                        'speed' => $p->speed !== null ? (float) $p->speed : null,
+                        'course' => $p->course !== null ? (float) $p->course : null,
+                        'heading' => $p->course !== null ? (float) $p->course : null,
+                        'activity_type' => 'track_point',
+                        'source' => 'sistem_gfw_presence',
+                    ];
+                })->values()->all();
+
+                Cache::put($cacheKey, $normalizedList, $this->activityCacheTtl);
+
+                return [
+                    'success' => true,
+                    'source' => 'sistem_gfw',
+                    'latency_notice' => self::LATENCY_NOTICE,
+                    'query_period' => [
+                        'start_date' => $startDate,
+                        'end_date' => $endDate,
+                    ],
+                    'total' => count($normalizedList),
+                    'cached' => false,
+                    'data' => $normalizedList,
+                    'status' => 200,
+                ];
+            }
+
+            // 3. When local_only is requested (GFW Track), stay purely local without hitting /tracks
+            if ($localOnly) {
+                if ($dbVessel !== null) {
+                    // Section 9: Valid vessel with 0 track points in presence table
+                    return [
+                        'success' => true,
+                        'source' => 'sistem_gfw',
+                        'latency_notice' => self::LATENCY_NOTICE,
+                        'query_period' => [
+                            'start_date' => $startDate,
+                            'end_date' => $endDate,
+                        ],
+                        'total' => 0,
+                        'cached' => false,
+                        'data' => [],
+                        'message' => 'Belum tersedia data track untuk vessel ini.',
+                        'status' => 200,
+                    ];
+                }
+
+                // Section 10: Unrecognized vessel returns 404
+                return [
+                    'success' => false,
+                    'source' => 'sistem_gfw',
+                    'latency_notice' => self::LATENCY_NOTICE,
+                    'query_period' => [
+                        'start_date' => $startDate,
+                        'end_date' => $endDate,
+                    ],
+                    'total' => 0,
+                    'cached' => false,
+                    'data' => [],
+                    'message' => 'Vessel GFW tidak ditemukan.',
+                    'error' => 'Vessel GFW tidak ditemukan.',
+                    'error_type' => 'not_found',
+                    'status' => 404,
+                ];
+            }
+
+            // Upstream API fallback only when local_only is false and no local data found
+            $dataset = (string) ($options['dataset'] ?? $this->defaultActivityDataset);
             $queryParams = [
                 'datasets[0]' => $dataset,
                 'start-date' => $startDate,
@@ -108,49 +230,8 @@ class GfwActivityService
             $response = $this->apiService->get("/vessels/{$cleanId}/tracks", $queryParams);
 
             if (! $response['success']) {
-                // Check database fallback from sistem_gfw.gfw_vessel_presence
-                try {
-                    $localPresences = GfwVesselPresence::where('gfw_vessel_id', $cleanId)
-                        ->orderBy('observed_at', 'asc')
-                        ->get();
-
-                    if ($localPresences->isNotEmpty()) {
-                        $normalizedList = $localPresences->map(function ($p) use ($cleanId) {
-                            return [
-                                'gfw_vessel_id' => $cleanId,
-                                'timestamp' => $p->observed_at?->toIso8601String(),
-                                'date' => $p->observed_at?->toIso8601String(),
-                                'observed_at' => $p->observed_at?->toIso8601String(),
-                                'latitude' => $p->latitude,
-                                'longitude' => $p->longitude,
-                                'lat' => $p->latitude,
-                                'lon' => $p->longitude,
-                                'speed_knots' => $p->speed,
-                                'speed' => $p->speed,
-                                'course' => $p->course,
-                                'source' => 'sistem_gfw_presence',
-                            ];
-                        })->values()->all();
-
-                        return [
-                            'success' => true,
-                            'source' => 'sistem_gfw',
-                            'latency_notice' => self::LATENCY_NOTICE,
-                            'query_period' => [
-                                'start_date' => $startDate,
-                                'end_date' => $endDate,
-                            ],
-                            'total' => count($normalizedList),
-                            'cached' => true,
-                            'data' => $normalizedList,
-                            'status' => 200,
-                        ];
-                    }
-                } catch (Throwable) {
-                    // Ignore and proceed to standard error response
-                }
-
-                $upstreamStatus = (int) ($response['status'] ?? 502);
+                $rawStatus = (int) ($response['status'] ?? 502);
+                $upstreamStatus = $rawStatus >= 500 ? 502 : $rawStatus;
                 $errorType = $response['error_type'] ?? (match (true) {
                     $upstreamStatus === 408 || $upstreamStatus === 504 => 'upstream_timeout',
                     str_contains(strtolower($response['error'] ?? ''), 'timeout') => 'upstream_timeout',
@@ -171,6 +252,7 @@ class GfwActivityService
                     'cached' => false,
                     'data' => [],
                     'error' => $response['error'] ?? 'Gagal mengambil data track aktivitas kapal dari GFW.',
+                    'message' => $response['error'] ?? 'Gagal mengambil data track aktivitas kapal dari GFW.',
                     'error_type' => $errorType,
                     'status' => $upstreamStatus,
                 ];

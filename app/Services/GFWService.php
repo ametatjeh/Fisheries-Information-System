@@ -748,17 +748,13 @@ class GFWService
                 $vId = ! empty($vesselRaw['id']) ? trim((string) $vesselRaw['id']) : null;
                 $ssvid = ! empty($vesselRaw['ssvid']) ? trim((string) $vesselRaw['ssvid']) : null;
 
-                // Resolve canonical vessel key: prioritize MMSI, then seen IMO, then GFW vessel ID / SSVID
-                $vKey = null;
-                if ($mmsi !== null && isset($vesselKeyByMmsi[$mmsi])) {
-                    $vKey = $vesselKeyByMmsi[$mmsi];
-                } elseif ($imo !== null && isset($vesselKeyByImo[$imo])) {
-                    $vKey = $vesselKeyByImo[$imo];
-                } elseif ($vId !== null && isset($vesselsById[$vId])) {
-                    $vKey = $vId;
-                } else {
-                    $vKey = $mmsi ?? ($imo ?? ($vId ?? ($ssvid ?? ($entry['id'] ?? null))));
+                // Resolve canonical GFW Vessel ID: prioritize vId (GFW Vessel UUID), then check seen GFW ID by MMSI, then fallback
+                $gfwVesselId = $vId ?? ($ssvid && ! ctype_digit($ssvid) ? $ssvid : null);
+                if (empty($gfwVesselId) && $mmsi !== null && isset($vesselKeyByMmsi[$mmsi])) {
+                    $gfwVesselId = $vesselKeyByMmsi[$mmsi];
                 }
+
+                $vKey = $gfwVesselId ?? ($mmsi ?? ($imo ?? ($ssvid ?? ($entry['id'] ?? null))));
 
                 if (empty($vKey)) {
                     continue;
@@ -789,6 +785,7 @@ class GFWService
                     $rawType = $vesselRaw['type'] ?? ($entry['vessel_type'] ?? null);
                     $vesselsById[$vKey] = [
                         'id' => $vKey,
+                        'gfw_vessel_id' => $gfwVesselId ?? $vKey,
                         'name' => ! empty($vesselRaw['name']) ? trim((string) $vesselRaw['name']) : null,
                         'mmsi' => ! empty($vesselRaw['ssvid']) ? trim((string) $vesselRaw['ssvid']) : (! empty($vesselRaw['mmsi']) ? trim((string) $vesselRaw['mmsi']) : null),
                         'ssvid' => ! empty($vesselRaw['ssvid']) ? trim((string) $vesselRaw['ssvid']) : null,
@@ -846,6 +843,10 @@ class GFWService
                     foreach ($localRecords as $lr) {
                         foreach ($vesselsById as $k => &$vRef) {
                             if ($k === $lr->gfw_vessel_id || (! empty($vRef['mmsi']) && $vRef['mmsi'] === $lr->mmsi)) {
+                                if (! empty($lr->gfw_vessel_id)) {
+                                    $vRef['gfw_vessel_id'] = $lr->gfw_vessel_id;
+                                    $vRef['id'] = $lr->gfw_vessel_id;
+                                }
                                 if ($vRef['length'] === null && $lr->length_m !== null) {
                                     $vRef['length'] = (float) $lr->length_m;
                                 }
@@ -935,7 +936,8 @@ class GFWService
                     $ssvidMatch = ! empty($v['ssvid']) && str_contains(strtolower((string) $v['ssvid']), $qLower);
                     $imoMatch = ! empty($v['imo']) && str_contains(strtolower((string) $v['imo']), $qLower);
                     $idMatch = ! empty($v['id']) && str_contains(strtolower((string) $v['id']), $qLower);
-                    if (! $nameMatch && ! $mmsiMatch && ! $ssvidMatch && ! $imoMatch && ! $idMatch) {
+                    $gfwIdMatch = ! empty($v['gfw_vessel_id']) && str_contains(strtolower((string) $v['gfw_vessel_id']), $qLower);
+                    if (! $nameMatch && ! $mmsiMatch && ! $ssvidMatch && ! $imoMatch && ! $idMatch && ! $gfwIdMatch) {
                         return false;
                     }
                 }
@@ -1350,22 +1352,44 @@ class GFWService
         }
 
         try {
+            // 1. Resolve identifier to canonical GFW Vessel ID if MMSI was provided
+            $targetGfwId = $cleanId;
+            $dbVessel = null;
+            try {
+                if (ctype_digit($cleanId)) {
+                    $dbVessel = GfwVessel::where('mmsi', $cleanId)->first();
+                }
+                if (! $dbVessel) {
+                    $dbVessel = GfwVessel::where('gfw_vessel_id', $cleanId)->first();
+                }
+                if (! $dbVessel && ! ctype_digit($cleanId)) {
+                    $dbVessel = GfwVessel::where('mmsi', $cleanId)->first();
+                }
+                if ($dbVessel) {
+                    $targetGfwId = $dbVessel->gfw_vessel_id;
+                }
+            } catch (Throwable) {
+                // Non-blocking fallback
+            }
+
             /** @var GfwActivityService $activityService */
             $activityService = app(GfwActivityService::class);
-            $result = $activityService->getVesselActivity($cleanId, [
+            $result = $activityService->getVesselActivity($targetGfwId, [
                 'start_date' => $startDate,
                 'end_date' => $endDate,
                 'refresh' => $options['refresh'] ?? false,
+                'local_only' => true,
             ]);
 
             if (! ($result['success'] ?? false)) {
-                $upstreamStatus = (int) ($result['status'] ?? 502);
-                $errorType = $result['error_type'] ?? 'upstream_error';
+                $upstreamStatus = (int) ($result['status'] ?? 404);
+                $errorType = $result['error_type'] ?? 'not_found';
+                $errorMessage = $result['message'] ?? ($result['error'] ?? 'Vessel GFW tidak ditemukan.');
 
                 return [
                     'success' => false,
-                    'message' => $result['error'] ?? 'Gagal mengambil data track kapal dari GFW.',
-                    'error' => $result['error'] ?? 'Gagal mengambil data track kapal dari GFW.',
+                    'message' => $errorMessage,
+                    'error' => $errorMessage,
                     'error_type' => $errorType,
                     'status' => $upstreamStatus,
                 ];
@@ -1456,6 +1480,9 @@ class GFWService
                     ],
                     'properties' => [
                         'vessel_id' => $cleanId,
+                        'gfw_vessel_id' => $targetGfwId,
+                        'mmsi' => $options['mmsi'] ?? null,
+                        'observed_at' => $p['timestamp'],
                         'point_index' => $i + 1,
                         'total_points' => $totalValidPoints,
                         'timestamp' => $p['timestamp'],
@@ -1534,16 +1561,20 @@ class GFWService
             // Fetch vessel details from database or options (Section 14 & 27)
             $dbVessel = null;
             try {
-                $dbVessel = GfwVessel::where('gfw_vessel_id', $cleanId)
+                $dbVessel = GfwVessel::where('gfw_vessel_id', $targetGfwId)
+                    ->orWhere('mmsi', $targetGfwId)
+                    ->orWhere('gfw_vessel_id', $cleanId)
                     ->orWhere('mmsi', $cleanId)
                     ->first();
             } catch (Throwable) {
                 // Non-blocking fallback
             }
 
+            $resolvedGfwId = $dbVessel?->gfw_vessel_id ?? $targetGfwId;
+
             $vesselInfo = [
-                'id' => $cleanId,
-                'gfw_vessel_id' => $cleanId,
+                'id' => $resolvedGfwId,
+                'gfw_vessel_id' => $resolvedGfwId,
                 'name' => $options['name'] ?? $dbVessel?->name ?? '—',
                 'mmsi' => $options['mmsi'] ?? $dbVessel?->mmsi ?? '—',
                 'ssvid' => $options['ssvid'] ?? $options['mmsi'] ?? $dbVessel?->mmsi ?? '—',
@@ -1555,11 +1586,18 @@ class GFWService
             ];
 
             $sufficient = $totalValidPoints >= 2;
+            $message = $sufficient
+                ? 'Data lintasan tersedia.'
+                : ($totalValidPoints === 1 ? 'Hanya 1 posisi tercatat dalam ZEE Aceh.' : 'Belum tersedia data track untuk vessel ini.');
 
             return [
                 'success' => true,
                 'vessel' => $vesselInfo,
-                'vessel_id' => $cleanId,
+                'vessel_id' => $resolvedGfwId,
+                'data' => [
+                    'type' => 'FeatureCollection',
+                    'features' => $pointFeatures,
+                ],
                 'track' => [
                     'type' => 'FeatureCollection',
                     'features' => $features,
@@ -1585,7 +1623,7 @@ class GFWService
                     'crs' => 'EPSG:4326',
                 ],
                 'sufficient' => $sufficient,
-                'message' => $sufficient ? 'Data lintasan tersedia.' : ($totalValidPoints === 1 ? 'Hanya 1 posisi tercatat dalam ZEE Aceh.' : 'Tidak ada data track untuk vessel dan periode yang dipilih.'),
+                'message' => $message,
                 'points_count' => $totalValidPoints,
                 'first_detected' => $firstDetected,
                 'last_detected' => $lastDetected,
