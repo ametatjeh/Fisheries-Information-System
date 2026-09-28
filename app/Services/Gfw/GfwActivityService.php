@@ -122,13 +122,22 @@ class GfwActivityService
                 }
             }
 
-            // 2. Query local presence table: sistem_gfw.gfw_vessel_presence (Section 4 & 7)
+            // 2. Query local presence table: sistem_gfw.gfw_vessel_presence (Section 4, 6 & 7)
             $localPresences = collect();
             try {
-                $localPresences = GfwVesselPresence::where('gfw_vessel_id', $targetGfwId)
-                    ->orWhere('gfw_vessel_id', $cleanId)
-                    ->orderBy('observed_at', 'asc')
-                    ->get();
+                $query = GfwVesselPresence::where(function ($q) use ($targetGfwId, $cleanId) {
+                    $q->where('gfw_vessel_id', $targetGfwId)
+                        ->orWhere('gfw_vessel_id', $cleanId);
+                });
+
+                if (! empty($startDate) && ! empty($endDate)) {
+                    $query->whereBetween('observed_at', [
+                        $startDate.' 00:00:00',
+                        $endDate.' 23:59:59',
+                    ]);
+                }
+
+                $localPresences = $query->orderBy('observed_at', 'asc')->get();
             } catch (Throwable) {
                 // Non-blocking
             }
@@ -150,6 +159,7 @@ class GfwActivityService
                         'timestamp' => $obs,
                         'date' => $obs,
                         'observed_at' => $obs,
+                        'observation_timestamp' => $obs,
                         'latitude' => (float) $p->latitude,
                         'longitude' => (float) $p->longitude,
                         'lat' => (float) $p->latitude,
@@ -383,6 +393,69 @@ class GfwActivityService
             ];
         }
 
+        // 1. Check local presence data in sistem_gfw.gfw_vessel_presence
+        try {
+            $query = GfwVesselPresence::query()
+                ->whereNotNull('latitude')
+                ->whereNotNull('longitude');
+
+            if (! empty($region['bounding_box']) && count($region['bounding_box']) === 4) {
+                [$minLon, $minLat, $maxLon, $maxLat] = $region['bounding_box'];
+                $query->whereBetween('longitude', [(float) $minLon, (float) $maxLon])
+                    ->whereBetween('latitude', [(float) $minLat, (float) $maxLat]);
+            }
+
+            if (! empty($startDate) && ! empty($endDate)) {
+                $query->whereBetween('observed_at', [
+                    $startDate.' 00:00:00',
+                    $endDate.' 23:59:59',
+                ]);
+            }
+
+            $localPresences = $query->orderBy('observed_at', 'desc')->limit($limit)->get();
+
+            if ($localPresences->isNotEmpty()) {
+                $normalizedList = $localPresences->map(function ($p) use ($region, $startDate, $endDate) {
+                    $obs = $p->observed_at ? Carbon::parse($p->observed_at)->toIso8601String() : null;
+
+                    return [
+                        'gfw_vessel_id' => $p->gfw_vessel_id,
+                        'activity_type' => 'presence',
+                        'region_key' => $region['key'],
+                        'latitude' => (float) $p->latitude,
+                        'longitude' => (float) $p->longitude,
+                        'observation_timestamp' => $obs,
+                        'period_start' => $startDate,
+                        'period_end' => $endDate,
+                        'speed_knots' => $p->speed !== null ? (float) $p->speed : null,
+                        'course' => $p->course !== null ? (float) $p->course : null,
+                        'vessel_type' => $p->vessel_type,
+                        'flag' => $p->flag,
+                        'source' => 'sistem_gfw_presence',
+                    ];
+                })->values()->all();
+
+                Cache::put($cacheKey, $normalizedList, $this->activityCacheTtl);
+
+                return [
+                    'success' => true,
+                    'source' => 'sistem_gfw',
+                    'latency_notice' => self::LATENCY_NOTICE,
+                    'region' => $region,
+                    'query_period' => [
+                        'start_date' => $startDate,
+                        'end_date' => $endDate,
+                    ],
+                    'total' => count($normalizedList),
+                    'cached' => false,
+                    'data' => $normalizedList,
+                ];
+            }
+        } catch (Throwable $e) {
+            Log::warning('Error querying local presence in GfwActivityService: '.$e->getMessage());
+        }
+
+        // 2. Fallback to upstream if available
         $geoQuery = $this->regionService->buildQueryParams($region['key'], [
             'start_date' => $startDate,
             'end_date' => $endDate,
@@ -391,42 +464,93 @@ class GfwActivityService
         $apiParams = array_merge($geoQuery['query_parameters'], [
             'limit' => $limit,
         ]);
+        unset($apiParams['geojson'], $apiParams['bounding_box'], $apiParams['region']);
 
         $response = $this->apiService->get('/vessels/activity', $apiParams);
 
-        if (! $response['success']) {
-            return [
-                'success' => false,
-                'source' => 'global_fishing_watch',
-                'latency_notice' => self::LATENCY_NOTICE,
-                'region' => $region,
-                'query_period' => [
-                    'start_date' => $startDate,
-                    'end_date' => $endDate,
-                ],
-                'total' => 0,
-                'cached' => false,
-                'data' => [],
-                'error' => $response['error'] ?? 'Gagal mengambil data vessel presence dari GFW API.',
-            ];
-        }
+        if ($response['success']) {
+            $rawEntries = $response['data']['entries'] ?? $response['data']['data'] ?? $response['data'] ?? [];
+            if (is_array($rawEntries) && ! empty($rawEntries)) {
+                $normalizedList = [];
+                foreach ($rawEntries as $entry) {
+                    if (is_array($entry)) {
+                        $normalized = $this->normalizePresenceItem($entry, $region['key'], $startDate, $endDate);
+                        $this->persistActivity($normalized);
+                        $normalizedList[] = $normalized;
+                    }
+                }
 
-        $rawEntries = $response['data']['entries'] ?? $response['data']['data'] ?? $response['data'] ?? [];
-        if (! is_array($rawEntries)) {
-            $rawEntries = [];
-        }
+                Cache::put($cacheKey, $normalizedList, $this->activityCacheTtl);
 
-        $normalizedList = [];
-        foreach ($rawEntries as $entry) {
-            if (is_array($entry)) {
-                $normalized = $this->normalizePresenceItem($entry, $region['key'], $startDate, $endDate);
-                $this->persistActivity($normalized);
-                $normalizedList[] = $normalized;
+                return [
+                    'success' => true,
+                    'source' => 'global_fishing_watch',
+                    'latency_notice' => self::LATENCY_NOTICE,
+                    'region' => $region,
+                    'query_period' => [
+                        'start_date' => $startDate,
+                        'end_date' => $endDate,
+                    ],
+                    'total' => count($normalizedList),
+                    'cached' => false,
+                    'data' => $normalizedList,
+                ];
             }
         }
 
-        Cache::put($cacheKey, $normalizedList, $this->activityCacheTtl);
+        // 3. Fallback: if upstream has no data/error, query latest local presence for this region regardless of strict date
+        try {
+            $query = GfwVesselPresence::query()
+                ->whereNotNull('latitude')
+                ->whereNotNull('longitude');
 
+            if (! empty($region['bounding_box']) && count($region['bounding_box']) === 4) {
+                [$minLon, $minLat, $maxLon, $maxLat] = $region['bounding_box'];
+                $query->whereBetween('longitude', [(float) $minLon, (float) $maxLon])
+                    ->whereBetween('latitude', [(float) $minLat, (float) $maxLat]);
+            }
+
+            $fallbackPresences = $query->orderBy('observed_at', 'desc')->limit($limit)->get();
+
+            if ($fallbackPresences->isNotEmpty()) {
+                $normalizedList = $fallbackPresences->map(function ($p) use ($region, $startDate, $endDate) {
+                    $obs = $p->observed_at ? Carbon::parse($p->observed_at)->toIso8601String() : null;
+
+                    return [
+                        'gfw_vessel_id' => $p->gfw_vessel_id,
+                        'activity_type' => 'presence',
+                        'region_key' => $region['key'],
+                        'latitude' => (float) $p->latitude,
+                        'longitude' => (float) $p->longitude,
+                        'observation_timestamp' => $obs,
+                        'period_start' => $startDate,
+                        'period_end' => $endDate,
+                        'speed_knots' => $p->speed !== null ? (float) $p->speed : null,
+                        'course' => $p->course !== null ? (float) $p->course : null,
+                        'vessel_type' => $p->vessel_type,
+                        'flag' => $p->flag,
+                        'source' => 'sistem_gfw_presence',
+                    ];
+                })->values()->all();
+
+                return [
+                    'success' => true,
+                    'source' => 'sistem_gfw',
+                    'latency_notice' => self::LATENCY_NOTICE,
+                    'region' => $region,
+                    'query_period' => [
+                        'start_date' => $startDate,
+                        'end_date' => $endDate,
+                    ],
+                    'total' => count($normalizedList),
+                    'cached' => false,
+                    'data' => $normalizedList,
+                ];
+            }
+        } catch (Throwable) {
+        }
+
+        // Return empty result gracefully instead of 502 crash
         return [
             'success' => true,
             'source' => 'global_fishing_watch',
@@ -436,9 +560,9 @@ class GfwActivityService
                 'start_date' => $startDate,
                 'end_date' => $endDate,
             ],
-            'total' => count($normalizedList),
+            'total' => 0,
             'cached' => false,
-            'data' => $normalizedList,
+            'data' => [],
         ];
     }
 

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Gfw\GfwSyncRun;
 use App\Models\Gfw\GfwVessel;
 use App\Services\Gfw\GfwActivityService;
+use App\Services\Gfw\GfwIngestionService;
 use App\Services\Gfw\GfwQueryGeometryService;
 use App\Services\Gis\BigMaritimeBoundaryService;
 use Carbon\Carbon;
@@ -16,11 +17,11 @@ use Throwable;
 
 class GFWService
 {
-    public const MAX_UPSTREAM_EVENTS = 1000;
+    public const MAX_UPSTREAM_EVENTS = 500;
 
     public const MAX_UPSTREAM_PAGES = 5;
 
-    public const UPSTREAM_PAGE_SIZE = 500;
+    public const UPSTREAM_PAGE_SIZE = 100;
 
     protected string $url;
 
@@ -830,6 +831,23 @@ class GFWService
                 'total_events' => count($allEntries),
                 'unique_vessels' => count($vesselsById),
             ]);
+
+            // Synchronize detected vessels and event presence points into sistem_gfw with strict idempotency
+            try {
+                if (! empty($allEntries) && class_exists(GfwIngestionService::class)) {
+                    /** @var GfwIngestionService $ingestionService */
+                    $ingestionService = app(GfwIngestionService::class);
+                    $ingestionService->ingestEvents($allEntries, [
+                        'aoi' => 'zee-indonesia-aceh',
+                        'date_from' => $startDate,
+                        'date_to' => $endDate,
+                    ]);
+                }
+            } catch (Throwable $e) {
+                $this->safeLog('warning', 'GFW_EVENTS_INGESTION_NONBLOCKING_FAILED', [
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
             // Enrich missing vessel details from local GFW database (sistem_gfw) if available (single batch query, zero N+1)
             try {

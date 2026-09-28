@@ -280,7 +280,7 @@ class GfwVesselMonitoringStage2Test extends TestCase
 
         Http::fake($responses);
 
-        $response = $this->actingAs($this->user)->getJson('/api/gfw/vessels/zee-indonesia-aceh');
+        $response = $this->actingAs($this->user)->getJson('/api/gfw/vessels/zee-indonesia-aceh?limit=100');
 
         $response->assertStatus(200);
         $response->assertJsonPath('pagination.pagination_truncated', true);

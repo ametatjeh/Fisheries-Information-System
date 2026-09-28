@@ -77,7 +77,7 @@ return [
     | Activity cache TTL is shorter than identity TTL (Default: 3600 seconds / 1 hour).
     |
     */
-    'activity_dataset' => env('GFW_ACTIVITY_DATASET', 'public-global-vessel-tracks:latest'),
+    'activity_dataset' => env('GFW_ACTIVITY_DATASET', 'public-global-vessel-presence:latest'),
     'activity_cache_ttl' => (int) env('GFW_ACTIVITY_CACHE_TTL', 3600),
 
     /*
@@ -89,9 +89,9 @@ return [
     |
     */
     'fishing_events_dataset' => env('GFW_FISHING_EVENTS_DATASET', 'public-global-fishing-events:latest'),
-    'encounters_dataset' => env('GFW_ENCOUNTERS_DATASET', 'public-global-encounters:latest'),
+    'encounters_dataset' => env('GFW_ENCOUNTERS_DATASET', 'public-global-encounters-events:latest'),
     'loitering_dataset' => env('GFW_LOITERING_DATASET', 'public-global-loitering-events:latest'),
-    'port_visits_dataset' => env('GFW_PORT_VISITS_DATASET', 'public-global-port-visits-c2:latest'),
+    'port_visits_dataset' => env('GFW_PORT_VISITS_DATASET', 'public-global-port-visits-events:latest'),
     'event_cache_ttl' => (int) env('GFW_EVENT_CACHE_TTL', 3600),
 
 ];

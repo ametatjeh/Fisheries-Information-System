@@ -79,6 +79,18 @@ class GfwApiService
     }
 
     /**
+     * Perform a POST request with JSON payload to the GFW API.
+     *
+     * @param  array<string, mixed>  $data
+     * @param  array<string, mixed>  $query
+     * @return array<string, mixed>
+     */
+    public function post(string $endpoint, array $data = [], array $query = []): array
+    {
+        return $this->send('POST', $endpoint, ['json' => $data, 'query' => $query]);
+    }
+
+    /**
      * Execute an HTTP request to GFW with safety, timeout, and logging.
      *
      * @param  array<string, mixed>  $options
@@ -109,7 +121,7 @@ class GfwApiService
             /** @var Response $response */
             $response = match ($methodLower) {
                 'get' => $client->get($endpoint, $options['query'] ?? []),
-                'post' => $client->post($endpoint, $options['json'] ?? []),
+                'post' => $client->withQueryParameters($options['query'] ?? [])->asJson()->post($endpoint, $options['json'] ?? $options['data'] ?? []),
                 default => $client->send($method, $endpoint, $options),
             };
 

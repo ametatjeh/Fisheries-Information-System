@@ -5,6 +5,8 @@ namespace App\Services\Gfw;
 use App\Models\Gfw\GfwSyncRun;
 use App\Models\Gfw\GfwVessel;
 use App\Models\Gfw\GfwVesselPresence;
+use App\Services\GFWService;
+use App\Services\Gis\BigMaritimeBoundaryService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -162,8 +164,8 @@ class GfwIngestionService
                 'aoi' => $aoi,
                 'date_from' => $startDate,
                 'date_to' => $endDate,
-                'dataset' => (string) config('gfw.activity_dataset', 'public-global-vessel-tracks:latest'),
-                'endpoint' => '/vessels/{id}/tracks',
+                'dataset' => (string) config('gfw.activity_dataset', 'public-global-vessel-presence:latest'),
+                'endpoint' => '/vessels',
                 'records_found' => $stats['presence_found'],
                 'records_saved' => $stats['new_presence'],
                 'status' => count($stats['errors']) > 0 ? 'partial' : 'success',
@@ -332,12 +334,221 @@ class GfwIngestionService
                 'course' => $course,
                 'vessel_type' => $track['vessel_type'] ?? null,
                 'flag' => $track['flag'] ?? null,
-                'source_dataset' => (string) config('gfw.activity_dataset', 'public-global-vessel-tracks:latest'),
+                'source_dataset' => (string) config('gfw.activity_dataset', 'public-global-vessel-presence:latest'),
                 'source_version' => 'v3',
             ]);
         }
 
         return ['status' => 'new'];
+    }
+
+    /**
+     * Synchronize vessel presence and identities directly from GFW Events with strict idempotency
+     * and spatial validation against BIG Layer 10 ZEE Aceh boundary.
+     *
+     * @param  list<array<string, mixed>>  $rawEntries
+     * @param  array<string, mixed>  $context
+     * @return array{
+     *     vessels_processed: int,
+     *     vessels_new: int,
+     *     vessels_updated: int,
+     *     presence_processed: int,
+     *     presence_new: int,
+     *     presence_duplicate: int,
+     *     presence_invalid: int,
+     *     presence_outside_aoi: int,
+     *     sync_run_id: int|null
+     * }
+     */
+    public function ingestEvents(array $rawEntries, array $context = [], bool $dryRun = false): array
+    {
+        $startedAt = now();
+        $aoi = (string) ($context['aoi'] ?? 'zee-indonesia-aceh');
+        $dateFrom = (string) ($context['date_from'] ?? now()->subDays(7)->toDateString());
+        $dateTo = (string) ($context['date_to'] ?? now()->toDateString());
+        $dataset = (string) ($context['dataset'] ?? config('gfw.fishing_events_dataset', 'public-global-fishing-events:latest'));
+
+        $stats = [
+            'vessels_processed' => 0,
+            'vessels_new' => 0,
+            'vessels_updated' => 0,
+            'presence_processed' => 0,
+            'presence_new' => 0,
+            'presence_duplicate' => 0,
+            'presence_invalid' => 0,
+            'presence_outside_aoi' => 0,
+            'sync_run_id' => null,
+        ];
+
+        if (empty($rawEntries)) {
+            return $stats;
+        }
+
+        /** @var BigMaritimeBoundaryService $bigService */
+        $bigService = app(BigMaritimeBoundaryService::class);
+        $bigGeomResult = $bigService->getAcehZeeGeometry();
+        $bigGeometry = ($bigGeomResult['success'] ?? false) ? ($bigGeomResult['geometry'] ?? null) : null;
+
+        $processedVesselIds = [];
+
+        foreach ($rawEntries as $entry) {
+            if (! is_array($entry)) {
+                $stats['presence_invalid']++;
+
+                continue;
+            }
+
+            $lat = isset($entry['position']['lat']) && is_numeric($entry['position']['lat']) ? (float) $entry['position']['lat'] : null;
+            $lon = isset($entry['position']['lon']) && is_numeric($entry['position']['lon']) ? (float) $entry['position']['lon'] : null;
+
+            if ($lat === null || $lon === null || $lat < -90.0 || $lat > 90.0 || $lon < -180.0 || $lon > 180.0) {
+                $stats['presence_invalid']++;
+
+                continue;
+            }
+
+            // Spatial check: strictly ensure inside BIG Layer 10 ZEE Aceh (or Query AOI if BIG geometry not loaded)
+            $isInside = $bigGeometry
+                ? $bigService->isPointInGeometry($lon, $lat, $bigGeometry)
+                : $this->queryGeometryService->isPointInPolygon($lon, $lat);
+
+            if (! $isInside) {
+                $stats['presence_outside_aoi']++;
+
+                continue;
+            }
+
+            $vesselRaw = $entry['vessel'] ?? [];
+            $vId = ! empty($vesselRaw['id']) ? trim((string) $vesselRaw['id']) : (! empty($entry['vesselId']) ? trim((string) $entry['vesselId']) : null);
+            $ssvid = ! empty($vesselRaw['ssvid']) ? trim((string) $vesselRaw['ssvid']) : null;
+            $mmsi = ! empty($vesselRaw['ssvid']) ? trim((string) $vesselRaw['ssvid']) : (! empty($vesselRaw['mmsi']) ? trim((string) $vesselRaw['mmsi']) : null);
+            $imo = ! empty($vesselRaw['imo']) ? trim((string) $vesselRaw['imo']) : null;
+
+            // Resolve canonical GFW Vessel UUID
+            $canonicalGfwId = $vId ?? ($ssvid && ! ctype_digit($ssvid) ? $ssvid : null);
+            if (empty($canonicalGfwId) && $mmsi !== null) {
+                try {
+                    $existingV = GfwVessel::where('mmsi', $mmsi)->first();
+                    if ($existingV && ! empty($existingV->gfw_vessel_id)) {
+                        $canonicalGfwId = $existingV->gfw_vessel_id;
+                    }
+                } catch (Throwable) {
+                }
+            }
+            if (empty($canonicalGfwId)) {
+                $canonicalGfwId = $mmsi ?? ($entry['id'] ?? null);
+            }
+
+            if (empty($canonicalGfwId)) {
+                $stats['presence_invalid']++;
+
+                continue;
+            }
+
+            // 1. Ingest/Update Vessel record in sistem_gfw.gfw_vessels (if not yet processed in this batch)
+            if (! isset($processedVesselIds[$canonicalGfwId])) {
+                $vesselData = [
+                    'gfw_vessel_id' => $canonicalGfwId,
+                    'name' => ! empty($vesselRaw['name']) ? trim((string) $vesselRaw['name']) : null,
+                    'ship_name' => ! empty($vesselRaw['name']) ? trim((string) $vesselRaw['name']) : null,
+                    'mmsi' => $mmsi,
+                    'imo' => $imo,
+                    'callsign' => ! empty($vesselRaw['callsign']) ? trim((string) $vesselRaw['callsign']) : null,
+                    'flag' => ! empty($vesselRaw['flag']) ? strtoupper(trim((string) $vesselRaw['flag'])) : null,
+                    'vessel_type' => GFWService::normalizeVesselType($vesselRaw['type'] ?? ($entry['vessel_type'] ?? null)),
+                    'gear_type' => $vesselRaw['gear'] ?? ($vesselRaw['gear_type'] ?? null),
+                    'length_m' => isset($vesselRaw['length']) && is_numeric($vesselRaw['length']) ? (float) $vesselRaw['length'] : (isset($vesselRaw['lengthM']) && is_numeric($vesselRaw['lengthM']) ? (float) $vesselRaw['lengthM'] : null),
+                    'tonnage_gt' => isset($vesselRaw['tonnage']) && is_numeric($vesselRaw['tonnage']) ? (float) $vesselRaw['tonnage'] : (isset($vesselRaw['tonnageGt']) && is_numeric($vesselRaw['tonnageGt']) ? (float) $vesselRaw['tonnageGt'] : null),
+                    'raw_data' => $entry,
+                ];
+
+                $vRes = $this->ingestVessel($vesselData, $dryRun);
+                if ($vRes['status'] === 'new') {
+                    $stats['vessels_new']++;
+                } elseif ($vRes['status'] === 'updated') {
+                    $stats['vessels_updated']++;
+                }
+                $stats['vessels_processed']++;
+                $processedVesselIds[$canonicalGfwId] = true;
+            }
+
+            // 2. Ingest Presence record in sistem_gfw.gfw_vessel_presence (Idempotent)
+            $obsTimeStr = $entry['end'] ?? ($entry['start'] ?? null);
+            if (! $obsTimeStr) {
+                $stats['presence_invalid']++;
+
+                continue;
+            }
+
+            try {
+                $observedAt = Carbon::parse($obsTimeStr);
+            } catch (Throwable) {
+                $stats['presence_invalid']++;
+
+                continue;
+            }
+
+            $speed = isset($entry['speed']) && is_numeric($entry['speed'])
+                ? round((float) $entry['speed'], 2)
+                : (isset($entry['speedKnots']) && is_numeric($entry['speedKnots']) ? round((float) $entry['speedKnots'], 2) : null);
+
+            $course = isset($entry['course']) && is_numeric($entry['course'])
+                ? round((float) $entry['course'], 2)
+                : (isset($entry['heading']) && is_numeric($entry['heading']) ? round((float) $entry['heading'], 2) : null);
+
+            // Deduplication on (gfw_vessel_id, observed_at, latitude, longitude)
+            $existingPresence = GfwVesselPresence::where('gfw_vessel_id', $canonicalGfwId)
+                ->where('observed_at', $observedAt)
+                ->where('latitude', round($lat, 6))
+                ->where('longitude', round($lon, 6))
+                ->first();
+
+            $stats['presence_processed']++;
+
+            if ($existingPresence) {
+                $stats['presence_duplicate']++;
+
+                continue;
+            }
+
+            if (! $dryRun) {
+                GfwVesselPresence::create([
+                    'gfw_vessel_id' => $canonicalGfwId,
+                    'aoi' => $aoi,
+                    'observed_at' => $observedAt,
+                    'latitude' => round($lat, 6),
+                    'longitude' => round($lon, 6),
+                    'speed' => $speed,
+                    'course' => $course,
+                    'vessel_type' => GFWService::normalizeVesselType($vesselRaw['type'] ?? ($entry['vessel_type'] ?? null)),
+                    'flag' => ! empty($vesselRaw['flag']) ? strtoupper(trim((string) $vesselRaw['flag'])) : null,
+                    'source_dataset' => $dataset,
+                    'source_version' => 'v3',
+                ]);
+            }
+
+            $stats['presence_new']++;
+        }
+
+        // Record Sync Run in sistem_gfw.gfw_sync_runs (if live mode and records were processed)
+        if (! $dryRun && ($stats['presence_processed'] > 0 || $stats['vessels_processed'] > 0)) {
+            $syncRun = $this->recordSyncRun([
+                'aoi' => $aoi,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
+                'dataset' => $dataset,
+                'endpoint' => '/v3/events',
+                'records_found' => count($rawEntries),
+                'records_saved' => $stats['presence_new'],
+                'status' => 'success',
+                'started_at' => $startedAt,
+                'finished_at' => now(),
+            ]);
+
+            $stats['sync_run_id'] = $syncRun?->id;
+        }
+
+        return $stats;
     }
 
     /**
@@ -352,8 +563,8 @@ class GfwIngestionService
                 'aoi' => $auditData['aoi'] ?? 'zee-indonesia-aceh',
                 'date_from' => $auditData['date_from'],
                 'date_to' => $auditData['date_to'],
-                'dataset' => $auditData['dataset'] ?? 'public-global-vessel-tracks:latest',
-                'endpoint' => $auditData['endpoint'] ?? '/vessels/{id}/tracks',
+                'dataset' => $auditData['dataset'] ?? 'public-global-vessel-presence:latest',
+                'endpoint' => $auditData['endpoint'] ?? '/vessels',
                 'records_found' => (int) ($auditData['records_found'] ?? 0),
                 'records_saved' => (int) ($auditData['records_saved'] ?? 0),
                 'status' => in_array($auditData['status'] ?? '', ['running', 'success', 'partial', 'failed']) ? $auditData['status'] : 'running',

@@ -360,10 +360,10 @@
             </div>
         </div>
 
-        {{-- Main Map with Floating Layer Controls (Dark Theme) --}}
+        {{-- Main Map with Floating Layer Controls (Light Mode Map & Vertically Resizable) --}}
         <div class="bg-slate-900/90 p-3 rounded-2xl shadow-sm border border-slate-800 relative">
             {{-- Map Canvas --}}
-            <div id="gfw-dashboard-map" class="w-full h-[540px] rounded-xl overflow-hidden bg-slate-950 z-0"></div>
+            <div id="gfw-dashboard-map" class="w-full rounded-xl overflow-hidden bg-slate-100 z-0 transition-[height] duration-75" style="height: 540px; min-height: 380px; max-height: 1400px;"></div>
 
             {{-- Floating Layer Control Box --}}
             <div class="absolute top-6 right-6 z-10 bg-slate-900/95 text-white text-xs p-3.5 rounded-xl backdrop-blur-md border border-slate-700/80 shadow-2xl space-y-2.5 max-w-xs">
@@ -405,6 +405,35 @@
                         <span class="text-sky-300">Port Visits</span>
                     </label>
                 </div>
+
+                {{-- Quick Height Presets inside Layer Controls --}}
+                <div class="pt-2 border-t border-slate-700/60 space-y-1.5">
+                    <div class="flex items-center justify-between text-[11px]">
+                        <span class="font-bold text-slate-200 flex items-center gap-1">
+                            <span>↕️</span>
+                            <span>Tinggi Vertikal Peta</span>
+                        </span>
+                        <span id="map-height-badge" class="font-mono text-[10px] text-indigo-300 font-bold">540px</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-1">
+                        <button type="button" data-map-height="540" class="btn-preset-map-height py-1 px-1 rounded text-[10px] font-semibold bg-indigo-600 text-white transition border border-indigo-500 text-center" title="Tinggi Standar (540px)">540px</button>
+                        <button type="button" data-map-height="750" class="btn-preset-map-height py-1 px-1 rounded text-[10px] font-semibold bg-slate-800 hover:bg-indigo-600 hover:text-white text-slate-300 transition border border-slate-700 text-center" title="Tinggi Luas (750px)">750px</button>
+                        <button type="button" data-map-height="960" class="btn-preset-map-height py-1 px-1 rounded text-[10px] font-semibold bg-slate-800 hover:bg-indigo-600 hover:text-white text-slate-300 transition border border-slate-700 text-center" title="Tinggi Maksimal (960px)">960px</button>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Interactive Vertical Resize Handle Bar --}}
+            <div id="map-resize-handle" class="group w-full py-2 mt-1.5 flex items-center justify-center cursor-row-resize select-none rounded-lg bg-slate-800/40 hover:bg-slate-800/90 active:bg-indigo-950/70 border border-slate-700/50 hover:border-indigo-500/60 transition-all shadow-xs" title="Klik dan geser ke atas/bawah untuk mengubah tinggi vertikal peta secara bebas">
+                <div class="flex items-center gap-3 text-slate-400 group-hover:text-indigo-300 text-[11px] font-medium tracking-wide">
+                    <span class="inline-block w-12 h-1 rounded-full bg-slate-600 group-hover:bg-indigo-400 transition-colors"></span>
+                    <span class="flex items-center gap-1.5">
+                        <span class="text-xs">↕️</span>
+                        <span class="font-semibold text-slate-300 group-hover:text-white transition-colors">Tarik Vertikal</span>
+                        <span id="map-height-display" class="font-mono text-[10px] text-indigo-300 font-bold px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700/80">540px</span>
+                    </span>
+                    <span class="inline-block w-12 h-1 rounded-full bg-slate-600 group-hover:bg-indigo-400 transition-colors"></span>
+                </div>
             </div>
 
             {{-- Map Legend Footer --}}
@@ -416,7 +445,7 @@
                     <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Encounter</span>
                     <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span> Port Visit</span>
                     <span class="flex items-center gap-1"><span class="w-3.5 h-1 bg-amber-500 rounded"></span> Vessel Track</span>
-                    <span class="flex items-center gap-1"><span class="w-3.5 h-1 bg-blue-500 rounded"></span> Garis ZEE (BIG Layer 10)</span>
+                    <span class="flex items-center gap-1"><span class="w-3.5 h-1 bg-sky-600 rounded"></span> Garis ZEE (BIG Layer 10)</span>
                 </div>
                 <div class="text-slate-400 font-mono text-[10px]">
                     Proyeksi: EPSG:4326 | Sumber Garis: Badan Informasi Geospasial (BIG Layer 10)
@@ -753,7 +782,7 @@
             const btnAlertResolve = document.getElementById('btn-alert-resolve');
             const btnModalFlyMap = document.getElementById('btn-modal-fly-map');
 
-            // Initialize MapLibre Map with ESRI World Dark Gray Base
+            // Initialize MapLibre GL JS (Light Map Mode with OSM raster tiles)
             function initMap() {
                 map = new maplibregl.Map({
                     container: 'gfw-dashboard-map',
@@ -761,22 +790,22 @@
                         version: 8,
                         glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
                         sources: {
-                            'esri-dark': {
+                            'osm-tiles': {
                                 type: 'raster',
                                 tiles: [
-                                    'https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'
+                                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
                                 ],
                                 tileSize: 256,
-                                attribution: '&copy; Esri, HERE, Garmin, © OpenStreetMap'
+                                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors &bull; BIG Layer 10 ZEE Aceh'
                             }
                         },
                         layers: [
                             {
-                                id: 'esri-dark-layer',
+                                id: 'osm-tiles-layer',
                                 type: 'raster',
-                                source: 'esri-dark',
+                                source: 'osm-tiles',
                                 minzoom: 0,
-                                maxzoom: 16
+                                maxzoom: 19
                             }
                         ]
                     },
@@ -787,11 +816,124 @@
 
                 map.addControl(new maplibregl.NavigationControl(), 'top-left');
                 map.addControl(new maplibregl.ScaleControl({ maxWidth: 100, unit: 'nautical' }), 'bottom-left');
+                map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
+
+                initMapVerticalResize();
 
                 map.on('load', () => {
                     loadBigZeeBoundaries();
                     fetchDashboardData();
                 });
+            }
+
+            // Initialize Vertical Resizing for Map Canvas
+            function initMapVerticalResize() {
+                const mapContainer = document.getElementById('gfw-dashboard-map');
+                const resizeHandle = document.getElementById('map-resize-handle');
+                const heightDisplay = document.getElementById('map-height-display');
+                const heightBadge = document.getElementById('map-height-badge');
+                const presetButtons = document.querySelectorAll('.btn-preset-map-height');
+                const MIN_HEIGHT = 380;
+                const MAX_HEIGHT = 1400;
+
+                const applyHeight = (height, save = true) => {
+                    const clamped = Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, Math.round(height)));
+                    mapContainer.style.height = `${clamped}px`;
+                    if (heightDisplay) heightDisplay.textContent = `${clamped}px`;
+                    if (heightBadge) heightBadge.textContent = `${clamped}px`;
+
+                    presetButtons.forEach(btn => {
+                        const h = parseInt(btn.dataset.mapHeight, 10);
+                        if (Math.abs(h - clamped) < 25) {
+                            btn.classList.add('bg-indigo-600', 'text-white', 'border-indigo-500');
+                            btn.classList.remove('bg-slate-800', 'text-slate-300', 'border-slate-700');
+                        } else {
+                            btn.classList.remove('bg-indigo-600', 'text-white', 'border-indigo-500');
+                            btn.classList.add('bg-slate-800', 'text-slate-300', 'border-slate-700');
+                        }
+                    });
+
+                    if (save) {
+                        try {
+                            localStorage.setItem('gfw_dashboard_map_height', clamped);
+                        } catch (e) {}
+                    }
+
+                    if (map) {
+                        map.resize();
+                    }
+                };
+
+                // Restore saved height
+                try {
+                    const savedHeight = parseInt(localStorage.getItem('gfw_dashboard_map_height'), 10);
+                    if (savedHeight && !isNaN(savedHeight) && savedHeight >= MIN_HEIGHT && savedHeight <= MAX_HEIGHT) {
+                        applyHeight(savedHeight, false);
+                    }
+                } catch (e) {}
+
+                // Preset button listeners
+                presetButtons.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const targetHeight = parseInt(btn.dataset.mapHeight, 10);
+                        if (targetHeight) applyHeight(targetHeight, true);
+                    });
+                });
+
+                // Drag handle logic
+                if (resizeHandle) {
+                    let startY = 0;
+                    let startHeight = 0;
+                    let isDragging = false;
+
+                    const onMouseMove = (e) => {
+                        if (!isDragging) return;
+                        const clientY = e.clientY ?? (e.touches && e.touches[0] ? e.touches[0].clientY : null);
+                        if (clientY === null || clientY === undefined) return;
+                        const deltaY = clientY - startY;
+                        applyHeight(startHeight + deltaY, false);
+                    };
+
+                    const onMouseUp = () => {
+                        if (!isDragging) return;
+                        isDragging = false;
+                        document.body.style.cursor = '';
+                        document.body.style.userSelect = '';
+                        window.removeEventListener('mousemove', onMouseMove);
+                        window.removeEventListener('mouseup', onMouseUp);
+                        window.removeEventListener('touchmove', onMouseMove);
+                        window.removeEventListener('touchend', onMouseUp);
+
+                        const finalHeight = parseInt(mapContainer.style.height, 10);
+                        if (finalHeight) {
+                            try { localStorage.setItem('gfw_dashboard_map_height', finalHeight); } catch (e) {}
+                        }
+                    };
+
+                    const onMouseDown = (e) => {
+                        isDragging = true;
+                        startY = e.clientY ?? (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+                        startHeight = mapContainer.offsetHeight;
+                        document.body.style.cursor = 'row-resize';
+                        document.body.style.userSelect = 'none';
+                        window.addEventListener('mousemove', onMouseMove, { passive: true });
+                        window.addEventListener('mouseup', onMouseUp);
+                        window.addEventListener('touchmove', onMouseMove, { passive: true });
+                        window.addEventListener('touchend', onMouseUp);
+                    };
+
+                    resizeHandle.addEventListener('mousedown', onMouseDown);
+                    resizeHandle.addEventListener('touchstart', onMouseDown, { passive: true });
+                }
+
+                // ResizeObserver ensures map.resize() is called smoothly on any container dimension change
+                if (window.ResizeObserver && mapContainer) {
+                    const ro = new ResizeObserver(() => {
+                        if (map) map.resize();
+                    });
+                    ro.observe(mapContainer);
+                }
             }
 
             // Load BIG ZEE Aceh boundary lines and polygon (Single authoritative source: BIG Layer 10)
@@ -805,13 +947,13 @@
                             id: 'big-zee-fill',
                             type: 'fill',
                             source: 'big-zee-poly',
-                            paint: { 'fill-color': '#0284c7', 'fill-opacity': 0.12 }
+                            paint: { 'fill-color': '#0284c7', 'fill-opacity': 0.05 }
                         });
                         map.addLayer({
                             id: 'big-zee-outline',
                             type: 'line',
                             source: 'big-zee-poly',
-                            paint: { 'line-color': '#38bdf8', 'line-width': 1.5, 'line-opacity': 0.6 }
+                            paint: { 'line-color': '#0284c7', 'line-width': 1.5, 'line-opacity': 0.6 }
                         });
                     }
                 } catch (e) {
@@ -827,7 +969,7 @@
                             id: 'big-zee-aceh-line',
                             type: 'line',
                             source: 'big-zee-line',
-                            paint: { 'line-color': '#0ea5e9', 'line-width': 2.5 }
+                            paint: { 'line-color': '#0284c7', 'line-width': 2.5 }
                         });
                     }
                 } catch (e) {
@@ -987,7 +1129,7 @@
                             'circle-radius': ['step', ['get', 'point_count'], 14, 10, 20, 30, 26],
                             'circle-opacity': 0.9,
                             'circle-stroke-width': 2,
-                            'circle-stroke-color': '#0f172a'
+                            'circle-stroke-color': '#ffffff'
                         }
                     });
 
@@ -1011,7 +1153,7 @@
                         source: 'dashboard-vessels-src',
                         filter: ['!', ['has', 'point_count']],
                         paint: {
-                            'circle-radius': 5.5,
+                            'circle-radius': 6,
                             'circle-color': [
                                 'match',
                                 ['get', 'type'],
@@ -1020,10 +1162,10 @@
                                 'Tanker', '#f59e0b',
                                 'Bunker', '#f59e0b',
                                 'Cargo', '#0ea5e9',
-                                '#94a3b8'
+                                '#64748b'
                             ],
-                            'circle-stroke-width': 1.5,
-                            'circle-stroke-color': '#0f172a'
+                            'circle-stroke-width': 1.8,
+                            'circle-stroke-color': '#ffffff'
                         }
                     });
 
@@ -1093,10 +1235,10 @@
                         source: 'dashboard-events-src',
                         filter: ['==', ['get', 'type'], 'fishing'],
                         paint: {
-                            'circle-radius': 5.5,
+                            'circle-radius': 6,
                             'circle-color': '#10b981',
-                            'circle-stroke-width': 1.5,
-                            'circle-stroke-color': '#0f172a'
+                            'circle-stroke-width': 1.8,
+                            'circle-stroke-color': '#ffffff'
                         }
                     });
 
@@ -1107,10 +1249,10 @@
                         source: 'dashboard-events-src',
                         filter: ['==', ['get', 'type'], 'loitering'],
                         paint: {
-                            'circle-radius': 5.5,
+                            'circle-radius': 6,
                             'circle-color': '#a855f7',
-                            'circle-stroke-width': 1.5,
-                            'circle-stroke-color': '#0f172a'
+                            'circle-stroke-width': 1.8,
+                            'circle-stroke-color': '#ffffff'
                         }
                     });
 
@@ -1160,6 +1302,7 @@
                 });
 
                 optTrack?.addEventListener('change', e => {
+                    setVis('vessel-track-line-casing', e.target.checked);
                     setVis('vessel-track-line', e.target.checked);
                     setVis('vessel-track-points', e.target.checked);
                 });
@@ -1492,21 +1635,42 @@
                     trackFirstSeen.textContent = formatDate(json.first_detected);
                     trackLastSeen.textContent = formatDate(json.last_detected);
 
-                    // Add track to map with distinct amber line
+                    // Add track to map with distinct casing and amber core
                     if (map.getSource('dashboard-track-src')) {
                         map.getSource('dashboard-track-src').setData(json.track);
                     } else {
                         map.addSource('dashboard-track-src', { type: 'geojson', data: json.track });
 
+                        // Track line casing for maximum contrast on light basemap
+                        map.addLayer({
+                            id: 'vessel-track-line-casing',
+                            type: 'line',
+                            source: 'dashboard-track-src',
+                            filter: ['in', '$type', 'LineString', 'MultiLineString'],
+                            layout: {
+                                'line-join': 'round',
+                                'line-cap': 'round'
+                            },
+                            paint: {
+                                'line-color': '#78350f',
+                                'line-width': 5.5,
+                                'line-opacity': 0.85
+                            }
+                        });
+
                         map.addLayer({
                             id: 'vessel-track-line',
                             type: 'line',
                             source: 'dashboard-track-src',
-                            filter: ['==', '$type', 'LineString'],
+                            filter: ['in', '$type', 'LineString', 'MultiLineString'],
+                            layout: {
+                                'line-join': 'round',
+                                'line-cap': 'round'
+                            },
                             paint: {
                                 'line-color': '#f59e0b',
-                                'line-width': 3,
-                                'line-opacity': 0.95
+                                'line-width': 3.5,
+                                'line-opacity': 1.0
                             }
                         });
 
@@ -1516,9 +1680,9 @@
                             source: 'dashboard-track-src',
                             filter: ['==', '$type', 'Point'],
                             paint: {
-                                'circle-radius': 4,
-                                'circle-color': '#d97706',
-                                'circle-stroke-width': 1.5,
+                                'circle-radius': 4.5,
+                                'circle-color': '#0284c7',
+                                'circle-stroke-width': 1.8,
                                 'circle-stroke-color': '#ffffff'
                             }
                         });

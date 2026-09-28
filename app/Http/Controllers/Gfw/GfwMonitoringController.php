@@ -25,8 +25,19 @@ class GfwMonitoringController extends Controller
         $selectedRegion = $this->regionService->getRegion($selectedRegionKey) ?? $this->regionService->getAcehRegion();
 
         $timezone = config('app.timezone', 'Asia/Jakarta');
-        $defaultEnd = Carbon::now($timezone)->subDays(3)->toDateString();
-        $defaultStart = Carbon::now($timezone)->subDays(17)->toDateString();
+        $latestObs = null;
+        try {
+            $latestObs = \App\Models\Gfw\GfwVesselPresence::max('observed_at');
+        } catch (\Throwable) {
+        }
+
+        if ($latestObs) {
+            $defaultEnd = Carbon::parse($latestObs, $timezone)->toDateString();
+            $defaultStart = Carbon::parse($latestObs, $timezone)->subDays(6)->toDateString();
+        } else {
+            $defaultEnd = Carbon::now($timezone)->subDays(3)->toDateString();
+            $defaultStart = Carbon::now($timezone)->subDays(17)->toDateString();
+        }
 
         $startDate = $request->query('start_date', $defaultStart);
         $endDate = $request->query('end_date', $defaultEnd);

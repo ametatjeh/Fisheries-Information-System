@@ -234,62 +234,157 @@ class GfwEventService
             ];
         }
 
-        $geoQuery = $this->regionService->buildQueryParams($region['key'], [
-            'start_date' => $startDate,
-            'end_date' => $endDate,
-        ]);
+        // 1. Check local events in gfw_events table first
+        try {
+            $localQuery = GfwEvent::query()->where('event_type', $eventType);
 
-        $apiParams = array_merge($geoQuery['query_parameters'], [
-            'datasets[0]' => $dataset,
-            'start-date' => $startDate,
-            'end-date' => $endDate,
-            'limit' => $limit,
-            'offset' => (int) ($options['offset'] ?? 0),
-        ]);
+            if (! empty($region['bounding_box']) && count($region['bounding_box']) === 4) {
+                [$minLon, $minLat, $maxLon, $maxLat] = $region['bounding_box'];
+                $localQuery->whereBetween('longitude', [(float) $minLon, (float) $maxLon])
+                    ->whereBetween('latitude', [(float) $minLat, (float) $maxLat]);
+            }
 
-        if ($vesselId) {
-            $apiParams['vessels[0]'] = $vesselId;
+            if (! empty($startDate) && ! empty($endDate)) {
+                $localQuery->where(function ($q) use ($startDate, $endDate) {
+                    $q->whereBetween('start_time', [
+                        $startDate.' 00:00:00',
+                        $endDate.' 23:59:59',
+                    ]);
+                });
+            }
+
+            if ($vesselId) {
+                $localQuery->where('gfw_vessel_id', $vesselId);
+            }
+
+            $localEvents = $localQuery->orderBy('start_time', 'desc')->limit($limit)->get();
+
+            // If empty for this specific date range, fallback to latest events in this region
+            if ($localEvents->isEmpty() && empty($vesselId)) {
+                $fallbackQuery = GfwEvent::query()->where('event_type', $eventType);
+                if (! empty($region['bounding_box']) && count($region['bounding_box']) === 4) {
+                    [$minLon, $minLat, $maxLon, $maxLat] = $region['bounding_box'];
+                    $fallbackQuery->whereBetween('longitude', [(float) $minLon, (float) $maxLon])
+                        ->whereBetween('latitude', [(float) $minLat, (float) $maxLat]);
+                }
+                $localEvents = $fallbackQuery->orderBy('start_time', 'desc')->limit($limit)->get();
+            }
+
+            if ($localEvents->isNotEmpty()) {
+                $normalizedList = $localEvents->map(fn ($e) => [
+                    'gfw_event_id' => $e->gfw_event_id,
+                    'event_type' => $e->event_type,
+                    'gfw_vessel_id' => $e->gfw_vessel_id,
+                    'secondary_vessel_id' => $e->secondary_vessel_id,
+                    'region_key' => $e->region_key ?? $region['key'],
+                    'latitude' => (float) $e->latitude,
+                    'longitude' => (float) $e->longitude,
+                    'start_time' => $e->start_time ? Carbon::parse($e->start_time)->toIso8601String() : null,
+                    'end_time' => $e->end_time ? Carbon::parse($e->end_time)->toIso8601String() : null,
+                    'duration_hours' => $e->duration_hours !== null ? (float) $e->duration_hours : null,
+                    'confidence' => $e->confidence,
+                    'port_name' => $e->port_name,
+                    'source' => 'sistem_gfw_events',
+                ])->all();
+
+                Cache::put($cacheKey, $normalizedList, $this->eventCacheTtl);
+
+                return [
+                    'success' => true,
+                    'source' => 'sistem_gfw',
+                    'event_type' => $eventType,
+                    'semantic_label' => $semanticLabel,
+                    'semantic_disclaimer' => $semanticDisclaimer,
+                    'region' => $region,
+                    'query_period' => [
+                        'start_date' => $startDate,
+                        'end_date' => $endDate,
+                    ],
+                    'total' => count($normalizedList),
+                    'cached' => false,
+                    'data' => $normalizedList,
+                ];
+            }
+        } catch (Throwable $e) {
+            Log::warning('Error querying local events in GfwEventService: '.$e->getMessage());
         }
 
-        unset($apiParams['start_date'], $apiParams['end_date']);
-
-        $response = $this->apiService->get('/events', $apiParams);
-
-        if (! $response['success']) {
-            return [
-                'success' => false,
-                'source' => 'global_fishing_watch',
-                'event_type' => $eventType,
-                'semantic_label' => $semanticLabel,
-                'semantic_disclaimer' => $semanticDisclaimer,
-                'region' => $region,
-                'query_period' => [
-                    'start_date' => $startDate,
-                    'end_date' => $endDate,
+        // 2. Query upstream GFW API if needed
+        $geometry = null;
+        if (! empty($region['polygon'])) {
+            $geometry = $region['polygon'];
+        } elseif (! empty($region['bounding_box']) && count($region['bounding_box']) === 4) {
+            [$minLon, $minLat, $maxLon, $maxLat] = $region['bounding_box'];
+            $geometry = [
+                'type' => 'Polygon',
+                'coordinates' => [
+                    [
+                        [(float) $minLon, (float) $minLat],
+                        [(float) $minLon, (float) $maxLat],
+                        [(float) $maxLon, (float) $maxLat],
+                        [(float) $maxLon, (float) $minLat],
+                        [(float) $minLon, (float) $minLat],
+                    ],
                 ],
-                'total' => 0,
-                'cached' => false,
-                'data' => [],
-                'error' => $response['error'] ?? "Gagal mengambil data {$semanticLabel} dari GFW API.",
             ];
         }
 
-        $rawEntries = $response['data']['entries'] ?? $response['data']['data'] ?? $response['data'] ?? [];
-        if (! is_array($rawEntries)) {
-            $rawEntries = [];
+        $queryParams = [
+            'limit' => $limit,
+            'offset' => (int) ($options['offset'] ?? 0),
+        ];
+        if ($vesselId) {
+            $queryParams['vessels[0]'] = $vesselId;
         }
 
-        $normalizedList = [];
-        foreach ($rawEntries as $entry) {
-            if (is_array($entry)) {
-                $normalized = $this->normalizeEvent($entry, $eventType, $region['key']);
-                $this->persistEvent($normalized);
-                $normalizedList[] = $normalized;
+        if ($geometry !== null) {
+            $postPayload = [
+                'datasets' => [$dataset],
+                'startDate' => $startDate,
+                'endDate' => $endDate,
+                'geometry' => $geometry,
+            ];
+            $response = $this->apiService->post('/events', $postPayload, $queryParams);
+        } else {
+            $queryParams['datasets[0]'] = $dataset;
+            $queryParams['start-date'] = $startDate;
+            $queryParams['end-date'] = $endDate;
+            $response = $this->apiService->get('/events', $queryParams);
+        }
+
+        if ($response['success']) {
+            $rawEntries = $response['data']['entries'] ?? $response['data']['data'] ?? $response['data'] ?? [];
+            if (is_array($rawEntries) && ! empty($rawEntries)) {
+                $normalizedList = [];
+                foreach ($rawEntries as $entry) {
+                    if (is_array($entry)) {
+                        $normalized = $this->normalizeEvent($entry, $eventType, $region['key']);
+                        $this->persistEvent($normalized);
+                        $normalizedList[] = $normalized;
+                    }
+                }
+
+                Cache::put($cacheKey, $normalizedList, $this->eventCacheTtl);
+
+                return [
+                    'success' => true,
+                    'source' => 'global_fishing_watch',
+                    'event_type' => $eventType,
+                    'semantic_label' => $semanticLabel,
+                    'semantic_disclaimer' => $semanticDisclaimer,
+                    'region' => $region,
+                    'query_period' => [
+                        'start_date' => $startDate,
+                        'end_date' => $endDate,
+                    ],
+                    'total' => count($normalizedList),
+                    'cached' => false,
+                    'data' => $normalizedList,
+                ];
             }
         }
 
-        Cache::put($cacheKey, $normalizedList, $this->eventCacheTtl);
-
+        // 3. Graceful empty response (prevents 502 Bad Gateway)
         return [
             'success' => true,
             'source' => 'global_fishing_watch',
@@ -301,9 +396,9 @@ class GfwEventService
                 'start_date' => $startDate,
                 'end_date' => $endDate,
             ],
-            'total' => count($normalizedList),
+            'total' => 0,
             'cached' => false,
-            'data' => $normalizedList,
+            'data' => [],
         ];
     }
 

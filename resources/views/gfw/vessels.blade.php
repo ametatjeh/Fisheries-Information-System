@@ -408,18 +408,66 @@
             <span id="active-filter-indicator" class="text-[11px] text-slate-400 hidden"></span>
         </div>
 
-        {{-- Main Map and Vessel Detail Layout --}}
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {{-- Map Container (8 cols) --}}
-            <div class="lg:col-span-8 space-y-3">
+        {{-- Main Map and Vessel Detail Layout (Vertically & Horizontally Resizable) --}}
+        <div id="vessels-map-detail-layout" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {{-- Map Container (8 cols by default, expandable to 10 or 12 cols) --}}
+            <div id="vessels-map-col" class="lg:col-span-8 space-y-3 transition-[grid-column] duration-200">
                 <div class="bg-slate-900/90 rounded-2xl p-3 shadow-sm border border-slate-800 relative">
-                    {{-- Map View Canvas --}}
-                    <div id="gfw-vessels-map" class="w-full h-[520px] rounded-xl overflow-hidden bg-slate-950 z-0"></div>
+                    {{-- Map Dimension Header Controls (Horizontal & Vertical Resize) --}}
+                    <div class="flex flex-wrap items-center justify-between gap-2 pb-2.5 mb-1.5 border-b border-slate-800 text-xs">
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-slate-100 flex items-center gap-1.5 text-xs">
+                                <span>🗺️</span>
+                                <span>Peta Pemantauan ZEE Aceh</span>
+                            </span>
+                            <span id="map-dimension-badge" class="font-mono text-[10px] text-indigo-300 font-semibold px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700">8 kol &times; 520px</span>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-2">
+                            {{-- Horizontal Width Presets --}}
+                            <div class="flex items-center gap-1 bg-slate-800/80 p-0.5 rounded-lg border border-slate-700/80">
+                                <span class="text-[10px] text-slate-400 px-1.5 font-semibold flex items-center gap-1">
+                                    <span>↔️</span>
+                                    <span class="hidden sm:inline">Lebar:</span>
+                                </span>
+                                <button type="button" data-width-cols="8" class="btn-preset-map-width px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-600 text-white transition border border-indigo-500 cursor-pointer" title="Standar (8 Kolom Peta + 4 Kolom Detail)">8 Kol</button>
+                                <button type="button" data-width-cols="10" class="btn-preset-map-width px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 hover:bg-indigo-600 hover:text-white text-slate-300 transition border border-slate-700 cursor-pointer" title="Luas (10 Kolom Peta + 2 Kolom Detail)">10 Kol</button>
+                                <button type="button" data-width-cols="12" class="btn-preset-map-width px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 hover:bg-indigo-600 hover:text-white text-slate-300 transition border border-slate-700 cursor-pointer" title="Penuh (12 Kolom / Full Width)">12 Kol (Penuh)</button>
+                            </div>
+
+                            {{-- Vertical Height Presets --}}
+                            <div class="flex items-center gap-1 bg-slate-800/80 p-0.5 rounded-lg border border-slate-700/80">
+                                <span class="text-[10px] text-slate-400 px-1.5 font-semibold flex items-center gap-1">
+                                    <span>↕️</span>
+                                    <span class="hidden sm:inline">Tinggi:</span>
+                                </span>
+                                <button type="button" data-map-height="520" class="btn-preset-vessels-height px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-600 text-white transition border border-indigo-500 cursor-pointer" title="520px">520px</button>
+                                <button type="button" data-map-height="720" class="btn-preset-vessels-height px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 hover:bg-indigo-600 hover:text-white text-slate-300 transition border border-slate-700 cursor-pointer" title="720px">720px</button>
+                                <button type="button" data-map-height="920" class="btn-preset-vessels-height px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 hover:bg-indigo-600 hover:text-white text-slate-300 transition border border-slate-700 cursor-pointer" title="920px">920px</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Map View Canvas (Light Mode Base & Resizable) --}}
+                    <div id="gfw-vessels-map" class="w-full rounded-xl overflow-hidden bg-slate-100 z-0 transition-[height] duration-75" style="height: 520px; min-height: 380px; max-height: 1400px;"></div>
 
                     {{-- Map Status Banner / Notification --}}
-                    <div id="map-status-overlay" class="absolute top-6 left-6 z-10 hidden bg-slate-900/95 text-white text-xs px-3.5 py-2 rounded-xl backdrop-blur-xs border border-slate-700 shadow-lg flex items-center gap-2">
+                    <div id="map-status-overlay" class="absolute top-16 left-6 z-10 hidden bg-slate-900/95 text-white text-xs px-3.5 py-2 rounded-xl backdrop-blur-xs border border-slate-700 shadow-lg flex items-center gap-2">
                         <span id="map-status-icon">🔄</span>
                         <span id="map-status-text">Memuat peta...</span>
+                    </div>
+
+                    {{-- Interactive Vertical Resize Handle Bar --}}
+                    <div id="vessels-map-resize-handle" class="group w-full py-2 mt-1.5 flex items-center justify-center cursor-row-resize select-none rounded-lg bg-slate-800/40 hover:bg-slate-800/90 active:bg-indigo-950/70 border border-slate-700/50 hover:border-indigo-500/60 transition-all shadow-xs" title="Klik dan geser ke atas/bawah untuk mengubah tinggi vertikal peta secara bebas">
+                        <div class="flex items-center gap-3 text-slate-400 group-hover:text-indigo-300 text-[11px] font-medium tracking-wide">
+                            <span class="inline-block w-12 h-1 rounded-full bg-slate-600 group-hover:bg-indigo-400 transition-colors"></span>
+                            <span class="flex items-center gap-1.5">
+                                <span class="text-xs">↕️</span>
+                                <span class="font-semibold text-slate-300 group-hover:text-white transition-colors">Tarik Vertikal</span>
+                                <span id="vessels-map-height-display" class="font-mono text-[10px] text-indigo-300 font-bold px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700/80">520px</span>
+                            </span>
+                            <span class="inline-block w-12 h-1 rounded-full bg-slate-600 group-hover:bg-indigo-400 transition-colors"></span>
+                        </div>
                     </div>
 
                     {{-- Map Legend --}}
@@ -447,7 +495,7 @@
                                 <span>Other / Unknown</span>
                             </div>
                             <div class="flex items-center gap-1.5">
-                                <span class="w-4 h-1.5 bg-blue-500 rounded-sm inline-block"></span>
+                                <span class="w-4 h-1.5 bg-sky-600 rounded-sm inline-block"></span>
                                 <span>Batas ZEE (BIG)</span>
                             </div>
                         </div>
@@ -459,8 +507,8 @@
                 </div>
             </div>
 
-            {{-- Vessel Detail Panel (4 cols) --}}
-            <div class="lg:col-span-4 space-y-4">
+            {{-- Vessel Detail Panel (4 cols by default, flows below map when 12 cols) --}}
+            <div id="vessels-detail-col" class="lg:col-span-4 space-y-4 transition-[grid-column] duration-200">
                 <div id="vessel-detail-card" class="bg-slate-900/90 rounded-2xl p-5 shadow-sm border border-slate-800 space-y-4">
                     <div class="flex items-center justify-between pb-3 border-b border-slate-800">
                         <div class="flex items-center gap-2">
@@ -577,6 +625,7 @@
                                 <span class="flex items-center gap-1.5">
                                     <span>🗺️</span>
                                     <span>Jejak Lintasan (Track)</span>
+                                    <span class="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono font-semibold border border-amber-500/40">Mode Terang</span>
                                 </span>
                                 <div class="flex items-center gap-2">
                                     <span id="vessel-track-points-count" class="font-mono text-[10px] bg-amber-900/80 text-amber-200 px-1.5 py-0.5 rounded font-bold border border-amber-700/70">0 titik</span>
@@ -585,17 +634,17 @@
                             </div>
                             <div class="grid grid-cols-2 gap-1 text-[11px]">
                                 <div>
-                                    <span class="text-amber-400 text-[10px] block">Titik Awal (Start):</span>
+                                    <span class="text-emerald-400 text-[10px] block font-semibold">● Titik Awal (Start):</span>
                                     <span id="vessel-track-first-seen" class="font-medium text-amber-100">-</span>
                                 </div>
                                 <div>
-                                    <span class="text-amber-400 text-[10px] block">Titik Akhir (Last):</span>
+                                    <span class="text-rose-400 text-[10px] block font-semibold">● Titik Akhir (Last):</span>
                                     <span id="vessel-track-last-seen" class="font-medium text-amber-100">-</span>
                                 </div>
                             </div>
                             <div class="flex items-center justify-between text-[10px] text-amber-300/80 pt-0.5 border-t border-amber-800/50">
                                 <span>Periode: <strong id="vessel-track-period" class="text-amber-200">-</strong></span>
-                                <span>Area: <strong class="text-amber-100">GFW Query AOI</strong></span>
+                                <span>Batas: <strong class="text-sky-300">ZEE Aceh (BIG Layer 10)</strong></span>
                             </div>
                         </div>
 
@@ -910,9 +959,9 @@
                 errorBox.classList.add('hidden');
             }
 
-            // Initialize MapLibre GL JS
+            // Initialize MapLibre GL JS (Light Map Mode - Section 9)
             function initMap() {
-                showStatus('Memulai peta GIS...', '🗺️');
+                showStatus('Memulai peta GIS (Mode Terang)...', '🗺️');
 
                 map = new maplibregl.Map({
                     container: 'gfw-vessels-map',
@@ -920,20 +969,20 @@
                         version: 8,
                         glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
                         sources: {
-                            'esri-dark-tiles': {
+                            'osm-tiles': {
                                 type: 'raster',
                                 tiles: [
-                                    'https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'
+                                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
                                 ],
                                 tileSize: 256,
-                                attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ &bull; GFW Query AOI'
+                                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors &bull; BIG Layer 10 ZEE Aceh'
                             }
                         },
                         layers: [
                             {
-                                id: 'esri-dark-tiles-layer',
+                                id: 'osm-tiles-layer',
                                 type: 'raster',
-                                source: 'esri-dark-tiles',
+                                source: 'osm-tiles',
                                 minzoom: 0,
                                 maxzoom: 19
                             }
@@ -946,6 +995,9 @@
 
                 map.addControl(new maplibregl.NavigationControl(), 'top-right');
                 map.addControl(new maplibregl.ScaleControl({ maxWidth: 100, unit: 'nautical' }), 'bottom-left');
+                map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
+
+                initVesselsMapDimensions();
 
                 map.on('load', () => {
                     hideStatus();
@@ -953,6 +1005,191 @@
                     fetchVesselsData();
                     fetchActivityAndAlerts();
                 });
+            }
+
+            // Initialize Vertical & Horizontal Resizing for Vessels Map
+            function initVesselsMapDimensions() {
+                const mapCol = document.getElementById('vessels-map-col');
+                const detailCol = document.getElementById('vessels-detail-col');
+                const mapContainer = document.getElementById('gfw-vessels-map');
+                const resizeHandle = document.getElementById('vessels-map-resize-handle');
+                const heightDisplay = document.getElementById('vessels-map-height-display');
+                const dimensionBadge = document.getElementById('map-dimension-badge');
+                const presetHeightButtons = document.querySelectorAll('.btn-preset-vessels-height');
+                const presetWidthButtons = document.querySelectorAll('.btn-preset-map-width');
+
+                const MIN_HEIGHT = 380;
+                const MAX_HEIGHT = 1400;
+                let currentCols = 8;
+                let currentHeight = 520;
+
+                const updateDimensionBadge = () => {
+                    if (dimensionBadge) {
+                        dimensionBadge.textContent = `${currentCols} kol × ${currentHeight}px`;
+                    }
+                };
+
+                // 1. VERTICAL HEIGHT RESIZE LOGIC
+                const applyHeight = (height, save = true) => {
+                    const clamped = Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, Math.round(height)));
+                    currentHeight = clamped;
+                    if (mapContainer) mapContainer.style.height = `${clamped}px`;
+                    if (heightDisplay) heightDisplay.textContent = `${clamped}px`;
+                    updateDimensionBadge();
+
+                    presetHeightButtons.forEach(btn => {
+                        const h = parseInt(btn.dataset.mapHeight, 10);
+                        if (Math.abs(h - clamped) < 25) {
+                            btn.classList.add('bg-indigo-600', 'text-white', 'border-indigo-500');
+                            btn.classList.remove('bg-slate-800', 'text-slate-300', 'border-slate-700');
+                        } else {
+                            btn.classList.remove('bg-indigo-600', 'text-white', 'border-indigo-500');
+                            btn.classList.add('bg-slate-800', 'text-slate-300', 'border-slate-700');
+                        }
+                    });
+
+                    if (save) {
+                        try { localStorage.setItem('gfw_vessels_map_height', clamped); } catch (e) {}
+                    }
+                    if (map) {
+                        map.resize();
+                    }
+                };
+
+                // Restore saved height
+                try {
+                    const savedHeight = parseInt(localStorage.getItem('gfw_vessels_map_height'), 10);
+                    if (savedHeight && !isNaN(savedHeight) && savedHeight >= MIN_HEIGHT && savedHeight <= MAX_HEIGHT) {
+                        applyHeight(savedHeight, false);
+                    }
+                } catch (e) {}
+
+                // Preset height buttons
+                presetHeightButtons.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const h = parseInt(btn.dataset.mapHeight, 10);
+                        if (h) applyHeight(h, true);
+                    });
+                });
+
+                // Vertical drag handle
+                if (resizeHandle && mapContainer) {
+                    let startY = 0;
+                    let startHeight = 0;
+                    let isDragging = false;
+
+                    const onMouseMove = (e) => {
+                        if (!isDragging) return;
+                        const clientY = e.clientY ?? (e.touches && e.touches[0] ? e.touches[0].clientY : null);
+                        if (clientY === null || clientY === undefined) return;
+                        const deltaY = clientY - startY;
+                        applyHeight(startHeight + deltaY, false);
+                    };
+
+                    const onMouseUp = () => {
+                        if (!isDragging) return;
+                        isDragging = false;
+                        document.body.style.cursor = '';
+                        document.body.style.userSelect = '';
+                        window.removeEventListener('mousemove', onMouseMove);
+                        window.removeEventListener('mouseup', onMouseUp);
+                        window.removeEventListener('touchmove', onMouseMove);
+                        window.removeEventListener('touchend', onMouseUp);
+
+                        const finalHeight = parseInt(mapContainer.style.height, 10);
+                        if (finalHeight) {
+                            try { localStorage.setItem('gfw_vessels_map_height', finalHeight); } catch (e) {}
+                        }
+                    };
+
+                    const onMouseDown = (e) => {
+                        isDragging = true;
+                        startY = e.clientY ?? (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+                        startHeight = mapContainer.offsetHeight;
+                        document.body.style.cursor = 'row-resize';
+                        document.body.style.userSelect = 'none';
+                        window.addEventListener('mousemove', onMouseMove, { passive: true });
+                        window.addEventListener('mouseup', onMouseUp);
+                        window.addEventListener('touchmove', onMouseMove, { passive: true });
+                        window.addEventListener('touchend', onMouseUp);
+                    };
+
+                    resizeHandle.addEventListener('mousedown', onMouseDown);
+                    resizeHandle.addEventListener('touchstart', onMouseDown, { passive: true });
+                }
+
+                // 2. HORIZONTAL WIDTH RESIZE LOGIC
+                const applyWidth = (cols, save = true) => {
+                    if (!mapCol || !detailCol) return;
+                    currentCols = cols;
+
+                    // Remove existing column span classes
+                    mapCol.classList.remove('lg:col-span-8', 'lg:col-span-10', 'lg:col-span-12');
+                    detailCol.classList.remove('lg:col-span-4', 'lg:col-span-2', 'lg:col-span-12');
+
+                    if (cols === 12) {
+                        mapCol.classList.add('lg:col-span-12');
+                        detailCol.classList.add('lg:col-span-12');
+                    } else if (cols === 10) {
+                        mapCol.classList.add('lg:col-span-10');
+                        detailCol.classList.add('lg:col-span-2');
+                    } else {
+                        mapCol.classList.add('lg:col-span-8');
+                        detailCol.classList.add('lg:col-span-4');
+                    }
+
+                    updateDimensionBadge();
+
+                    // Update button styling
+                    presetWidthButtons.forEach(btn => {
+                        const c = parseInt(btn.dataset.widthCols, 10);
+                        if (c === cols) {
+                            btn.classList.add('bg-indigo-600', 'text-white', 'border-indigo-500');
+                            btn.classList.remove('bg-slate-800', 'text-slate-300', 'border-slate-700');
+                        } else {
+                            btn.classList.remove('bg-indigo-600', 'text-white', 'border-indigo-500');
+                            btn.classList.add('bg-slate-800', 'text-slate-300', 'border-slate-700');
+                        }
+                    });
+
+                    if (save) {
+                        try { localStorage.setItem('gfw_vessels_map_width_cols', cols); } catch (e) {}
+                    }
+
+                    // Trigger map resize after grid recalculation
+                    setTimeout(() => {
+                        if (map) map.resize();
+                    }, 80);
+                    setTimeout(() => {
+                        if (map) map.resize();
+                    }, 220);
+                };
+
+                // Restore saved width
+                try {
+                    const savedCols = parseInt(localStorage.getItem('gfw_vessels_map_width_cols'), 10);
+                    if (savedCols && [8, 10, 12].includes(savedCols)) {
+                        applyWidth(savedCols, false);
+                    }
+                } catch (e) {}
+
+                // Preset width buttons listeners
+                presetWidthButtons.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const cols = parseInt(btn.dataset.widthCols, 10);
+                        if (cols) applyWidth(cols, true);
+                    });
+                });
+
+                // 3. ResizeObserver
+                if (window.ResizeObserver && mapContainer) {
+                    const ro = new ResizeObserver(() => {
+                        if (map) map.resize();
+                    });
+                    ro.observe(mapContainer);
+                }
             }
 
             // Load BIG ZEE Aceh polygon to Map (authoritative single source of truth from BIG)
@@ -977,7 +1214,7 @@
                                 source: 'big-zee-aoi',
                                 paint: {
                                     'fill-color': '#0284c7',
-                                    'fill-opacity': 0.08
+                                    'fill-opacity': 0.05
                                 }
                             });
                         }
@@ -1003,7 +1240,7 @@
                             type: 'line',
                             source: 'big-zee-line-src',
                             paint: {
-                                'line-color': '#0ea5e9',
+                                'line-color': '#0284c7',
                                 'line-width': 2.5
                             }
                         });
@@ -1020,6 +1257,7 @@
                 }
             }
 
+            // Safe bounds fitting logic (handles 0 points, single point, and multi-point bounds)
             function fitBoundsToGeoJson(geojson, maxZoom = 12) {
                 if (!map || !geojson) return;
                 const bounds = new maplibregl.LngLatBounds();
@@ -1041,12 +1279,14 @@
                     }
                 });
 
-                if (!bounds.isEmpty()) {
-                    if (pointCoords.length === 1) {
-                        map.easeTo({ center: pointCoords[0], zoom: 11 });
-                    } else {
-                        map.fitBounds(bounds, { padding: 50, maxZoom: maxZoom });
-                    }
+                if (pointCoords.length === 0) {
+                    return; // Empty state: never run fitBounds on empty geometry
+                }
+
+                if (pointCoords.length === 1) {
+                    map.easeTo({ center: pointCoords[0], zoom: 11 });
+                } else if (!bounds.isEmpty()) {
+                    map.fitBounds(bounds, { padding: 50, maxZoom: maxZoom });
                 }
             }
 
@@ -1058,6 +1298,11 @@
                 isFetching = true;
 
                 hideError();
+                // Clear old track from map and info box when query parameters change (Section 13)
+                if (map && map.getSource('vessel-track-src')) {
+                    map.getSource('vessel-track-src').setData({ type: 'FeatureCollection', features: [] });
+                }
+                if (trackInfoBox) trackInfoBox.classList.add('hidden');
                 showStatus('Memuat data armada GFW di ZEE Aceh...', '🚢');
                 btnApplySpinner.classList.remove('hidden');
                 btnApply.disabled = true;
@@ -1901,7 +2146,7 @@
                             map.getSource('vessel-track-src').setData({ type: 'FeatureCollection', features: [] });
                         }
                         hideError();
-                        showStatus(json.message || 'Belum tersedia data track untuk vessel ini.', 'ℹ️');
+                        showStatus(json.message || 'Belum tersedia data posisi untuk vessel ini pada periode yang dipilih.', 'ℹ️');
                         return;
                     }
 
@@ -1922,7 +2167,24 @@
                             data: json.track
                         });
 
-                        // 1. Vessel Track Polyline (distinct amber/orange)
+                        // 0. Vessel Track Casing for maximum contrast on Light Basemap (Section 9 & 10)
+                        map.addLayer({
+                            id: 'vessel-track-line-casing',
+                            type: 'line',
+                            source: 'vessel-track-src',
+                            filter: ['in', '$type', 'LineString', 'MultiLineString'],
+                            layout: {
+                                'line-join': 'round',
+                                'line-cap': 'round'
+                            },
+                            paint: {
+                                'line-color': '#78350f',
+                                'line-width': 5.5,
+                                'line-opacity': 0.85
+                            }
+                        }, map.getLayer('clusters') ? 'clusters' : undefined);
+
+                        // 1. Vessel Track Polyline (distinct bright amber/orange core)
                         map.addLayer({
                             id: 'vessel-track-line',
                             type: 'line',
@@ -1935,7 +2197,7 @@
                             paint: {
                                 'line-color': '#f59e0b',
                                 'line-width': 3.5,
-                                'line-opacity': 0.95
+                                'line-opacity': 1.0
                             }
                         }, map.getLayer('clusters') ? 'clusters' : undefined);
 
@@ -1947,55 +2209,55 @@
                             filter: ['all', ['==', '$type', 'Point'], ['==', 'marker_type', 'waypoint']],
                             paint: {
                                 'circle-radius': 3.5,
-                                'circle-color': '#38bdf8',
+                                'circle-color': '#0284c7',
                                 'circle-stroke-width': 1.5,
-                                'circle-stroke-color': '#0f172a'
+                                'circle-stroke-color': '#ffffff'
                             }
                         }, map.getLayer('clusters') ? 'clusters' : undefined);
 
-                        // 3. START Position Marker (Green)
+                        // 3. START Position Marker (Green with white stroke)
                         map.addLayer({
                             id: 'vessel-track-start',
                             type: 'circle',
                             source: 'vessel-track-src',
                             filter: ['all', ['==', '$type', 'Point'], ['==', 'marker_type', 'start']],
                             paint: {
-                                'circle-radius': 7,
-                                'circle-color': '#10b981',
+                                'circle-radius': 8,
+                                'circle-color': '#16a34a',
                                 'circle-stroke-width': 2.5,
                                 'circle-stroke-color': '#ffffff'
                             }
                         }, map.getLayer('clusters') ? 'clusters' : undefined);
 
-                        // 4. LAST Position Marker (Red)
+                        // 4. LAST Position Marker (Red with white stroke)
                         map.addLayer({
                             id: 'vessel-track-last',
                             type: 'circle',
                             source: 'vessel-track-src',
                             filter: ['all', ['==', '$type', 'Point'], ['==', 'marker_type', 'last']],
                             paint: {
-                                'circle-radius': 7,
-                                'circle-color': '#ef4444',
+                                'circle-radius': 8,
+                                'circle-color': '#dc2626',
                                 'circle-stroke-width': 2.5,
                                 'circle-stroke-color': '#ffffff'
                             }
                         }, map.getLayer('clusters') ? 'clusters' : undefined);
 
-                        // 5. SINGLE Position Marker (Cyan)
+                        // 5. SINGLE Position Marker (Cyan with white stroke)
                         map.addLayer({
                             id: 'vessel-track-single',
                             type: 'circle',
                             source: 'vessel-track-src',
                             filter: ['all', ['==', '$type', 'Point'], ['==', 'marker_type', 'single']],
                             paint: {
-                                'circle-radius': 7,
-                                'circle-color': '#06b6d4',
+                                'circle-radius': 8,
+                                'circle-color': '#0284c7',
                                 'circle-stroke-width': 2.5,
                                 'circle-stroke-color': '#ffffff'
                             }
                         }, map.getLayer('clusters') ? 'clusters' : undefined);
 
-                        // Track Point Popups (Section 19)
+                        // Track Point Popups (Section 10 & 16)
                         const trackLayerIds = ['vessel-track-points', 'vessel-track-start', 'vessel-track-last', 'vessel-track-single'];
                         trackLayerIds.forEach(layerId => {
                             map.on('click', layerId, (e) => {
@@ -2005,16 +2267,16 @@
                                 const props = e.features[0].properties;
 
                                 let badgeText = 'TITIK LINTASAN';
-                                let badgeBg = 'bg-sky-950/80 text-sky-300 border border-sky-800/80';
+                                let badgeBg = 'bg-sky-950/90 text-sky-300 border border-sky-700/80';
                                 if (props.marker_type === 'start') {
                                     badgeText = 'TITIK AWAL (START)';
-                                    badgeBg = 'bg-emerald-950/80 text-emerald-300 border border-emerald-800/80 font-bold';
+                                    badgeBg = 'bg-emerald-950/90 text-emerald-300 border border-emerald-700/80 font-bold';
                                 } else if (props.marker_type === 'last') {
                                     badgeText = 'TITIK TERAKHIR (LAST)';
-                                    badgeBg = 'bg-rose-950/80 text-rose-300 border border-rose-800/80 font-bold';
+                                    badgeBg = 'bg-rose-950/90 text-rose-300 border border-rose-700/80 font-bold';
                                 } else if (props.marker_type === 'single') {
                                     badgeText = 'POSISI TUNGGAL';
-                                    badgeBg = 'bg-cyan-950/80 text-cyan-300 border border-cyan-800/80 font-bold';
+                                    badgeBg = 'bg-cyan-950/90 text-cyan-300 border border-cyan-700/80 font-bold';
                                 }
 
                                 const speedDisplay = (props.speed_knots !== undefined && props.speed_knots !== null && props.speed_knots !== '')
@@ -2026,19 +2288,31 @@
                                 const timeDisplay = formatDate(props.timestamp);
 
                                 const popupContent = `
-                                    <div class="p-2.5 text-xs space-y-2 min-w-[220px] text-slate-200">
-                                        <div class="flex items-center justify-between pb-1 border-b border-slate-700/80">
-                                            <span class="inline-block px-1.5 py-0.5 rounded text-[10px] ${badgeBg}">${badgeText}</span>
+                                    <div class="p-2.5 text-xs space-y-2 min-w-[240px] text-slate-100 bg-slate-900/95 rounded-lg shadow-xl border border-slate-700">
+                                        <div class="flex items-center justify-between pb-1.5 border-b border-slate-700">
+                                            <span class="inline-block px-2 py-0.5 rounded text-[10px] ${badgeBg}">${badgeText}</span>
                                             <span class="font-mono text-[10px] text-slate-400">#${props.point_index || 1} / ${props.total_points || 1}</span>
                                         </div>
                                         <div class="space-y-1 text-[11px]">
                                             <div class="flex justify-between gap-2">
+                                                <span class="text-slate-400">Vessel:</span>
+                                                <span class="font-bold text-white truncate max-w-[140px]">${escapeHtml(selectedVessel?.name || '—')}</span>
+                                            </div>
+                                            <div class="flex justify-between gap-2">
+                                                <span class="text-slate-400">MMSI:</span>
+                                                <span class="font-mono text-slate-200">${escapeHtml(props.mmsi || selectedVessel?.mmsi || '—')}</span>
+                                            </div>
+                                            <div class="flex justify-between gap-2">
+                                                <span class="text-slate-400">GFW Vessel ID:</span>
+                                                <span class="font-mono text-[10px] text-slate-300 truncate max-w-[130px]">${escapeHtml(props.gfw_vessel_id || selectedVessel?.gfw_vessel_id || '—')}</span>
+                                            </div>
+                                            <div class="flex justify-between gap-2">
                                                 <span class="text-slate-400">Waktu:</span>
-                                                <span class="font-semibold text-slate-100 text-right">${timeDisplay}</span>
+                                                <span class="font-semibold text-white text-right">${timeDisplay}</span>
                                             </div>
                                             <div class="flex justify-between gap-2 font-mono">
                                                 <span class="text-slate-400 font-sans">Koordinat:</span>
-                                                <span class="text-slate-200">${coords[1].toFixed(5)}, ${coords[0].toFixed(5)}</span>
+                                                <span class="text-amber-300 font-semibold">${coords[1].toFixed(5)}, ${coords[0].toFixed(5)}</span>
                                             </div>
                                             <div class="flex justify-between gap-2">
                                                 <span class="text-slate-400">Kecepatan:</span>
@@ -2049,8 +2323,9 @@
                                                 <span class="font-semibold text-slate-100">${courseDisplay}</span>
                                             </div>
                                         </div>
-                                        <div class="pt-1 border-t border-slate-800 text-[10px] text-slate-400">
-                                            Batas: <span class="font-medium text-slate-300">Area Query GFW Aceh</span>
+                                        <div class="pt-1.5 border-t border-slate-700/80 text-[10px] text-slate-400 flex items-center justify-between">
+                                            <span>Batas: <strong class="text-sky-300">ZEE Aceh (BIG Layer 10)</strong></span>
+                                            <span class="text-amber-400 font-mono text-[9px]">Light Map</span>
                                         </div>
                                     </div>
                                 `;
@@ -2083,8 +2358,9 @@
                 } catch (e) {
                     btnViewTrack.disabled = false;
                     btnViewTrack.innerHTML = '<span>🗺️</span> <span>Lihat Track</span>';
+                    console.error('Error loading vessel track:', e);
                     const isNetwork = e instanceof TypeError || (e.message && (e.message.includes('NetworkError') || e.message.includes('Failed to fetch')));
-                    showError(isNetwork ? 'Koneksi Terputus' : 'Gagal Memuat Track', isNetwork ? ('Koneksi terputus saat mengambil data track: ' + e.message) : (e.message || 'Gagal memuat data track.'));
+                    showError(isNetwork ? 'Koneksi terputus saat mengambil data track.' : 'Gagal memuat track vessel.', 'Informasi Track');
                 }
             });
 

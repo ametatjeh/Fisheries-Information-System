@@ -5,6 +5,7 @@ namespace Tests\Feature\Gfw;
 use App\Models\Gfw\GfwVessel;
 use App\Models\Gfw\GfwVesselPresence;
 use App\Models\User;
+use App\Services\Gfw\GfwIngestionService;
 use App\Services\GFWService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -153,7 +154,9 @@ class GfwVesselTrackLocalSourceTest extends TestCase
      */
     public function test_2_gfw_vessel_id_returns_local_track_feature_collection(): void
     {
-        $expectedCount = GfwVesselPresence::where('gfw_vessel_id', '3133bce7c-c6b8-a367-d03b-0e06b677bc23')->count();
+        $expectedCount = GfwVesselPresence::where('gfw_vessel_id', '3133bce7c-c6b8-a367-d03b-0e06b677bc23')
+            ->whereBetween('observed_at', ['2026-09-01 00:00:00', '2026-09-07 23:59:59'])
+            ->count();
         $this->assertGreaterThan(0, $expectedCount);
 
         $response = $this->actingAs($this->user)
@@ -258,5 +261,103 @@ class GfwVesselTrackLocalSourceTest extends TestCase
 
         // Crucial Assertion: Zero HTTP calls to GFW upstream tracks API
         Http::assertNothingSent();
+    }
+
+    /**
+     * TEST 6: Presence synchronization from Events is idempotent and duplicate-safe.
+     */
+    public function test_6_presence_synchronization_from_events_is_idempotent(): void
+    {
+        $testVesselId = 'synced-test-vessel-uuid-'.uniqid();
+        $testMmsi = '525'.rand(100000, 999999);
+
+        $eventPayload = [
+            [
+                'id' => 'evt-test-sync-1',
+                'vessel' => [
+                    'id' => $testVesselId,
+                    'name' => 'KM SYNC TEST',
+                    'mmsi' => $testMmsi,
+                    'flag' => 'IDN',
+                    'type' => 'fishing',
+                ],
+                'start' => '2026-09-02T08:00:00Z',
+                'end' => '2026-09-02T12:00:00Z',
+                'position' => [
+                    'lat' => 5.25,
+                    'lon' => 97.50,
+                ],
+                'speed' => 6.2,
+                'heading' => 180,
+            ],
+            [
+                'id' => 'evt-test-sync-2',
+                'vessel' => [
+                    'id' => $testVesselId,
+                    'name' => 'KM SYNC TEST',
+                    'mmsi' => $testMmsi,
+                    'flag' => 'IDN',
+                    'type' => 'fishing',
+                ],
+                'start' => '2026-09-03T10:00:00Z',
+                'end' => '2026-09-03T14:00:00Z',
+                'position' => [
+                    'lat' => 5.35,
+                    'lon' => 97.60,
+                ],
+                'speed' => 5.8,
+                'heading' => 190,
+            ],
+        ];
+
+        /** @var GfwIngestionService $ingestionService */
+        $ingestionService = app(GfwIngestionService::class);
+
+        // Run sync 1 (First sync -> inserts)
+        $stats1 = $ingestionService->ingestEvents($eventPayload, ['aoi' => 'zee-indonesia-aceh']);
+        $this->assertSame(2, $stats1['presence_processed']);
+        $this->assertSame(2, $stats1['presence_new']);
+        $this->assertSame(0, $stats1['presence_duplicate']);
+
+        $countAfterSync1 = GfwVesselPresence::where('gfw_vessel_id', $testVesselId)->count();
+        $this->assertSame(2, $countAfterSync1);
+
+        // Run sync 2 (Second sync with identical data -> idempotent ignore / 0 duplicates inserted)
+        $stats2 = $ingestionService->ingestEvents($eventPayload, ['aoi' => 'zee-indonesia-aceh']);
+        $this->assertSame(2, $stats2['presence_processed']);
+        $this->assertSame(0, $stats2['presence_new'], 'Second sync must not insert duplicate presences');
+        $this->assertSame(2, $stats2['presence_duplicate']);
+
+        $countAfterSync2 = GfwVesselPresence::where('gfw_vessel_id', $testVesselId)->count();
+        $this->assertSame(2, $countAfterSync2, 'Presence count in database must remain exactly 2');
+
+        // Now query Track for this newly synced vessel via Track API
+        $trackRes = $this->actingAs($this->user)
+            ->getJson("/api/gfw/vessels/{$testVesselId}/track?start_date=2026-09-01&end_date=2026-09-07");
+        $trackRes->assertStatus(200);
+        $this->assertSame(2, $trackRes->json('points_count'));
+    }
+
+    /**
+     * TEST 7: Date filtering on presence track returns only points within date range.
+     */
+    public function test_7_date_filtering_on_presence_track(): void
+    {
+        // Querying 2026-09-02 to 2026-09-04 returns points within that range (8 points)
+        $expectedCount = GfwVesselPresence::where('gfw_vessel_id', '3133bce7c-c6b8-a367-d03b-0e06b677bc23')
+            ->whereBetween('observed_at', ['2026-09-02 00:00:00', '2026-09-04 23:59:59'])
+            ->count();
+
+        $response = $this->actingAs($this->user)
+            ->getJson('/api/gfw/vessels/3133bce7c-c6b8-a367-d03b-0e06b677bc23/track?start_date=2026-09-02&end_date=2026-09-04');
+
+        $response->assertStatus(200);
+        $json = $response->json();
+        $this->assertSame($expectedCount, $json['points_count']);
+        foreach ($json['data']['features'] as $f) {
+            $obsDate = substr($f['properties']['observed_at'], 0, 10);
+            $this->assertGreaterThanOrEqual('2026-09-02', $obsDate);
+            $this->assertLessThanOrEqual('2026-09-04', $obsDate);
+        }
     }
 }

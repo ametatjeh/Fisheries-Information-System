@@ -208,15 +208,20 @@
 
             {{-- Map Canvas (3 cols on desktop) --}}
             <div class="lg:col-span-3 space-y-3">
-                <div class="bg-slate-900/90 rounded-2xl p-2 shadow-sm border border-slate-800 relative">
+                <div id="map-card-wrapper" class="bg-slate-900/90 rounded-2xl p-2 shadow-sm border border-slate-800 relative" style="resize: vertical; overflow: hidden; min-height: 520px; max-height: 960px; height: 640px;">
                     {{-- Status / Notification Overlay --}}
                     <div id="map-status-overlay" class="absolute top-4 right-4 z-[1000] px-3 py-1.5 rounded-xl bg-slate-900/95 text-white text-xs font-medium shadow-lg backdrop-blur-xs border border-slate-700 hidden items-center gap-2">
                         <span id="map-status-icon">🔄</span>
                         <span id="map-status-text">{{ __('Loading GFW data...') }}</span>
                     </div>
 
-                    {{-- Leaflet Map Element --}}
-                    <div id="gfw-map" class="w-full h-[620px] rounded-xl z-0 bg-slate-950"></div>
+                    {{-- Leaflet Map Element (Light Mode Canvas) --}}
+                    <div id="gfw-map" class="w-full h-full rounded-xl z-0 bg-slate-100"></div>
+
+                    {{-- Resize Handle Indicator --}}
+                    <div class="absolute bottom-1 right-2 text-slate-500 text-xs pointer-events-none select-none">
+                        ⤡
+                    </div>
                 </div>
 
                 {{-- Map Legend & Data Provenance Panel --}}
@@ -248,10 +253,10 @@
                 maxZoom: 18,
             });
 
-            // Base Layers
-            const darkLayer = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-                attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ &bull; Data &copy; Global Fishing Watch',
-                maxZoom: 16
+            // Base Layers (Light Mode Default: OpenStreetMap)
+            const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors &bull; Data &copy; Global Fishing Watch',
+                maxZoom: 19
             });
 
             const oceanLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}', {
@@ -259,16 +264,16 @@
                 maxZoom: 13
             });
 
-            const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap contributors &bull; Data &copy; Global Fishing Watch',
-                maxZoom: 19
+            const darkLayer = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ &bull; Data &copy; Global Fishing Watch',
+                maxZoom: 16
             });
 
-            darkLayer.addTo(map);
+            osmLayer.addTo(map);
             L.control.layers({
-                'Peta Gelap (Esri Dark)': darkLayer,
+                'Peta Terang (OpenStreetMap)': osmLayer,
                 'Peta Oseanografi (Esri Ocean)': oceanLayer,
-                'Peta Jalan (OpenStreetMap)': osmLayer
+                'Peta Gelap (Esri Dark)': darkLayer
             }, null, { position: 'topright' }).addTo(map);
 
             // Layer Groups
@@ -314,9 +319,9 @@
                             const [minLon, minLat, maxLon, maxLat] = reg.bounding_box;
                             const bounds = [[minLat, minLon], [maxLat, maxLon]];
                             L.rectangle(bounds, {
-                                color: '#0ea5e9',
-                                weight: 1.5,
-                                fillOpacity: 0.04,
+                                color: '#0284c7',
+                                weight: 2.0,
+                                fillOpacity: 0.05,
                                 dashArray: '4, 4'
                             }).addTo(layerBoundary);
                             map.fitBounds(bounds, { padding: [20, 20] });
@@ -325,6 +330,14 @@
                 } catch (e) {
                     console.warn('Error fetching region boundary', e);
                 }
+            }
+
+            // Auto-handle map resize
+            const mapCardWrapper = document.getElementById('map-card-wrapper');
+            if (mapCardWrapper && window.ResizeObserver) {
+                new ResizeObserver(() => {
+                    map.invalidateSize();
+                }).observe(mapCardWrapper);
             }
 
             // 3. Load All Active GFW Layers
@@ -358,145 +371,145 @@
                             json.data.forEach(item => {
                                 if (item.latitude && item.longitude) {
                                     const marker = L.circleMarker([item.latitude, item.longitude], {
-                                        radius: 5,
+                                        radius: 5.5,
                                         fillColor: '#10b981',
-                                        color: '#0f172a',
-                                        weight: 1.5,
-                                        fillOpacity: 0.85
+                                        color: '#ffffff',
+                                        weight: 1.8,
+                                        fillOpacity: 0.9
                                     });
                                     marker.bindPopup(`
                                         <div style="font-family: sans-serif; font-size: 12px; line-height: 1.4; color: #f1f5f9; min-width: 190px;">
-                                            <strong style="color: #34d399;">🟢 GFW Vessel Presence</strong><br>
-                                            <strong style="color: #94a3b8;">Vessel ID:</strong> <span style="font-family: monospace;">${item.gfw_vessel_id || 'N/A'}</span><br>
-                                            <strong style="color: #94a3b8;">Posisi:</strong> <span style="font-family: monospace;">${item.latitude}, ${item.longitude}</span><br>
-                                            <strong style="color: #94a3b8;">Waktu:</strong> ${item.observation_timestamp || '-'}<br>
-                                            <div style="margin-top: 6px; font-size: 10px; color: #64748b; border-top: 1px solid #334155; padding-top: 4px;">
-                                                Data Source: Global Fishing Watch
-                                            </div>
-                                        </div>
-                                    `);
-                                    marker.addTo(layerPresence);
-                                }
-                            });
-                        }
-                    }
+                                             <strong style="color: #34d399;">🟢 GFW Vessel Presence</strong><br>
+                                             <strong style="color: #94a3b8;">Vessel ID:</strong> <span style="font-family: monospace;">${item.gfw_vessel_id || 'N/A'}</span><br>
+                                             <strong style="color: #94a3b8;">Posisi:</strong> <span style="font-family: monospace;">${item.latitude}, ${item.longitude}</span><br>
+                                             <strong style="color: #94a3b8;">Waktu:</strong> ${item.observation_timestamp || item.observed_at || '-'}<br>
+                                             <div style="margin-top: 6px; font-size: 10px; color: #64748b; border-top: 1px solid #334155; padding-top: 4px;">
+                                                 Data Source: Global Fishing Watch
+                                             </div>
+                                         </div>
+                                     `);
+                                     marker.addTo(layerPresence);
+                                 }
+                             });
+                         }
+                     }
 
-                    // B. Apparent Fishing Events
-                    if (document.getElementById('layer-fishing').checked) {
-                        const res = await fetch(`/api/gfw/events/fishing?region=${encodeURIComponent(region)}&start_date=${startDate}&end_date=${endDate}`);
-                        const json = await res.json();
-                        if (json.success && Array.isArray(json.data)) {
-                            document.getElementById('count-fishing').innerText = json.data.length;
-                            totalObservations += json.data.length;
-                            json.data.forEach(item => {
-                                if (item.latitude && item.longitude) {
-                                    const marker = L.circleMarker([item.latitude, item.longitude], {
-                                        radius: 6,
-                                        fillColor: '#f43f5e',
-                                        color: '#0f172a',
-                                        weight: 1.5,
-                                        fillOpacity: 0.9
-                                    });
-                                    marker.bindPopup(`
-                                        <div style="font-family: sans-serif; font-size: 12px; line-height: 1.4; max-width: 250px; color: #f1f5f9;">
-                                            <strong style="color: #fb7185;">🎣 Apparent Fishing Event</strong><br>
-                                            <strong style="color: #94a3b8;">Vessel ID:</strong> <span style="font-family: monospace;">${item.gfw_vessel_id || 'N/A'}</span><br>
-                                            <strong style="color: #94a3b8;">Durasi:</strong> ${item.duration_hours || '-'} jam<br>
-                                            <strong style="color: #94a3b8;">Confidence:</strong> ${item.confidence || '-'}<br>
-                                            <strong style="color: #94a3b8;">Waktu:</strong> ${item.start_time || '-'} s/d ${item.end_time || '-'}<br>
-                                            <div style="background: rgba(136, 19, 55, 0.4); color: #fecdd3; border: 1px solid rgba(225, 29, 72, 0.4); padding: 4px 6px; border-radius: 6px; font-size: 10px; margin-top: 6px;">
-                                                ⚠️ <em>Indikasi analitik algoritma pergerakan AIS/VMS, bukan verifikasi penangkapan faktual.</em>
-                                            </div>
-                                            <div style="margin-top: 4px; font-size: 10px; color: #64748b;">
-                                                Source: Global Fishing Watch
-                                            </div>
-                                        </div>
-                                    `);
-                                    marker.addTo(layerFishing);
-                                }
-                            });
-                        }
-                    }
+                     // B. Apparent Fishing Events
+                     if (document.getElementById('layer-fishing').checked) {
+                         const res = await fetch(`/api/gfw/events/fishing?region=${encodeURIComponent(region)}&start_date=${startDate}&end_date=${endDate}`);
+                         const json = await res.json();
+                         if (json.success && Array.isArray(json.data)) {
+                             document.getElementById('count-fishing').innerText = json.data.length;
+                             totalObservations += json.data.length;
+                             json.data.forEach(item => {
+                                 if (item.latitude && item.longitude) {
+                                     const marker = L.circleMarker([item.latitude, item.longitude], {
+                                         radius: 6,
+                                         fillColor: '#f43f5e',
+                                         color: '#ffffff',
+                                         weight: 1.8,
+                                         fillOpacity: 0.9
+                                     });
+                                     marker.bindPopup(`
+                                         <div style="font-family: sans-serif; font-size: 12px; line-height: 1.4; max-width: 250px; color: #f1f5f9;">
+                                             <strong style="color: #fb7185;">🎣 Apparent Fishing Event</strong><br>
+                                             <strong style="color: #94a3b8;">Vessel ID:</strong> <span style="font-family: monospace;">${item.gfw_vessel_id || 'N/A'}</span><br>
+                                             <strong style="color: #94a3b8;">Durasi:</strong> ${item.duration_hours || '-'} jam<br>
+                                             <strong style="color: #94a3b8;">Confidence:</strong> ${item.confidence || '-'}<br>
+                                             <strong style="color: #94a3b8;">Waktu:</strong> ${item.start_time || '-'} s/d ${item.end_time || '-'}<br>
+                                             <div style="background: rgba(136, 19, 55, 0.4); color: #fecdd3; border: 1px solid rgba(225, 29, 72, 0.4); padding: 4px 6px; border-radius: 6px; font-size: 10px; margin-top: 6px;">
+                                                 ⚠️ <em>Indikasi analitik algoritma pergerakan AIS/VMS, bukan verifikasi penangkapan faktual.</em>
+                                             </div>
+                                             <div style="margin-top: 4px; font-size: 10px; color: #64748b;">
+                                                 Source: Global Fishing Watch
+                                             </div>
+                                         </div>
+                                     `);
+                                     marker.addTo(layerFishing);
+                                 }
+                             });
+                         }
+                     }
 
-                    // C. Potential Encounters
-                    if (document.getElementById('layer-encounters').checked) {
-                        const res = await fetch(`/api/gfw/events/encounters?region=${encodeURIComponent(region)}&start_date=${startDate}&end_date=${endDate}`);
-                        const json = await res.json();
-                        if (json.success && Array.isArray(json.data)) {
-                            document.getElementById('count-encounters').innerText = json.data.length;
-                            totalObservations += json.data.length;
-                            json.data.forEach(item => {
-                                if (item.latitude && item.longitude) {
-                                    const marker = L.circleMarker([item.latitude, item.longitude], {
-                                        radius: 6,
-                                        fillColor: '#f97316',
-                                        color: '#0f172a',
-                                        weight: 1.5,
-                                        fillOpacity: 0.9
-                                    });
-                                    marker.bindPopup(`
-                                        <div style="font-family: sans-serif; font-size: 12px; line-height: 1.4; max-width: 250px; color: #f1f5f9;">
-                                            <strong style="color: #fb923c;">🤝 Potential Encounter</strong><br>
-                                            <strong style="color: #94a3b8;">Kapal 1:</strong> <span style="font-family: monospace;">${item.gfw_vessel_id || 'N/A'}</span><br>
-                                            <strong style="color: #94a3b8;">Kapal 2:</strong> <span style="font-family: monospace;">${item.secondary_vessel_id || 'N/A'}</span><br>
-                                            <strong style="color: #94a3b8;">Durasi:</strong> ${item.duration_hours || '-'} jam<br>
-                                            <div style="background: rgba(154, 52, 18, 0.4); color: #fed7aa; border: 1px solid rgba(234, 88, 12, 0.4); padding: 4px 6px; border-radius: 6px; font-size: 10px; margin-top: 6px;">
-                                                ⚠️ <em>Kedekatan posisi dua kapal secara algoritmik, tidak dapat disimpulkan sebagai alih muatan (transshipment).</em>
-                                            </div>
-                                        </div>
-                                    `);
-                                    marker.addTo(layerEncounters);
-                                }
-                            });
-                        }
-                    }
+                     // C. Potential Encounters
+                     if (document.getElementById('layer-encounters').checked) {
+                         const res = await fetch(`/api/gfw/events/encounters?region=${encodeURIComponent(region)}&start_date=${startDate}&end_date=${endDate}`);
+                         const json = await res.json();
+                         if (json.success && Array.isArray(json.data)) {
+                             document.getElementById('count-encounters').innerText = json.data.length;
+                             totalObservations += json.data.length;
+                             json.data.forEach(item => {
+                                 if (item.latitude && item.longitude) {
+                                     const marker = L.circleMarker([item.latitude, item.longitude], {
+                                         radius: 6,
+                                         fillColor: '#f97316',
+                                         color: '#ffffff',
+                                         weight: 1.8,
+                                         fillOpacity: 0.9
+                                     });
+                                     marker.bindPopup(`
+                                         <div style="font-family: sans-serif; font-size: 12px; line-height: 1.4; max-width: 250px; color: #f1f5f9;">
+                                             <strong style="color: #fb923c;">🤝 Potential Encounter</strong><br>
+                                             <strong style="color: #94a3b8;">Kapal 1:</strong> <span style="font-family: monospace;">${item.gfw_vessel_id || 'N/A'}</span><br>
+                                             <strong style="color: #94a3b8;">Kapal 2:</strong> <span style="font-family: monospace;">${item.secondary_vessel_id || 'N/A'}</span><br>
+                                             <strong style="color: #94a3b8;">Durasi:</strong> ${item.duration_hours || '-'} jam<br>
+                                             <div style="background: rgba(154, 52, 18, 0.4); color: #fed7aa; border: 1px solid rgba(234, 88, 12, 0.4); padding: 4px 6px; border-radius: 6px; font-size: 10px; margin-top: 6px;">
+                                                 ⚠️ <em>Kedekatan posisi dua kapal secara algoritmik, tidak dapat disimpulkan sebagai alih muatan (transshipment).</em>
+                                             </div>
+                                         </div>
+                                     `);
+                                     marker.addTo(layerEncounters);
+                                 }
+                             });
+                         }
+                     }
 
-                    // D. Loitering Events
-                    if (document.getElementById('layer-loitering').checked) {
-                        const res = await fetch(`/api/gfw/events/loitering?region=${encodeURIComponent(region)}&start_date=${startDate}&end_date=${endDate}`);
-                        const json = await res.json();
-                        if (json.success && Array.isArray(json.data)) {
-                            document.getElementById('count-loitering').innerText = json.data.length;
-                            totalObservations += json.data.length;
-                            json.data.forEach(item => {
-                                if (item.latitude && item.longitude) {
-                                    const marker = L.circleMarker([item.latitude, item.longitude], {
-                                        radius: 6,
-                                        fillColor: '#9333ea',
-                                        color: '#0f172a',
-                                        weight: 1.5,
-                                        fillOpacity: 0.9
-                                    });
-                                    marker.bindPopup(`
-                                        <div style="font-family: sans-serif; font-size: 12px; line-height: 1.4; color: #f1f5f9;">
-                                            <strong style="color: #c084fc;">⚓ Loitering Event</strong><br>
-                                            <strong style="color: #94a3b8;">Vessel ID:</strong> <span style="font-family: monospace;">${item.gfw_vessel_id || 'N/A'}</span><br>
-                                            <strong style="color: #94a3b8;">Durasi:</strong> ${item.duration_hours || '-'} jam<br>
-                                            <div style="font-size: 10px; color: #64748b; margin-top: 4px;">Source: Global Fishing Watch</div>
-                                        </div>
-                                    `);
-                                    marker.addTo(layerLoitering);
-                                }
-                            });
-                        }
-                    }
+                     // D. Loitering Events
+                     if (document.getElementById('layer-loitering').checked) {
+                         const res = await fetch(`/api/gfw/events/loitering?region=${encodeURIComponent(region)}&start_date=${startDate}&end_date=${endDate}`);
+                         const json = await res.json();
+                         if (json.success && Array.isArray(json.data)) {
+                             document.getElementById('count-loitering').innerText = json.data.length;
+                             totalObservations += json.data.length;
+                             json.data.forEach(item => {
+                                 if (item.latitude && item.longitude) {
+                                     const marker = L.circleMarker([item.latitude, item.longitude], {
+                                         radius: 6,
+                                         fillColor: '#9333ea',
+                                         color: '#ffffff',
+                                         weight: 1.8,
+                                         fillOpacity: 0.9
+                                     });
+                                     marker.bindPopup(`
+                                         <div style="font-family: sans-serif; font-size: 12px; line-height: 1.4; color: #f1f5f9;">
+                                             <strong style="color: #c084fc;">⚓ Loitering Event</strong><br>
+                                             <strong style="color: #94a3b8;">Vessel ID:</strong> <span style="font-family: monospace;">${item.gfw_vessel_id || 'N/A'}</span><br>
+                                             <strong style="color: #94a3b8;">Durasi:</strong> ${item.duration_hours || '-'} jam<br>
+                                             <div style="font-size: 10px; color: #64748b; margin-top: 4px;">Source: Global Fishing Watch</div>
+                                         </div>
+                                     `);
+                                     marker.addTo(layerLoitering);
+                                 }
+                             });
+                         }
+                     }
 
-                    // E. Port Visits
-                    if (document.getElementById('layer-port-visits').checked) {
-                        const res = await fetch(`/api/gfw/events/port-visits?region=${encodeURIComponent(region)}&start_date=${startDate}&end_date=${endDate}`);
-                        const json = await res.json();
-                        if (json.success && Array.isArray(json.data)) {
-                            document.getElementById('count-port-visits').innerText = json.data.length;
-                            totalObservations += json.data.length;
-                            json.data.forEach(item => {
-                                if (item.latitude && item.longitude) {
-                                    const marker = L.circleMarker([item.latitude, item.longitude], {
-                                        radius: 6,
-                                        fillColor: '#f59e0b',
-                                        color: '#0f172a',
-                                        weight: 1.5,
-                                        fillOpacity: 0.9
-                                    });
+                     // E. Port Visits
+                     if (document.getElementById('layer-port-visits').checked) {
+                         const res = await fetch(`/api/gfw/events/port-visits?region=${encodeURIComponent(region)}&start_date=${startDate}&end_date=${endDate}`);
+                         const json = await res.json();
+                         if (json.success && Array.isArray(json.data)) {
+                             document.getElementById('count-port-visits').innerText = json.data.length;
+                             totalObservations += json.data.length;
+                             json.data.forEach(item => {
+                                 if (item.latitude && item.longitude) {
+                                     const marker = L.circleMarker([item.latitude, item.longitude], {
+                                         radius: 6,
+                                         fillColor: '#f59e0b',
+                                         color: '#ffffff',
+                                         weight: 1.8,
+                                         fillOpacity: 0.9
+                                     });
                                     marker.bindPopup(`
                                         <div style="font-family: sans-serif; font-size: 12px; line-height: 1.4; color: #f1f5f9;">
                                             <strong style="color: #fbbf24;">🚢 Port Visit</strong><br>
@@ -545,12 +558,13 @@
 
                     if (searchJson.success && Array.isArray(searchJson.data) && searchJson.data.length > 0) {
                         const vessel = searchJson.data[0];
-                        resultDiv.innerHTML = `<div class="p-2 bg-emerald-950/70 border border-emerald-800 text-emerald-200 rounded-lg">Ditemukan: <strong class="text-white">${vessel.name || vessel.gfw_vessel_id}</strong> (MMSI: ${vessel.mmsi || '-'})</div>`;
+                        const vesselIdToFetch = vessel.gfw_vessel_id || vessel.id;
+                        resultDiv.innerHTML = `<div class="p-2 bg-emerald-950/70 border border-emerald-800 text-emerald-200 rounded-lg">Ditemukan: <strong class="text-white">${vessel.name || vesselIdToFetch}</strong> (MMSI: ${vessel.mmsi || '-'})</div>`;
 
                         // Fetch track
                         const startDate = startDateInput.value;
                         const endDate = endDateInput.value;
-                        const trackRes = await fetch(`/api/gfw/activity/vessels/${encodeURIComponent(vessel.gfw_vessel_id)}?start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}`, {
+                        const trackRes = await fetch(`/api/gfw/activity/vessels/${encodeURIComponent(vesselIdToFetch)}?start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}`, {
                             headers: { 'Accept': 'application/json' }
                         });
                         const trackContentType = trackRes.headers.get('content-type') || '';
@@ -567,23 +581,23 @@
                                 if (pt.latitude && pt.longitude) {
                                     latLngs.push([pt.latitude, pt.longitude]);
                                     L.circleMarker([pt.latitude, pt.longitude], {
-                                        radius: 4,
-                                        fillColor: '#06b6d4',
-                                        color: '#0f172a',
-                                        weight: 1.5,
-                                        fillOpacity: 0.9
+                                        radius: 4.5,
+                                        fillColor: '#0284c7',
+                                        color: '#ffffff',
+                                        weight: 1.8,
+                                        fillOpacity: 0.95
                                     }).bindPopup(`
                                         <div style="font-family: sans-serif; font-size: 11px; color: #f1f5f9;">
                                             <strong style="color: #38bdf8;">📍 Track Point</strong><br>
-                                            <span style="color: #94a3b8;">Waktu:</span> ${pt.observation_timestamp}<br>
-                                            <span style="color: #94a3b8;">Kecepatan:</span> ${pt.speed_knots || '-'} knots
+                                            <span style="color: #94a3b8;">Waktu:</span> ${pt.observation_timestamp || pt.observed_at || pt.timestamp || '-'}<br>
+                                            <span style="color: #94a3b8;">Kecepatan:</span> ${pt.speed_knots !== null && pt.speed_knots !== undefined ? pt.speed_knots : (pt.speed || '-')} knots
                                         </div>
                                     `).addTo(layerTracks);
                                 }
                             });
 
                             if (latLngs.length > 1) {
-                                const polyline = L.polyline(latLngs, { color: '#06b6d4', weight: 2.5, opacity: 0.9 }).addTo(layerTracks);
+                                const polyline = L.polyline(latLngs, { color: '#f59e0b', weight: 3.5, opacity: 0.95 }).addTo(layerTracks);
                                 map.fitBounds(polyline.getBounds(), { padding: [30, 30] });
                             }
                         } else {
