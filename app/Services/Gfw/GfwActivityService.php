@@ -45,38 +45,154 @@ class GfwActivityService
                 'cached' => false,
                 'data' => [],
                 'error' => 'Vessel ID cannot be empty.',
+                'error_type' => 'validation_error',
+                'status' => 422,
             ];
         }
 
-        $dateResult = $this->parseDateRange(
-            $options['start_date'] ?? null,
-            $options['end_date'] ?? null,
-            7
-        );
+        try {
+            $dateResult = $this->parseDateRange(
+                $options['start_date'] ?? null,
+                $options['end_date'] ?? null,
+                7
+            );
 
-        if (! $dateResult['valid']) {
-            return [
-                'success' => false,
-                'source' => 'global_fishing_watch',
-                'latency_notice' => self::LATENCY_NOTICE,
-                'query_period' => ['start_date' => '', 'end_date' => ''],
-                'total' => 0,
-                'cached' => false,
-                'data' => [],
-                'error' => $dateResult['error'] ?? 'Format tanggal tidak valid.',
+            if (! $dateResult['valid']) {
+                return [
+                    'success' => false,
+                    'source' => 'global_fishing_watch',
+                    'latency_notice' => self::LATENCY_NOTICE,
+                    'query_period' => ['start_date' => '', 'end_date' => ''],
+                    'total' => 0,
+                    'cached' => false,
+                    'data' => [],
+                    'error' => $dateResult['error'] ?? 'Format tanggal tidak valid.',
+                    'error_type' => 'validation_error',
+                    'status' => 422,
+                ];
+            }
+
+            $startDate = $dateResult['start_date'];
+            $endDate = $dateResult['end_date'];
+            $dataset = (string) ($options['dataset'] ?? $this->defaultActivityDataset);
+            $forceRefresh = (bool) ($options['refresh'] ?? false);
+
+            $cacheKey = 'gfw:activity:vessel:'.$cleanId.':'.md5($startDate.':'.$endDate.':'.$dataset);
+
+            if (! $forceRefresh && Cache::has($cacheKey)) {
+                /** @var list<array<string, mixed>> $cachedData */
+                $cachedData = Cache::get($cacheKey, []);
+                if (is_array($cachedData)) {
+                    return [
+                        'success' => true,
+                        'source' => 'global_fishing_watch',
+                        'latency_notice' => self::LATENCY_NOTICE,
+                        'query_period' => [
+                            'start_date' => $startDate,
+                            'end_date' => $endDate,
+                        ],
+                        'total' => count($cachedData),
+                        'cached' => true,
+                        'data' => $cachedData,
+                        'status' => 200,
+                    ];
+                }
+            }
+
+            $queryParams = [
+                'datasets[0]' => $dataset,
+                'start-date' => $startDate,
+                'end-date' => $endDate,
             ];
-        }
 
-        $startDate = $dateResult['start_date'];
-        $endDate = $dateResult['end_date'];
-        $dataset = (string) ($options['dataset'] ?? $this->defaultActivityDataset);
-        $forceRefresh = (bool) ($options['refresh'] ?? false);
+            $response = $this->apiService->get("/vessels/{$cleanId}/tracks", $queryParams);
 
-        $cacheKey = 'gfw:activity:vessel:'.$cleanId.':'.md5($startDate.':'.$endDate.':'.$dataset);
+            if (! $response['success']) {
+                // Check database fallback from sistem_gfw.gfw_vessel_presence
+                try {
+                    $localPresences = GfwVesselPresence::where('gfw_vessel_id', $cleanId)
+                        ->orderBy('observed_at', 'asc')
+                        ->get();
 
-        if (! $forceRefresh && Cache::has($cacheKey)) {
-            /** @var list<array<string, mixed>> $cachedData */
-            $cachedData = Cache::get($cacheKey, []);
+                    if ($localPresences->isNotEmpty()) {
+                        $normalizedList = $localPresences->map(function ($p) use ($cleanId) {
+                            return [
+                                'gfw_vessel_id' => $cleanId,
+                                'timestamp' => $p->observed_at?->toIso8601String(),
+                                'date' => $p->observed_at?->toIso8601String(),
+                                'observed_at' => $p->observed_at?->toIso8601String(),
+                                'latitude' => $p->latitude,
+                                'longitude' => $p->longitude,
+                                'lat' => $p->latitude,
+                                'lon' => $p->longitude,
+                                'speed_knots' => $p->speed,
+                                'speed' => $p->speed,
+                                'course' => $p->course,
+                                'source' => 'sistem_gfw_presence',
+                            ];
+                        })->values()->all();
+
+                        return [
+                            'success' => true,
+                            'source' => 'sistem_gfw',
+                            'latency_notice' => self::LATENCY_NOTICE,
+                            'query_period' => [
+                                'start_date' => $startDate,
+                                'end_date' => $endDate,
+                            ],
+                            'total' => count($normalizedList),
+                            'cached' => true,
+                            'data' => $normalizedList,
+                            'status' => 200,
+                        ];
+                    }
+                } catch (Throwable) {
+                    // Ignore and proceed to standard error response
+                }
+
+                $upstreamStatus = (int) ($response['status'] ?? 502);
+                $errorType = $response['error_type'] ?? (match (true) {
+                    $upstreamStatus === 408 || $upstreamStatus === 504 => 'upstream_timeout',
+                    str_contains(strtolower($response['error'] ?? ''), 'timeout') => 'upstream_timeout',
+                    str_contains(strtolower($response['error'] ?? ''), 'connection') => 'upstream_connection_error',
+                    $upstreamStatus >= 400 && $upstreamStatus < 500 => 'upstream_http_error',
+                    default => 'upstream_error',
+                });
+
+                return [
+                    'success' => false,
+                    'source' => 'global_fishing_watch',
+                    'latency_notice' => self::LATENCY_NOTICE,
+                    'query_period' => [
+                        'start_date' => $startDate,
+                        'end_date' => $endDate,
+                    ],
+                    'total' => 0,
+                    'cached' => false,
+                    'data' => [],
+                    'error' => $response['error'] ?? 'Gagal mengambil data track aktivitas kapal dari GFW.',
+                    'error_type' => $errorType,
+                    'status' => $upstreamStatus,
+                ];
+            }
+
+            $rawEntries = $response['data']['entries'] ?? $response['data']['data'] ?? $response['data'] ?? [];
+            if (! is_array($rawEntries)) {
+                $rawEntries = [];
+            }
+
+            $normalizedList = [];
+            foreach ($rawEntries as $entry) {
+                if (is_array($entry)) {
+                    $normalized = $this->normalizeActivityPoint($entry, $cleanId, $startDate, $endDate);
+                    $this->persistActivity($normalized);
+                    $normalizedList[] = $normalized;
+                }
+            }
+
+            if (is_array($normalizedList)) {
+                Cache::put($cacheKey, $normalizedList, $this->activityCacheTtl);
+            }
 
             return [
                 'success' => true,
@@ -86,105 +202,34 @@ class GfwActivityService
                     'start_date' => $startDate,
                     'end_date' => $endDate,
                 ],
-                'total' => count($cachedData),
-                'cached' => true,
-                'data' => $cachedData,
+                'total' => count($normalizedList),
+                'cached' => false,
+                'data' => $normalizedList,
+                'status' => 200,
             ];
-        }
-
-        $queryParams = [
-            'datasets[0]' => $dataset,
-            'start-date' => $startDate,
-            'end-date' => $endDate,
-        ];
-
-        $response = $this->apiService->get("/vessels/{$cleanId}/tracks", $queryParams);
-
-        if (! $response['success']) {
-            // Check database fallback from sistem_gfw.gfw_vessel_presence
-            try {
-                $localPresences = GfwVesselPresence::where('gfw_vessel_id', $cleanId)
-                    ->orderBy('observed_at', 'asc')
-                    ->get();
-
-                if ($localPresences->isNotEmpty()) {
-                    $normalizedList = $localPresences->map(function ($p) use ($cleanId) {
-                        return [
-                            'gfw_vessel_id' => $cleanId,
-                            'timestamp' => $p->observed_at?->toIso8601String(),
-                            'date' => $p->observed_at?->toIso8601String(),
-                            'observed_at' => $p->observed_at?->toIso8601String(),
-                            'latitude' => $p->latitude,
-                            'longitude' => $p->longitude,
-                            'lat' => $p->latitude,
-                            'lon' => $p->longitude,
-                            'speed_knots' => $p->speed,
-                            'speed' => $p->speed,
-                            'course' => $p->course,
-                            'source' => 'sistem_gfw_presence',
-                        ];
-                    })->values()->all();
-
-                    return [
-                        'success' => true,
-                        'source' => 'sistem_gfw',
-                        'latency_notice' => self::LATENCY_NOTICE,
-                        'query_period' => [
-                            'start_date' => $startDate,
-                            'end_date' => $endDate,
-                        ],
-                        'total' => count($normalizedList),
-                        'cached' => true,
-                        'data' => $normalizedList,
-                    ];
-                }
-            } catch (Throwable) {
-                // Ignore and proceed to standard error response
-            }
+        } catch (Throwable $e) {
+            Log::error('GfwActivityService::getVesselActivity unhandled exception', [
+                'vessel_id' => $cleanId,
+                'exception' => get_class($e),
+                'message' => $e->getMessage(),
+            ]);
 
             return [
                 'success' => false,
                 'source' => 'global_fishing_watch',
                 'latency_notice' => self::LATENCY_NOTICE,
                 'query_period' => [
-                    'start_date' => $startDate,
-                    'end_date' => $endDate,
+                    'start_date' => $startDate ?? '',
+                    'end_date' => $endDate ?? '',
                 ],
                 'total' => 0,
                 'cached' => false,
                 'data' => [],
-                'error' => $response['error'] ?? 'Gagal mengambil data track aktivitas kapal dari GFW.',
+                'error' => 'Gagal memproses data aktivitas kapal.',
+                'error_type' => 'internal_server_error',
+                'status' => 500,
             ];
         }
-
-        $rawEntries = $response['data']['entries'] ?? $response['data']['data'] ?? $response['data'] ?? [];
-        if (! is_array($rawEntries)) {
-            $rawEntries = [];
-        }
-
-        $normalizedList = [];
-        foreach ($rawEntries as $entry) {
-            if (is_array($entry)) {
-                $normalized = $this->normalizeActivityPoint($entry, $cleanId, $startDate, $endDate);
-                $this->persistActivity($normalized);
-                $normalizedList[] = $normalized;
-            }
-        }
-
-        Cache::put($cacheKey, $normalizedList, $this->activityCacheTtl);
-
-        return [
-            'success' => true,
-            'source' => 'global_fishing_watch',
-            'latency_notice' => self::LATENCY_NOTICE,
-            'query_period' => [
-                'start_date' => $startDate,
-                'end_date' => $endDate,
-            ],
-            'total' => count($normalizedList),
-            'cached' => false,
-            'data' => $normalizedList,
-        ];
     }
 
     /**

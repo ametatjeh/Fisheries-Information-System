@@ -93,8 +93,9 @@ class GfwApiService
 
             return [
                 'success' => false,
-                'status' => 500,
-                'error' => 'GFW token missing',
+                'status' => 503,
+                'error' => 'GFW API token is not configured on the server.',
+                'error_type' => 'token_missing',
                 'data' => null,
             ];
         }
@@ -126,17 +127,43 @@ class GfwApiService
                     // Suppress Monolog stream/permission errors
                 }
 
+                $json = null;
+                try {
+                    $json = $response->json();
+                } catch (Throwable) {
+                    $json = null;
+                }
+
+                if ($json === null && ! empty(trim((string) $response->body()))) {
+                    $this->logError($endpoint, 502, 'Invalid JSON returned from GFW API');
+
+                    return [
+                        'success' => false,
+                        'status' => 502,
+                        'duration_ms' => $durationMs,
+                        'error' => 'GFW API mengembalikan response non-JSON yang tidak valid.',
+                        'error_type' => 'invalid_upstream_json',
+                        'data' => null,
+                    ];
+                }
+
                 return [
                     'success' => true,
                     'status' => $response->status(),
                     'duration_ms' => $durationMs,
-                    'data' => $response->json() ?? [],
+                    'data' => $json ?? [],
                 ];
             }
 
             $status = $response->status();
             $sanitizedBody = mb_substr(strip_tags((string) $response->body()), 0, 300);
             $errorMessage = "GFW API returned status {$status}";
+            $errorType = match (true) {
+                $status === 408 || $status === 504 => 'upstream_timeout',
+                $status === 401 || $status === 403 || $status === 429 => 'upstream_http_error',
+                default => 'upstream_http_error',
+            };
+
             $this->logError($endpoint, $status, $errorMessage, [
                 'duration_ms' => $durationMs,
                 'response_sample' => $sanitizedBody,
@@ -147,13 +174,15 @@ class GfwApiService
                 'status' => $status,
                 'duration_ms' => $durationMs,
                 'error' => $errorMessage,
+                'error_type' => $errorType,
                 'data' => null,
             ];
         } catch (ConnectionException $e) {
             $durationMs = (int) round((microtime(true) - $startTime) * 1000);
             $msg = $e->getMessage();
             $isCurl28 = str_contains($msg, 'cURL error 28') || str_contains($msg, 'timed out');
-            $this->logError($endpoint, 504, ($isCurl28 ? 'Upstream request timed out (cURL error 28)' : 'Connection failure reaching GFW API: '.$msg), [
+            $status = $isCurl28 ? 504 : 502;
+            $this->logError($endpoint, $status, ($isCurl28 ? 'Upstream request timed out (cURL error 28)' : 'Connection failure reaching GFW API: '.$msg), [
                 'duration_ms' => $durationMs,
                 'timeout_config' => $this->timeout,
                 'connect_timeout_config' => $this->connectTimeout,
@@ -162,9 +191,10 @@ class GfwApiService
 
             return [
                 'success' => false,
-                'status' => 504,
+                'status' => $status,
                 'duration_ms' => $durationMs,
-                'error' => 'Connection timeout or network failure reaching GFW API.',
+                'error' => $isCurl28 ? 'Connection timeout reaching GFW API.' : 'Connection failure reaching GFW API.',
+                'error_type' => $isCurl28 ? 'upstream_timeout' : 'upstream_connection_error',
                 'data' => null,
             ];
         } catch (Throwable $e) {
@@ -179,6 +209,7 @@ class GfwApiService
                 'status' => 500,
                 'duration_ms' => $durationMs,
                 'error' => 'Unexpected error communicating with GFW API.',
+                'error_type' => 'internal_server_error',
                 'data' => null,
             ];
         }

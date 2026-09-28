@@ -1343,6 +1343,8 @@ class GFWService
             return [
                 'success' => false,
                 'message' => 'Vessel ID tidak boleh kosong.',
+                'error' => 'Vessel ID tidak boleh kosong.',
+                'error_type' => 'validation_error',
                 'status' => 422,
             ];
         }
@@ -1357,10 +1359,15 @@ class GFWService
             ]);
 
             if (! ($result['success'] ?? false)) {
+                $upstreamStatus = (int) ($result['status'] ?? 502);
+                $errorType = $result['error_type'] ?? 'upstream_error';
+
                 return [
                     'success' => false,
                     'message' => $result['error'] ?? 'Gagal mengambil data track kapal dari GFW.',
-                    'status' => 502,
+                    'error' => $result['error'] ?? 'Gagal mengambil data track kapal dari GFW.',
+                    'error_type' => $errorType,
+                    'status' => $upstreamStatus,
                 ];
             }
 
@@ -1602,7 +1609,9 @@ class GFWService
 
             return [
                 'success' => false,
-                'message' => 'Gagal memproses data track kapal: '.$e->getMessage(),
+                'message' => 'Gagal memproses data track kapal.',
+                'error' => 'Gagal memproses data track kapal.',
+                'error_type' => 'internal_server_error',
                 'status' => 500,
             ];
         }

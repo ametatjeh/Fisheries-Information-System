@@ -13,6 +13,8 @@ use App\Services\Gfw\GfwRegionService;
 use App\Services\Gfw\GfwVesselService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class GfwGatewayController extends Controller
 {
@@ -123,44 +125,64 @@ class GfwGatewayController extends Controller
      */
     public function vesselActivity(string $id, ActivityQueryRequest $request): JsonResponse
     {
-        $cleanId = trim($id);
-        if ($cleanId === '') {
-            return $this->errorResponse('Identifier vessel tidak valid.', 400);
+        try {
+            $cleanId = trim($id);
+            if ($cleanId === '') {
+                return $this->errorResponse('Identifier vessel tidak valid.', 400, [
+                    'error_type' => 'validation_error',
+                ]);
+            }
+
+            if (! $this->apiService->isConfigured()) {
+                return $this->errorResponse('GFW API key is not configured.', 503, [
+                    'error_type' => 'token_missing',
+                ]);
+            }
+
+            $startDate = $request->validated('start_date');
+            $endDate = $request->validated('end_date');
+            $refresh = $request->boolean('refresh');
+
+            $result = $this->activityService->getVesselActivity($cleanId, [
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'refresh' => $refresh,
+            ]);
+
+            if (! $result['success']) {
+                $isValidationError = isset($result['error']) && (
+                    str_contains($result['error'], 'date') ||
+                    str_contains($result['error'], 'tanggal') ||
+                    str_contains($result['error'], 'Rentang') ||
+                    str_contains($result['error'], 'Format')
+                );
+                $status = (int) ($result['status'] ?? ($isValidationError ? 422 : 502));
+                $errorType = $result['error_type'] ?? ($isValidationError ? 'validation_error' : 'upstream_error');
+
+                return $this->errorResponse($result['error'] ?? 'Gagal mengambil lintasan aktivitas kapal.', $status, [
+                    'error_type' => $errorType,
+                    'message' => $result['error'] ?? 'Gagal mengambil lintasan aktivitas kapal.',
+                ]);
+            }
+
+            return $this->successResponse($result['data'], [
+                'gfw_vessel_id' => $cleanId,
+                'query_period' => $result['query_period'] ?? null,
+                'total' => $result['total'] ?? count($result['data']),
+                'cached' => $result['cached'] ?? false,
+                'latency_notice' => $result['latency_notice'] ?? GfwActivityService::LATENCY_NOTICE,
+            ]);
+        } catch (Throwable $e) {
+            Log::error('GFW vesselActivity unexpected error: '.$e->getMessage(), [
+                'id' => $id,
+                'exception' => get_class($e),
+            ]);
+
+            return $this->errorResponse('Gagal mengambil lintasan aktivitas kapal.', 500, [
+                'error_type' => 'internal_server_error',
+                'message' => 'Gagal mengambil lintasan aktivitas kapal.',
+            ]);
         }
-
-        if (! $this->apiService->isConfigured()) {
-            return $this->errorResponse('GFW API key is not configured.', 503);
-        }
-
-        $startDate = $request->validated('start_date');
-        $endDate = $request->validated('end_date');
-        $refresh = $request->boolean('refresh');
-
-        $result = $this->activityService->getVesselActivity($cleanId, [
-            'start_date' => $startDate,
-            'end_date' => $endDate,
-            'refresh' => $refresh,
-        ]);
-
-        if (! $result['success']) {
-            $isValidationError = isset($result['error']) && (
-                str_contains($result['error'], 'date') ||
-                str_contains($result['error'], 'tanggal') ||
-                str_contains($result['error'], 'Rentang') ||
-                str_contains($result['error'], 'Format')
-            );
-            $status = $isValidationError ? 422 : 502;
-
-            return $this->errorResponse($result['error'] ?? 'Gagal mengambil lintasan aktivitas kapal.', $status);
-        }
-
-        return $this->successResponse($result['data'], [
-            'gfw_vessel_id' => $cleanId,
-            'query_period' => $result['query_period'] ?? null,
-            'total' => $result['total'] ?? count($result['data']),
-            'cached' => $result['cached'] ?? false,
-            'latency_notice' => $result['latency_notice'] ?? GfwActivityService::LATENCY_NOTICE,
-        ]);
     }
 
     /**
@@ -435,7 +457,9 @@ class GfwGatewayController extends Controller
         $payload = array_merge([
             'success' => false,
             'source' => 'global_fishing_watch',
+            'message' => $message,
             'error' => $message,
+            'error_type' => $extra['error_type'] ?? 'upstream_error',
             'valid' => false,
             'total' => 0,
             'data' => [],

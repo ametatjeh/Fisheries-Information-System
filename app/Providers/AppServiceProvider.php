@@ -38,7 +38,9 @@ class AppServiceProvider extends ServiceProvider
                 return response()->json([
                     'success' => false,
                     'source' => 'global_fishing_watch',
+                    'message' => 'Terlalu banyak permintaan API GFW. Batas kuota adalah 60 request/menit.',
                     'error' => 'Terlalu banyak permintaan API GFW. Batas kuota adalah 60 request/menit.',
+                    'error_type' => 'rate_limit_exceeded',
                     'status' => 429,
                 ], 429);
             });

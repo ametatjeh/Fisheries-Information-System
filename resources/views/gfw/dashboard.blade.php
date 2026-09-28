@@ -1450,19 +1450,45 @@
                 const endDate = filterEnd.value;
 
                 try {
-                    const res = await fetch(`/api/gfw/vessels/${activeSelectedVessel.id}/track?start_date=${startDate}&end_date=${endDate}`);
-                    const json = await res.json();
+                    const res = await fetch(`/api/gfw/vessels/${encodeURIComponent(activeSelectedVessel.id)}/track?start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}`, {
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    });
+
                     btnLoadTrack.disabled = false;
                     btnLoadTrack.textContent = 'Lihat Track';
 
-                    if (!json.success || !json.track) {
-                        alert(json.message || 'Gagal memuat data lintasan.');
+                    const contentType = res.headers.get('content-type') || '';
+                    if (!contentType.includes('application/json')) {
+                        throw new Error(`Server mengembalikan response non-JSON (HTTP ${res.status}).`);
+                    }
+
+                    const json = await res.json();
+
+                    if (!res.ok || json.success === false) {
+                        let errMsg = json?.message || json?.error;
+                        if (!errMsg) {
+                            if (res.status === 401) errMsg = 'Sesi atau autentikasi tidak valid (HTTP 401).';
+                            else if (res.status === 403) errMsg = 'Tidak memiliki hak akses (HTTP 403).';
+                            else if (res.status === 404) errMsg = 'Data track untuk kapal ini tidak ditemukan di GFW (HTTP 404).';
+                            else if (res.status === 429) errMsg = 'Terlalu banyak permintaan ke server (HTTP 429). Silakan tunggu sejenak.';
+                            else if (res.status === 500) errMsg = 'Kesalahan internal server (HTTP 500).';
+                            else if (res.status === 502 || res.status === 504) errMsg = 'Gagal berkomunikasi dengan upstream GFW API (HTTP ' + res.status + ').';
+                            else errMsg = 'Gagal memuat data track (HTTP ' + res.status + ').';
+                        }
+                        alert(errMsg);
+                        return;
+                    }
+
+                    if (!json.track) {
+                        alert(json.message || 'Data lintasan tidak ditemukan.');
                         return;
                     }
 
                     // Display track stats
                     trackSummaryBox.classList.remove('hidden');
-                    trackPointsCount.textContent = `${json.points_count} titik`;
+                    trackPointsCount.textContent = `${json.points_count ?? 0} titik`;
                     trackFirstSeen.textContent = formatDate(json.first_detected);
                     trackLastSeen.textContent = formatDate(json.last_detected);
 
@@ -1507,7 +1533,12 @@
                 } catch (e) {
                     btnLoadTrack.disabled = false;
                     btnLoadTrack.textContent = 'Lihat Track';
-                    alert('Koneksi terputus saat mengambil data track: ' + e.message);
+                    const isNetwork = e instanceof TypeError || (e.message && (e.message.includes('NetworkError') || e.message.includes('Failed to fetch')));
+                    if (isNetwork) {
+                        alert('Koneksi terputus saat mengambil data track: ' + e.message);
+                    } else {
+                        alert(e.message || 'Gagal memuat data track.');
+                    }
                 }
             });
 

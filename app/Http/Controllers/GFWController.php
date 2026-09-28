@@ -9,6 +9,7 @@ use App\Services\GFWService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class GFWController extends Controller
@@ -548,79 +549,105 @@ class GFWController extends Controller
      */
     public function vesselTrack(Request $request, GFWService $gfw, string $vessel = '', ?string $vesselId = null): JsonResponse
     {
-        $cleanId = trim($vessel !== '' ? $vessel : ($vesselId ?? ''));
-        if ($cleanId === '') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Vessel ID tidak boleh kosong.',
-            ], 422);
-        }
-
-        $startDateStr = $request->query('start_date', $request->query('start', now()->subDays(6)->toDateString()));
-        $endDateStr = $request->query('end_date', $request->query('end', now()->toDateString()));
-
-        // 1. Validate date format (YYYY-MM-DD)
-        if (! is_string($startDateStr) || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDateStr)
-            || ! is_string($endDateStr) || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $endDateStr)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Format tanggal harus berformat YYYY-MM-DD.',
-            ], 422);
-        }
-
-        // 2. Validate calendar date validity
-        [$sYear, $sMonth, $sDay] = explode('-', $startDateStr);
-        [$eYear, $eMonth, $eDay] = explode('-', $endDateStr);
-
-        if (! checkdate((int) $sMonth, (int) $sDay, (int) $sYear) || ! checkdate((int) $eMonth, (int) $eDay, (int) $eYear)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Tanggal yang dimasukkan tidak valid.',
-            ], 422);
-        }
-
         try {
-            $startDate = Carbon::createFromFormat('Y-m-d', $startDateStr)->startOfDay();
-            $endDate = Carbon::createFromFormat('Y-m-d', $endDateStr)->startOfDay();
-        } catch (Throwable) {
+            $cleanId = trim($vessel !== '' ? $vessel : ($vesselId ?? ''));
+            if ($cleanId === '') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Vessel ID tidak boleh kosong.',
+                    'error' => 'Vessel ID tidak boleh kosong.',
+                    'error_type' => 'validation_error',
+                ], 422);
+            }
+
+            $startDateStr = $request->query('start_date', $request->query('start', now()->subDays(6)->toDateString()));
+            $endDateStr = $request->query('end_date', $request->query('end', now()->toDateString()));
+
+            // 1. Validate date format (YYYY-MM-DD)
+            if (! is_string($startDateStr) || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDateStr)
+                || ! is_string($endDateStr) || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $endDateStr)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Format tanggal harus berformat YYYY-MM-DD.',
+                    'error' => 'Format tanggal harus berformat YYYY-MM-DD.',
+                    'error_type' => 'validation_error',
+                ], 422);
+            }
+
+            // 2. Validate calendar date validity
+            [$sYear, $sMonth, $sDay] = explode('-', $startDateStr);
+            [$eYear, $eMonth, $eDay] = explode('-', $endDateStr);
+
+            if (! checkdate((int) $sMonth, (int) $sDay, (int) $sYear) || ! checkdate((int) $eMonth, (int) $eDay, (int) $eYear)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tanggal yang dimasukkan tidak valid.',
+                    'error' => 'Tanggal yang dimasukkan tidak valid.',
+                    'error_type' => 'validation_error',
+                ], 422);
+            }
+
+            try {
+                $startDate = Carbon::createFromFormat('Y-m-d', $startDateStr)->startOfDay();
+                $endDate = Carbon::createFromFormat('Y-m-d', $endDateStr)->startOfDay();
+            } catch (Throwable) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tanggal yang dimasukkan tidak valid.',
+                    'error' => 'Tanggal yang dimasukkan tidak valid.',
+                    'error_type' => 'validation_error',
+                ], 422);
+            }
+
+            // 3. Validate chronological order
+            if ($startDate->gt($endDate)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'start_date harus lebih kecil atau sama dengan end_date.',
+                    'error' => 'start_date harus lebih kecil atau sama dengan end_date.',
+                    'error_type' => 'validation_error',
+                ], 422);
+            }
+
+            // 4. Validate max range of 7 calendar days
+            $inclusiveDays = (int) $startDate->diffInDays($endDate) + 1;
+            if ($inclusiveDays > 7) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Rentang tanggal maksimal 7 hari untuk observasi track lintasan kapal.',
+                    'error' => 'Rentang tanggal maksimal 7 hari untuk observasi track lintasan kapal.',
+                    'error_type' => 'validation_error',
+                ], 422);
+            }
+
+            $scope = $request->query('scope', 'zee_aceh');
+            $options = [
+                'scope' => $scope,
+                'name' => is_string($request->query('name')) ? mb_substr(strip_tags(trim($request->query('name'))), 0, 100) : null,
+                'mmsi' => is_string($request->query('mmsi')) ? mb_substr(strip_tags(trim($request->query('mmsi'))), 0, 50) : null,
+                'ssvid' => is_string($request->query('ssvid')) ? mb_substr(strip_tags(trim($request->query('ssvid'))), 0, 50) : null,
+                'imo' => is_string($request->query('imo')) ? mb_substr(strip_tags(trim($request->query('imo'))), 0, 50) : null,
+                'flag' => is_string($request->query('flag')) ? mb_substr(strip_tags(trim($request->query('flag'))), 0, 10) : null,
+                'vessel_type' => is_string($request->query('vessel_type')) ? mb_substr(strip_tags(trim($request->query('vessel_type'))), 0, 50) : null,
+            ];
+            $result = $gfw->getVesselTrack($cleanId, $startDateStr, $endDateStr, $options);
+            $status = (int) ($result['status'] ?? ($result['success'] ? 200 : 500));
+            unset($result['status']);
+
+            return response()->json($result, $status);
+        } catch (Throwable $e) {
+            Log::error('GFW vesselTrack unexpected controller error: '.$e->getMessage(), [
+                'vessel' => $vessel,
+                'exception' => get_class($e),
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Tanggal yang dimasukkan tidak valid.',
-            ], 422);
+                'message' => 'Gagal memuat data track kapal.',
+                'error' => 'Gagal memuat data track kapal.',
+                'error_type' => 'internal_server_error',
+            ], 500);
         }
-
-        // 3. Validate chronological order
-        if ($startDate->gt($endDate)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'start_date harus lebih kecil atau sama dengan end_date.',
-            ], 422);
-        }
-
-        // 4. Validate max range of 7 calendar days
-        $inclusiveDays = (int) $startDate->diffInDays($endDate) + 1;
-        if ($inclusiveDays > 7) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Date range cannot exceed 7 days during GFW-03/GFW-04 testing.',
-            ], 422);
-        }
-
-        $scope = $request->query('scope', 'zee_aceh');
-        $options = [
-            'scope' => $scope,
-            'name' => is_string($request->query('name')) ? mb_substr(strip_tags(trim($request->query('name'))), 0, 100) : null,
-            'mmsi' => is_string($request->query('mmsi')) ? mb_substr(strip_tags(trim($request->query('mmsi'))), 0, 50) : null,
-            'ssvid' => is_string($request->query('ssvid')) ? mb_substr(strip_tags(trim($request->query('ssvid'))), 0, 50) : null,
-            'imo' => is_string($request->query('imo')) ? mb_substr(strip_tags(trim($request->query('imo'))), 0, 50) : null,
-            'flag' => is_string($request->query('flag')) ? mb_substr(strip_tags(trim($request->query('flag'))), 0, 10) : null,
-            'vessel_type' => is_string($request->query('vessel_type')) ? mb_substr(strip_tags(trim($request->query('vessel_type'))), 0, 50) : null,
-        ];
-        $result = $gfw->getVesselTrack($cleanId, $startDateStr, $endDateStr, $options);
-        $status = $result['status'] ?? ($result['success'] ? 200 : 500);
-        unset($result['status']);
-
-        return response()->json($result, $status);
     }
 
     /**

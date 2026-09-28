@@ -534,7 +534,13 @@
                 resultDiv.innerHTML = '<span class="text-indigo-400">Mencari kapal di gateway GFW...</span>';
 
                 try {
-                    const searchRes = await fetch(`/api/gfw/vessels?query=${encodeURIComponent(query)}`);
+                    const searchRes = await fetch(`/api/gfw/vessels?query=${encodeURIComponent(query)}`, {
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    const searchContentType = searchRes.headers.get('content-type') || '';
+                    if (!searchContentType.includes('application/json')) {
+                        throw new Error(`Server mengembalikan response non-JSON (HTTP ${searchRes.status}).`);
+                    }
                     const searchJson = await searchRes.json();
 
                     if (searchJson.success && Array.isArray(searchJson.data) && searchJson.data.length > 0) {
@@ -544,7 +550,13 @@
                         // Fetch track
                         const startDate = startDateInput.value;
                         const endDate = endDateInput.value;
-                        const trackRes = await fetch(`/api/gfw/activity/vessels/${encodeURIComponent(vessel.gfw_vessel_id)}?start_date=${startDate}&end_date=${endDate}`);
+                        const trackRes = await fetch(`/api/gfw/activity/vessels/${encodeURIComponent(vessel.gfw_vessel_id)}?start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}`, {
+                            headers: { 'Accept': 'application/json' }
+                        });
+                        const trackContentType = trackRes.headers.get('content-type') || '';
+                        if (!trackContentType.includes('application/json')) {
+                            throw new Error(`Server mengembalikan response non-JSON (HTTP ${trackRes.status}).`);
+                        }
                         const trackJson = await trackRes.json();
 
                         layerTracks.clearLayers();
@@ -574,12 +586,16 @@
                                 const polyline = L.polyline(latLngs, { color: '#06b6d4', weight: 2.5, opacity: 0.9 }).addTo(layerTracks);
                                 map.fitBounds(polyline.getBounds(), { padding: [30, 30] });
                             }
+                        } else {
+                            const trackErrMsg = trackJson?.message || trackJson?.error || 'Tidak ada data lintasan kapal untuk periode ini.';
+                            resultDiv.innerHTML += `<div class="mt-2 text-xs text-amber-300">ℹ️ ${trackErrMsg}</div>`;
                         }
                     } else {
                         resultDiv.innerHTML = '<span class="text-rose-400">Kapal tidak ditemukan pada data GFW.</span>';
                     }
                 } catch (e) {
-                    resultDiv.innerHTML = '<span class="text-rose-400">Gagal mencari kapal.</span>';
+                    const isNetwork = e instanceof TypeError || (e.message && (e.message.includes('NetworkError') || e.message.includes('Failed to fetch')));
+                    resultDiv.innerHTML = `<span class="text-rose-400">${isNetwork ? 'Koneksi terputus saat mengambil data track.' : (e.message || 'Gagal mencari kapal.')}</span>`;
                 }
             });
 
