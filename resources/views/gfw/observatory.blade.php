@@ -114,7 +114,7 @@
                         <span>{{ __('Distribusi Tipe Kapal') }}</span>
                     </h3>
                     <div class="space-y-2" id="vessel-type-distribution">
-                        @forelse($stats['vessels_by_type'] ?? [] as $type => $count)
+                        @forelse(($stats['vessels_by_type'] ?? []) as $type => $count)
                             @php
                                 $total = max(1, $stats['total_vessels'] ?? 1);
                                 $pct = round(($count / $total) * 100, 1);
@@ -149,7 +149,7 @@
                         <span>{{ __('Distribusi Bendera') }}</span>
                     </h3>
                     <div class="flex flex-wrap gap-2" id="flag-distribution">
-                        @forelse($stats['vessels_by_flag'] ?? [] as $flag => $count)
+                        @forelse(($stats['vessels_by_flag'] ?? []) as $flag => $count)
                             <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-slate-100 text-xs font-semibold text-slate-700 border border-slate-200">
                                 <span class="uppercase">{{ $flag }}</span>
                                 <span class="ml-1.5 bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded text-[10px]">{{ $count }}</span>

@@ -808,7 +808,7 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-800/60 font-medium">
-                        @forelse($stats['gear_cpue_table'] ?? [] as $row)
+                        @forelse(($stats['gear_cpue_table'] ?? []) as $row)
                             <tr class="hover:bg-slate-800/40 transition-colors">
                                 <td class="py-3 px-4 font-bold text-white flex items-center gap-2">
                                     <span class="text-ocean-400">🎣</span>
@@ -863,7 +863,7 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-800/60 font-medium">
-                        @forelse($stats['species_cpue_table'] ?? [] as $row)
+                        @forelse(($stats['species_cpue_table'] ?? []) as $row)
                             <tr class="hover:bg-slate-800/40 transition-colors">
                                 <td class="py-3 px-4 font-bold text-white flex items-center gap-2">
                                     <span class="text-cyan-400">🐟</span>
@@ -917,7 +917,7 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-800/60 font-medium">
-                        @forelse($stats['detailed_table'] ?? [] as $row)
+                        @forelse(($stats['detailed_table'] ?? []) as $row)
                             <tr class="hover:bg-slate-800/40 transition-colors">
                                 <td class="py-2.5 px-4 font-mono text-slate-300">{{ $row['year'] }}</td>
                                 <td class="py-2.5 px-3 text-white">{{ $row['month_name'] }}</td>
