@@ -1626,6 +1626,8 @@ class GFWService
      */
     public function getDashboardData(array $geometry, string $startDate, string $endDate, array $options = []): array
     {
+        $cacheKey = 'gfw_dashboard_'.md5(json_encode($geometry).$startDate.$endDate);
+
         try {
             if (! ($options['refresh'] ?? false) && Cache::has($cacheKey)) {
                 $cached = Cache::get($cacheKey);
