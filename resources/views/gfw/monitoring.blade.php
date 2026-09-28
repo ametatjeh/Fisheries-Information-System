@@ -208,19 +208,55 @@
 
             {{-- Map Canvas (3 cols on desktop) --}}
             <div class="lg:col-span-3 space-y-3">
-                <div id="map-card-wrapper" class="bg-slate-900/90 rounded-2xl p-2 shadow-sm border border-slate-800 relative" style="resize: vertical; overflow: hidden; min-height: 520px; max-height: 960px; height: 640px;">
-                    {{-- Status / Notification Overlay --}}
-                    <div id="map-status-overlay" class="absolute top-4 right-4 z-[1000] px-3 py-1.5 rounded-xl bg-slate-900/95 text-white text-xs font-medium shadow-lg backdrop-blur-xs border border-slate-700 hidden items-center gap-2">
-                        <span id="map-status-icon">🔄</span>
-                        <span id="map-status-text">{{ __('Loading GFW data...') }}</span>
+                <div class="bg-slate-900/90 rounded-2xl p-3 shadow-sm border border-slate-800 relative">
+                    {{-- Map Dimension Header Controls (Height Resize) --}}
+                    <div class="flex flex-wrap items-center justify-between gap-2 pb-2.5 mb-1.5 border-b border-slate-800 text-xs">
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-slate-100 flex items-center gap-1.5 text-xs">
+                                <span>🗺️</span>
+                                <span>{{ __('Peta Pemantauan Kapal') }}</span>
+                            </span>
+                            <span id="map-dimension-badge" class="font-mono text-[10px] text-indigo-300 font-semibold px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700">640px</span>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-2">
+                            {{-- Vertical Height Presets --}}
+                            <div class="flex items-center gap-1 bg-slate-800/80 p-0.5 rounded-lg border border-slate-700/80">
+                                <span class="text-[10px] text-slate-400 px-1.5 font-semibold flex items-center gap-1">
+                                    <span>↕️</span>
+                                    <span class="hidden sm:inline">{{ __('Tinggi:') }}</span>
+                                </span>
+                                <button type="button" data-map-height="520" class="btn-preset-monitoring-height px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 hover:bg-indigo-600 hover:text-white text-slate-300 transition border border-slate-700 cursor-pointer" title="520px">520px</button>
+                                <button type="button" data-map-height="640" class="btn-preset-monitoring-height px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-600 text-white transition border border-indigo-500 cursor-pointer" title="640px">640px</button>
+                                <button type="button" data-map-height="800" class="btn-preset-monitoring-height px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 hover:bg-indigo-600 hover:text-white text-slate-300 transition border border-slate-700 cursor-pointer" title="800px">800px</button>
+                                <button type="button" data-map-height="960" class="btn-preset-monitoring-height px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 hover:bg-indigo-600 hover:text-white text-slate-300 transition border border-slate-700 cursor-pointer" title="960px">960px</button>
+                            </div>
+                        </div>
                     </div>
 
-                    {{-- Leaflet Map Element (Light Mode Canvas) --}}
-                    <div id="gfw-map" class="w-full h-full rounded-xl z-0 bg-slate-100"></div>
+                    {{-- Map Card Wrapper --}}
+                    <div id="map-card-wrapper" class="relative" style="overflow: hidden; height: 640px; min-height: 380px; max-height: 1400px;">
+                        {{-- Status / Notification Overlay --}}
+                        <div id="map-status-overlay" class="absolute top-4 right-4 z-[1000] px-3 py-1.5 rounded-xl bg-slate-900/95 text-white text-xs font-medium shadow-lg backdrop-blur-xs border border-slate-700 hidden items-center gap-2">
+                            <span id="map-status-icon">🔄</span>
+                            <span id="map-status-text">{{ __('Loading GFW data...') }}</span>
+                        </div>
 
-                    {{-- Resize Handle Indicator --}}
-                    <div class="absolute bottom-1 right-2 text-slate-500 text-xs pointer-events-none select-none">
-                        ⤡
+                        {{-- Leaflet Map Element (Light Mode Canvas) --}}
+                        <div id="gfw-map" class="w-full h-full rounded-xl z-0 bg-slate-100"></div>
+                    </div>
+
+                    {{-- Interactive Vertical Resize Handle Bar --}}
+                    <div id="monitoring-map-resize-handle" class="group w-full py-2 mt-1.5 flex items-center justify-center cursor-row-resize select-none rounded-lg bg-slate-800/40 hover:bg-slate-800/90 active:bg-indigo-950/70 border border-slate-700/50 hover:border-indigo-500/60 transition-all shadow-xs" title="Klik dan geser ke atas/bawah untuk mengubah tinggi peta">
+                        <div class="flex items-center gap-3 text-slate-400 group-hover:text-indigo-300 text-[11px] font-medium tracking-wide">
+                            <span class="inline-block w-12 h-1 rounded-full bg-slate-600 group-hover:bg-indigo-400 transition-colors"></span>
+                            <span class="flex items-center gap-1.5">
+                                <span class="text-xs">↕️</span>
+                                <span class="font-semibold text-slate-300 group-hover:text-white transition-colors">{{ __('Tarik Vertikal') }}</span>
+                                <span id="monitoring-map-height-display" class="font-mono text-[10px] text-indigo-300 font-bold px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700/80">640px</span>
+                            </span>
+                            <span class="inline-block w-12 h-1 rounded-full bg-slate-600 group-hover:bg-indigo-400 transition-colors"></span>
+                        </div>
                     </div>
                 </div>
 
@@ -339,6 +375,110 @@
                     map.invalidateSize();
                 }).observe(mapCardWrapper);
             }
+
+            // Map Dimension Controls (Height Presets + Drag Resize)
+            (function initMonitoringMapDimensions() {
+                const mapContainer = mapCardWrapper;
+                const resizeHandle = document.getElementById('monitoring-map-resize-handle');
+                const heightDisplay = document.getElementById('monitoring-map-height-display');
+                const dimensionBadge = document.getElementById('map-dimension-badge');
+                const presetHeightButtons = document.querySelectorAll('.btn-preset-monitoring-height');
+
+                const MIN_HEIGHT = 380;
+                const MAX_HEIGHT = 1400;
+                let currentHeight = 640;
+
+                const updateBadge = () => {
+                    if (dimensionBadge) dimensionBadge.textContent = `${currentHeight}px`;
+                };
+
+                const applyHeight = (height, save = true) => {
+                    const clamped = Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, Math.round(height)));
+                    currentHeight = clamped;
+                    if (mapContainer) mapContainer.style.height = `${clamped}px`;
+                    if (heightDisplay) heightDisplay.textContent = `${clamped}px`;
+                    updateBadge();
+
+                    presetHeightButtons.forEach(btn => {
+                        const h = parseInt(btn.dataset.mapHeight, 10);
+                        if (Math.abs(h - clamped) < 25) {
+                            btn.classList.add('bg-indigo-600', 'text-white', 'border-indigo-500');
+                            btn.classList.remove('bg-slate-800', 'text-slate-300', 'border-slate-700');
+                        } else {
+                            btn.classList.remove('bg-indigo-600', 'text-white', 'border-indigo-500');
+                            btn.classList.add('bg-slate-800', 'text-slate-300', 'border-slate-700');
+                        }
+                    });
+
+                    if (save) {
+                        try { localStorage.setItem('gfw_monitoring_map_height', clamped); } catch (e) {}
+                    }
+                    map.invalidateSize();
+                };
+
+                // Restore saved height
+                try {
+                    const savedHeight = parseInt(localStorage.getItem('gfw_monitoring_map_height'), 10);
+                    if (savedHeight && !isNaN(savedHeight) && savedHeight >= MIN_HEIGHT && savedHeight <= MAX_HEIGHT) {
+                        applyHeight(savedHeight, false);
+                    }
+                } catch (e) {}
+
+                // Preset height buttons
+                presetHeightButtons.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const h = parseInt(btn.dataset.mapHeight, 10);
+                        if (h) applyHeight(h, true);
+                    });
+                });
+
+                // Vertical drag handle
+                if (resizeHandle && mapContainer) {
+                    let startY = 0;
+                    let startHeight = 0;
+                    let isDragging = false;
+
+                    const onMouseMove = (e) => {
+                        if (!isDragging) return;
+                        const clientY = e.clientY ?? (e.touches && e.touches[0] ? e.touches[0].clientY : null);
+                        if (clientY === null || clientY === undefined) return;
+                        const deltaY = clientY - startY;
+                        applyHeight(startHeight + deltaY, false);
+                    };
+
+                    const onMouseUp = () => {
+                        if (!isDragging) return;
+                        isDragging = false;
+                        document.body.style.cursor = '';
+                        document.body.style.userSelect = '';
+                        window.removeEventListener('mousemove', onMouseMove);
+                        window.removeEventListener('mouseup', onMouseUp);
+                        window.removeEventListener('touchmove', onMouseMove);
+                        window.removeEventListener('touchend', onMouseUp);
+
+                        const finalHeight = parseInt(mapContainer.style.height, 10);
+                        if (finalHeight) {
+                            try { localStorage.setItem('gfw_monitoring_map_height', finalHeight); } catch (e) {}
+                        }
+                    };
+
+                    const onMouseDown = (e) => {
+                        isDragging = true;
+                        startY = e.clientY ?? (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+                        startHeight = mapContainer.offsetHeight;
+                        document.body.style.cursor = 'row-resize';
+                        document.body.style.userSelect = 'none';
+                        window.addEventListener('mousemove', onMouseMove, { passive: true });
+                        window.addEventListener('mouseup', onMouseUp);
+                        window.addEventListener('touchmove', onMouseMove, { passive: true });
+                        window.addEventListener('touchend', onMouseUp);
+                    };
+
+                    resizeHandle.addEventListener('mousedown', onMouseDown);
+                    resizeHandle.addEventListener('touchstart', onMouseDown, { passive: true });
+                }
+            })();
 
             // 3. Load All Active GFW Layers
             async function loadGfwData() {
