@@ -315,7 +315,7 @@
                              this.loading = true;
                              const familyVal = document.getElementById('filter_family')?.value || '';
                              try {
-                                 const url = new URL('{{ route('landing.statistik.species-search') }}', window.location.origin);
+                                 const url = new URL('{{ route('landing.statistik.species-search', [], false) }}', window.location.origin);
                                  if (this.search) url.searchParams.set('q', this.search);
                                  if (familyVal) url.searchParams.set('family', familyVal);
                                  const res = await fetch(url, {
@@ -1997,7 +1997,7 @@
                 $('#mapErrorOverlay').addClass('hidden');
 
                 const searchParams = window.location.search || '';
-                const apiUrl = '{{ route("api.public.gis.data") }}' + searchParams;
+                const apiUrl = '{{ route("api.public.gis.data", [], false) }}' + searchParams;
 
                 fetch(apiUrl, {
                     headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
@@ -2166,7 +2166,7 @@
                     }
 
                     // 6. RZWP3K ACEH GEOJSON LOAD (Geometry-Ready / Safe Fallback)
-                    fetch('{{ route("api.rzwp3k.zones") }}', {
+                    fetch('{{ route("api.rzwp3k.zones", [], false) }}', {
                         headers: { 'Accept': 'application/geo+json, application/json', 'X-Requested-With': 'XMLHttpRequest' }
                     })
                     .then(res => res.json())
@@ -2714,7 +2714,7 @@
             // RZWP3K Zone Type Filter change handler
             $('#filterRzwp3kZoneType').on('change', function() {
                 const selectedType = $(this).val();
-                const url = '{{ route("api.rzwp3k.zones") }}' + (selectedType ? ('?zone_type=' + encodeURIComponent(selectedType)) : '');
+                const url = '{{ route("api.rzwp3k.zones", [], false) }}' + (selectedType ? ('?zone_type=' + encodeURIComponent(selectedType)) : '');
                 fetch(url, {
                     headers: { 'Accept': 'application/geo+json, application/json', 'X-Requested-With': 'XMLHttpRequest' }
                 })

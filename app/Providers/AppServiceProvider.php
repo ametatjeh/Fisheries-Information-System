@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -25,6 +26,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if ($this->app->environment('production')) {
+            URL::forceScheme('https');
+
+            if (file_exists(public_path('hot'))) {
+                @unlink(public_path('hot'));
+            }
+        }
+
         // Super-admin & developer bypass semua permission check.
         // Artinya user dengan role 'super-admin' atau 'developer' otomatis bisa
         // mengakses SEMUA fitur tanpa perlu assign permission satu per satu.

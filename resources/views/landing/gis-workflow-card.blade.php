@@ -26,12 +26,12 @@
     {{-- Scoped Animations for GIS Workflow SVG with reduced-motion support --}}
     <style>
         @keyframes gisDashFlow {
-            to { stroke-dashoffset: -14; }
+            to { stroke-dashoffset: -14px; }
         }
         @keyframes gisPointPulse {
-            0% { r: 3.5; opacity: 0.9; }
-            70% { r: 8.5; opacity: 0; }
-            100% { r: 8.5; opacity: 0; }
+            0% { r: 3.5px; opacity: 0.9; }
+            70% { r: 8.5px; opacity: 0; }
+            100% { r: 8.5px; opacity: 0; }
         }
         .gis-anim-dash {
             animation: gisDashFlow 1.2s linear infinite;
