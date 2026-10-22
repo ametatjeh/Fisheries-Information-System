@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Services\RecaptchaService;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -27,9 +28,28 @@ class LoginRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $rules = [
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
+        ];
+
+        if (config('recaptcha.enabled', true)) {
+            $rules['g-recaptcha-response'] = ['required', 'string'];
+        }
+
+        return $rules;
+    }
+
+    /**
+     * Custom validation error messages.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'g-recaptcha-response.required' => 'Verifikasi keamanan gagal. Silakan coba lagi.',
+            'g-recaptcha-response.string' => 'Verifikasi keamanan gagal. Silakan coba lagi.',
         ];
     }
 
@@ -38,9 +58,25 @@ class LoginRequest extends FormRequest
      *
      * @throws ValidationException
      */
-    public function authenticate(): void
+    public function authenticate(?RecaptchaService $recaptchaService = null): void
     {
         $this->ensureIsNotRateLimited();
+
+        if (config('recaptcha.enabled', true)) {
+            $service = $recaptchaService ?? app(RecaptchaService::class);
+            $verification = $service->verify(
+                (string) $this->input('g-recaptcha-response', ''),
+                $this->ip()
+            );
+
+            if (! $verification['success']) {
+                RateLimiter::hit($this->throttleKey());
+
+                throw ValidationException::withMessages([
+                    'g-recaptcha-response' => $verification['error'] ?? 'Verifikasi keamanan gagal. Silakan coba lagi.',
+                ]);
+            }
+        }
 
         if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());

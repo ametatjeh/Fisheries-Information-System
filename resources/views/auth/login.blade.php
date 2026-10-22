@@ -17,8 +17,9 @@
     @endif
 
     <div x-data="{ showPassword: false }">
-        <form method="POST" action="{{ route('login') }}" class="space-y-4">
+        <form method="POST" action="{{ route('login') }}" class="space-y-4" id="loginForm">
             @csrf
+            <input type="hidden" name="g-recaptcha-response" id="g-recaptcha-response">
 
             <!-- Email Address -->
             <div>
@@ -129,4 +130,42 @@
             </div>
         </form>
     </div>
+
+    @if(config('recaptcha.enabled', true) && config('recaptcha.site_key'))
+        <script src="https://www.google.com/recaptcha/api.js?render={{ config('recaptcha.site_key') }}"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const form = document.getElementById('loginForm');
+                if (!form) return;
+
+                let isSubmitting = false;
+
+                form.addEventListener('submit', function (e) {
+                    const tokenInput = document.getElementById('g-recaptcha-response');
+                    if (tokenInput && tokenInput.value) {
+                        return;
+                    }
+
+                    if (typeof grecaptcha !== 'undefined') {
+                        e.preventDefault();
+                        if (isSubmitting) return;
+                        isSubmitting = true;
+
+                        grecaptcha.ready(function () {
+                            grecaptcha.execute('{{ config('recaptcha.site_key') }}', { action: '{{ config('recaptcha.login_action', 'login') }}' })
+                                .then(function (token) {
+                                    tokenInput.value = token;
+                                    form.submit();
+                                })
+                                .catch(function (error) {
+                                    console.error('reCAPTCHA execution failed:', error);
+                                    isSubmitting = false;
+                                    form.submit();
+                                });
+                        });
+                    }
+                });
+            });
+        </script>
+    @endif
 </x-guest-layout>
